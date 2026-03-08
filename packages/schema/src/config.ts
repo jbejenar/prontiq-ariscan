@@ -15,7 +15,7 @@ export const ScanConfig = z.object({
   output: z.string().optional(),
   verbose: z.boolean().default(false),
   quiet: z.boolean().default(false),
-  pillars: z.record(PillarId, PillarOverride).optional(),
+  pillars: z.record(z.string(), PillarOverride).optional(),
   exclude: z.array(z.string()).default([]),
   include: z.array(z.string()).optional(),
 });
@@ -31,7 +31,7 @@ export const FileConfig = z.object({
   pillars: z
     .object({
       exclude: z.array(PillarId).optional(),
-      weights: z.record(PillarId, z.number().min(0).max(1)).optional(),
+      weights: z.record(z.string(), z.number().min(0).max(1)).optional(),
     })
     .optional(),
 });
