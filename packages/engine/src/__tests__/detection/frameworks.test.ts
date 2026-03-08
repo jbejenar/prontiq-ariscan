@@ -104,7 +104,7 @@ describe("detectFrameworks", () => {
   it("detects Rails via config/routes.rb", async () => {
     const ctx = createMockContext({
       "config/routes.rb": "Rails.application.routes.draw do\nend",
-      "Gemfile": 'gem "rails", "~> 7.0"\ngem "pg"',
+      Gemfile: 'gem "rails", "~> 7.0"\ngem "pg"',
       "app/controllers/application_controller.rb": "",
     });
 
@@ -118,7 +118,7 @@ describe("detectFrameworks", () => {
   it("returns empty array for unknown project", async () => {
     const ctx = createMockContext({
       "main.c": "#include <stdio.h>",
-      "Makefile": "all: main",
+      Makefile: "all: main",
     });
 
     const result = await detectFrameworks(ctx);

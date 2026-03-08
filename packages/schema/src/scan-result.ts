@@ -52,12 +52,7 @@ export const Finding = z.object({
 });
 export type Finding = z.infer<typeof Finding>;
 
-export const PillarStatus = z.enum([
-  "excellent",
-  "good",
-  "needs-improvement",
-  "poor",
-]);
+export const PillarStatus = z.enum(["excellent", "good", "needs-improvement", "poor"]);
 export type PillarStatus = z.infer<typeof PillarStatus>;
 
 /**

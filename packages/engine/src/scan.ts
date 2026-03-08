@@ -31,7 +31,8 @@ function classifyContextFile(filePath: string): ContextFileType {
   if (filePath === ".aider.conf.yml" || filePath === ".aiderignore") return "aider-config";
   if (filePath === ".agentignore") return "agentignore";
   if (filePath === ".mcp.json" || filePath === "mcp.config.js") return "mcp-config";
-  if (filePath === ".claude/settings.json" || filePath.startsWith(".claude/commands/")) return "claude-md";
+  if (filePath === ".claude/settings.json" || filePath.startsWith(".claude/commands/"))
+    return "claude-md";
   return "other";
 }
 

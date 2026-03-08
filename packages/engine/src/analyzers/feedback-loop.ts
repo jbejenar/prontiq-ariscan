@@ -49,7 +49,8 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
           },
           evidence: {
             paper: "DORA, 2024",
-            finding: "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
+            finding:
+              "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
             confidence: "high",
           },
         });
@@ -180,7 +181,8 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
     }
 
     if (!hasChangesetControls) {
-      const hasDangerfile = await context.fileExists("dangerfile.ts") || await context.fileExists("dangerfile.js");
+      const hasDangerfile =
+        (await context.fileExists("dangerfile.ts")) || (await context.fileExists("dangerfile.js"));
       if (hasDangerfile) {
         hasChangesetControls = true;
       }
@@ -196,7 +198,8 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         message: "No changeset scope controls found (commitlint, changesets, or Danger)",
         remediation: {
           action: "configure-tool",
-          description: "Add commitlint for conventional commits or @changesets/cli for scoped changesets",
+          description:
+            "Add commitlint for conventional commits or @changesets/cli for scoped changesets",
           confidence: "medium",
         },
       });
@@ -208,11 +211,16 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
     // Max local = 80, max CI = 20. Max raw = 80*2 + 20*1 = 180.
     // Normalize: score = raw * 100 / 180
     const rawWeighted = localScore * 2 + ciScore;
-    const maxWeighted = 80 * 2 + 20;  // 180
+    const maxWeighted = 80 * 2 + 20; // 180
     let score = Math.round((rawWeighted / maxWeighted) * 100);
 
     // --- Watch mode finding (ARI-FBK-007) ---
-    const hasWatchMode = !!(scripts["test:watch"] || scripts["test:dev"] || scripts["dev"] || scripts["start:dev"]);
+    const hasWatchMode = !!(
+      scripts["test:watch"] ||
+      scripts["test:dev"] ||
+      scripts["dev"] ||
+      scripts["start:dev"]
+    );
     if (hasWatchMode) {
       findings.push({
         code: "ARI-FBK-007",
@@ -228,15 +236,17 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         message: "No watch mode command found",
         remediation: {
           action: "add-script",
-          description: "Add a 'test:watch' or 'dev' script for continuous feedback during development",
+          description:
+            "Add a 'test:watch' or 'dev' script for continuous feedback during development",
           confidence: "high",
         },
       });
     }
 
     // --- Incremental build finding (ARI-FBK-008) ---
-    const hasTurbo = await context.fileExists("turbo.json") || !!scripts["build"]?.includes("turbo");
-    const hasNx = await context.fileExists("nx.json") || !!scripts["build"]?.includes("nx ");
+    const hasTurbo =
+      (await context.fileExists("turbo.json")) || !!scripts["build"]?.includes("turbo");
+    const hasNx = (await context.fileExists("nx.json")) || !!scripts["build"]?.includes("nx ");
     const hasIncrementalBuild = hasTurbo || hasNx;
     if (hasIncrementalBuild) {
       score += 5; // bonus for incremental build
@@ -261,8 +271,12 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
     }
 
     // --- Estimated execution time / feedback latency (ARI-FBK-009) ---
-    const vitestConfig = await context.readFile("vitest.config.ts") ?? await context.readFile("vitest.config.js");
-    const jestConfig = await context.readFile("jest.config.ts") ?? await context.readFile("jest.config.js") ?? await context.readFile("jest.config.json");
+    const vitestConfig =
+      (await context.readFile("vitest.config.ts")) ?? (await context.readFile("vitest.config.js"));
+    const jestConfig =
+      (await context.readFile("jest.config.ts")) ??
+      (await context.readFile("jest.config.js")) ??
+      (await context.readFile("jest.config.json"));
     const testRunnerConfig = vitestConfig ?? jestConfig;
 
     let latencyLabel: "measured" | "inferred" | "unknown" = "unknown";
@@ -288,12 +302,14 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
             message: `Test timeout is ${timeout}ms (>60s) — slow feedback loop`,
             remediation: {
               action: "modify-config",
-              description: "Lower test timeouts and optimize slow tests. Target <30s for unit tests.",
+              description:
+                "Lower test timeouts and optimize slow tests. Target <30s for unit tests.",
               confidence: "medium",
             },
             evidence: {
               paper: "DORA, 2024",
-              finding: "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
+              finding:
+                "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
               confidence: "high",
             },
           });

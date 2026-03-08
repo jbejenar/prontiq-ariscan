@@ -7,7 +7,7 @@ describe("devEnvironmentAnalyzer (P4)", () => {
     const ctx = createMockContext({});
     const result = await devEnvironmentAnalyzer.analyze(ctx);
     expect(result.pillar).toBe("P4");
-    expect(result.weight).toBe(0.10);
+    expect(result.weight).toBe(0.1);
   });
 
   it("always supports any repo", async () => {
@@ -201,7 +201,9 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         "src/config.ts": "const dbUrl = process.env.DATABASE_URL;",
       });
       const result = await devEnvironmentAnalyzer.analyze(ctx);
-      const finding = result.findings.find((f) => f.code === "ARI-ENV-006" && f.severity === "high");
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-ENV-006" && f.severity === "high",
+      );
       expect(finding).toBeDefined();
       expect(finding?.message).toContain(".env.example");
     });
@@ -213,7 +215,9 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         ".env.example": "DATABASE_URL=postgres://localhost/dev",
       });
       const result = await devEnvironmentAnalyzer.analyze(ctx);
-      const blocker = result.findings.find((f) => f.code === "ARI-ENV-006" && f.severity === "high");
+      const blocker = result.findings.find(
+        (f) => f.code === "ARI-ENV-006" && f.severity === "high",
+      );
       // Should not flag missing .env.example
       if (blocker) {
         expect(blocker.message).not.toContain(".env.example");
@@ -226,7 +230,9 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         "src/main.py": "print('hello')",
       });
       const result = await devEnvironmentAnalyzer.analyze(ctx);
-      const finding = result.findings.find((f) => f.code === "ARI-ENV-006" && f.severity === "high");
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-ENV-006" && f.severity === "high",
+      );
       expect(finding).toBeDefined();
       expect(finding?.message).toContain("No install command");
     });
@@ -237,7 +243,9 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         "src/index.ts": "export const x = 1;",
       });
       const result = await devEnvironmentAnalyzer.analyze(ctx);
-      const finding = result.findings.find((f) => f.code === "ARI-ENV-006" && f.severity === "high");
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-ENV-006" && f.severity === "high",
+      );
       expect(finding).toBeDefined();
       expect(finding?.message).toContain("tsconfig");
     });
@@ -248,7 +256,9 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         "tsconfig.json": "{}",
       });
       const result = await devEnvironmentAnalyzer.analyze(ctx);
-      const infoFinding = result.findings.find((f) => f.code === "ARI-ENV-006" && f.severity === "info");
+      const infoFinding = result.findings.find(
+        (f) => f.code === "ARI-ENV-006" && f.severity === "info",
+      );
       expect(infoFinding).toBeDefined();
       expect(infoFinding?.message).toContain("No obvious first-run blockers");
     });
@@ -266,7 +276,9 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         `,
       });
       const result = await devEnvironmentAnalyzer.analyze(ctx);
-      const finding = result.findings.find((f) => f.code === "ARI-ENV-007" && f.severity === "medium");
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-ENV-007" && f.severity === "medium",
+      );
       expect(finding).toBeDefined();
       expect(finding?.message).toContain("REDIS_URL");
       expect(finding?.message).toContain("API_SECRET");
@@ -282,7 +294,9 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         `,
       });
       const result = await devEnvironmentAnalyzer.analyze(ctx);
-      const finding = result.findings.find((f) => f.code === "ARI-ENV-007" && f.severity === "info");
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-ENV-007" && f.severity === "info",
+      );
       expect(finding).toBeDefined();
       expect(finding?.message).toContain("all referenced vars documented");
     });
@@ -297,7 +311,9 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         `,
       });
       const result = await devEnvironmentAnalyzer.analyze(ctx);
-      const finding = result.findings.find((f) => f.code === "ARI-ENV-007" && f.severity === "info");
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-ENV-007" && f.severity === "info",
+      );
       expect(finding).toBeDefined();
     });
 
@@ -307,7 +323,9 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         "src/config.ts": "const x = process.env.MY_SECRET;",
       });
       const result = await devEnvironmentAnalyzer.analyze(ctx);
-      const finding = result.findings.find((f) => f.code === "ARI-ENV-007" && f.severity === "medium");
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-ENV-007" && f.severity === "medium",
+      );
       expect(finding).toBeDefined();
       expect(finding?.message).toContain("No .env.example");
     });
@@ -365,7 +383,11 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         "docker-compose.yml": "version: '3'",
         "scripts/setup.sh": "#!/bin/bash\necho setup",
         "package.json": JSON.stringify({
-          scripts: { setup: "bash scripts/setup.sh", doctor: "node doctor.js", "db:seed": "node seed.js" },
+          scripts: {
+            setup: "bash scripts/setup.sh",
+            doctor: "node doctor.js",
+            "db:seed": "node seed.js",
+          },
           engines: { node: ">=18" },
         }),
         ".nvmrc": "18",

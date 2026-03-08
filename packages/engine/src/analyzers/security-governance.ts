@@ -17,9 +17,10 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     let score = 0;
 
     // CODEOWNERS
-    const hasCodeowners = await context.fileExists("CODEOWNERS") ||
-      await context.fileExists(".github/CODEOWNERS") ||
-      await context.fileExists("docs/CODEOWNERS");
+    const hasCodeowners =
+      (await context.fileExists("CODEOWNERS")) ||
+      (await context.fileExists(".github/CODEOWNERS")) ||
+      (await context.fileExists("docs/CODEOWNERS"));
     if (hasCodeowners) {
       score += 15;
     } else {
@@ -38,8 +39,9 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     }
 
     // Security policy
-    const hasSecurityPolicy = await context.fileExists("SECURITY.md") ||
-      await context.fileExists(".github/SECURITY.md");
+    const hasSecurityPolicy =
+      (await context.fileExists("SECURITY.md")) ||
+      (await context.fileExists(".github/SECURITY.md"));
     if (hasSecurityPolicy) {
       score += 10;
     } else {
@@ -58,9 +60,10 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     }
 
     // Secrets scanning config
-    const hasSecretsScanning = await context.fileExists(".gitleaks.toml") ||
-      await context.fileExists(".pre-commit-config.yaml") ||
-      await context.fileExists(".sops.yaml");
+    const hasSecretsScanning =
+      (await context.fileExists(".gitleaks.toml")) ||
+      (await context.fileExists(".pre-commit-config.yaml")) ||
+      (await context.fileExists(".sops.yaml"));
 
     // Check GitHub Actions for secrets scanning
     const workflows = context.files.filter((f) => f.startsWith(".github/workflows/"));
@@ -96,8 +99,9 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
 
     // Dependency audit (Dependabot, Renovate, Snyk)
     const hasDependabot = await context.fileExists(".github/dependabot.yml");
-    const hasRenovate = await context.fileExists("renovate.json") ||
-      await context.fileExists(".github/renovate.json");
+    const hasRenovate =
+      (await context.fileExists("renovate.json")) ||
+      (await context.fileExists(".github/renovate.json"));
     if (hasDependabot || hasRenovate) {
       score += 15;
     } else {
@@ -150,16 +154,18 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     }
 
     // License
-    const hasLicense = await context.fileExists("LICENSE") ||
-      await context.fileExists("LICENSE.md") ||
-      await context.fileExists("LICENSE.txt");
+    const hasLicense =
+      (await context.fileExists("LICENSE")) ||
+      (await context.fileExists("LICENSE.md")) ||
+      (await context.fileExists("LICENSE.txt"));
     if (hasLicense) {
       score += 5;
     }
 
     // PR template
-    const hasPRTemplate = await context.fileExists(".github/pull_request_template.md") ||
-      await context.fileExists(".github/PULL_REQUEST_TEMPLATE.md");
+    const hasPRTemplate =
+      (await context.fileExists(".github/pull_request_template.md")) ||
+      (await context.fileExists(".github/PULL_REQUEST_TEMPLATE.md"));
     if (hasPRTemplate) {
       score += 5;
     }
@@ -185,8 +191,8 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
       const pkgCheck = await context.readJson<Record<string, unknown>>("package.json");
       if (pkgCheck) {
         const scripts = (pkgCheck["scripts"] ?? {}) as Record<string, string>;
-        hasLicenseCompliance = Object.values(scripts).some(
-          (cmd) => /license-checker|fossa|license-finder|licensee/i.test(cmd),
+        hasLicenseCompliance = Object.values(scripts).some((cmd) =>
+          /license-checker|fossa|license-finder|licensee/i.test(cmd),
         );
       }
     }
@@ -200,16 +206,23 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         message: "No license compliance tooling found in CI workflows",
         remediation: {
           action: "configure-tool",
-          description: "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks",
+          description:
+            "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks",
           confidence: "medium",
         },
       });
     }
 
     // AI-specific review checklist in PR templates
-    const prTemplateContent = await context.readFile(".github/PULL_REQUEST_TEMPLATE.md") ??
-      await context.readFile(".github/pull_request_template.md");
-    if (prTemplateContent && /\b(ai|agent|llm|copilot|gpt|claude|machine.?generated|ai.?generated)\b/i.test(prTemplateContent)) {
+    const prTemplateContent =
+      (await context.readFile(".github/PULL_REQUEST_TEMPLATE.md")) ??
+      (await context.readFile(".github/pull_request_template.md"));
+    if (
+      prTemplateContent &&
+      /\b(ai|agent|llm|copilot|gpt|claude|machine.?generated|ai.?generated)\b/i.test(
+        prTemplateContent,
+      )
+    ) {
       score += 5;
     } else {
       findings.push({
@@ -220,7 +233,8 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         remediation: {
           action: "modify-config",
           path: ".github/PULL_REQUEST_TEMPLATE.md",
-          description: "Add an AI/agent review section to your PR template (e.g., 'Was this code AI-generated?', 'Have AI-generated changes been reviewed for security?')",
+          description:
+            "Add an AI/agent review section to your PR template (e.g., 'Was this code AI-generated?', 'Have AI-generated changes been reviewed for security?')",
           confidence: "medium",
         },
       });
@@ -231,20 +245,30 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     const hasClaudeIgnore = await context.fileExists(".claudeignore");
     const hasCopilotIgnore = await context.fileExists(".copilotignore");
     const hasGitHubCopilotConfig = await context.fileExists(".github/copilot-instructions.md");
-    const hasClaudeMd = await context.fileExists("CLAUDE.md") || await context.fileExists(".claude/settings.json");
+    const hasClaudeMd =
+      (await context.fileExists("CLAUDE.md")) ||
+      (await context.fileExists(".claude/settings.json"));
 
-    if (hasAgentIgnore || hasClaudeIgnore || hasCopilotIgnore || hasGitHubCopilotConfig || hasClaudeMd) {
+    if (
+      hasAgentIgnore ||
+      hasClaudeIgnore ||
+      hasCopilotIgnore ||
+      hasGitHubCopilotConfig ||
+      hasClaudeMd
+    ) {
       score += 5;
     } else {
       findings.push({
         code: "ARI-SEC-006",
         severity: "low",
         pillar: PILLAR,
-        message: "No agent scope control found (.agentignore, .claudeignore, .copilotignore, or CLAUDE.md)",
+        message:
+          "No agent scope control found (.agentignore, .claudeignore, .copilotignore, or CLAUDE.md)",
         remediation: {
           action: "create-file",
           path: ".agentignore",
-          description: "Add an .agentignore or similar file to restrict which files AI agents can access or modify",
+          description:
+            "Add an .agentignore or similar file to restrict which files AI agents can access or modify",
           confidence: "medium",
         },
       });

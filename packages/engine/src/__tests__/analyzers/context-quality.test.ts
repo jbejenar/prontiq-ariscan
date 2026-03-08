@@ -232,7 +232,8 @@ describe("contextQualityAnalyzer (P1)", () => {
   describe("nested AGENTS.md discovery (monorepo)", () => {
     it("discovers nested AGENTS.md files", async () => {
       const ctx = createMockContext({
-        "AGENTS.md": "# Root agents\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11",
+        "AGENTS.md":
+          "# Root agents\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11",
         "packages/foo/AGENTS.md": "# Foo agents\nSpecific to foo package.",
       });
       const result = await contextQualityAnalyzer.analyze(ctx);
@@ -335,13 +336,7 @@ describe("contextQualityAnalyzer (P1)", () => {
     });
 
     it("does not emit ARI-CTX-005 for short files (< 10 lines)", async () => {
-      const content = [
-        "# AGENTS.md",
-        "Short file.",
-        "```bash",
-        "pnpm test",
-        "```",
-      ].join("\n");
+      const content = ["# AGENTS.md", "Short file.", "```bash", "pnpm test", "```"].join("\n");
       const ctx = createMockContext({ "AGENTS.md": content });
       const result = await contextQualityAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-CTX-005")).toBe(false);

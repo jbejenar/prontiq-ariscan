@@ -1,7 +1,6 @@
 import type { ScanResult } from "@prontiq/schema";
 
-const SCHEMA_ID =
-  "https://prontiq.dev/schemas/ari-scan-result/v1.json";
+const SCHEMA_ID = "https://prontiq.dev/schemas/ari-scan-result/v1.json";
 
 /**
  * Format scan result as JSON with $schema / $id envelope.
@@ -25,8 +24,7 @@ export function formatJsonSchema(): string {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: SCHEMA_ID,
     title: "ARI Scan Result",
-    description:
-      "Output of the Prontiq ARI scan — Agent Readiness Index for a repository.",
+    description: "Output of the Prontiq ARI scan — Agent Readiness Index for a repository.",
     type: "object",
     required: [
       "metadata",
@@ -70,15 +68,7 @@ export function formatJsonSchema(): string {
         type: "array",
         items: {
           type: "object",
-          required: [
-            "pillar",
-            "name",
-            "score",
-            "weight",
-            "confidence",
-            "findings",
-            "summary",
-          ],
+          required: ["pillar", "name", "score", "weight", "confidence", "findings", "summary"],
           properties: {
             pillar: { type: "string" },
             name: { type: "string" },
@@ -199,8 +189,7 @@ export function formatJsonSchema(): string {
               description: { type: "string" },
               estimatedImpact: {
                 type: "string",
-                description:
-                  "Expected impact on ARI score, e.g. '+12 points composite'",
+                description: "Expected impact on ARI score, e.g. '+12 points composite'",
               },
               confidence: {
                 type: "string",
@@ -210,8 +199,7 @@ export function formatJsonSchema(): string {
           },
           evidence: {
             type: "object",
-            description:
-              "Optional research citation supporting this finding.",
+            description: "Optional research citation supporting this finding.",
             required: ["paper", "finding", "confidence"],
             properties: {
               paper: { type: "string" },

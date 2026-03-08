@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { PillarId, PILLAR_WEIGHTS, MATURITY_THRESHOLDS, MaturityLevel, SECURITY_GATE } from "../pillar.js";
+import {
+  PillarId,
+  PILLAR_WEIGHTS,
+  MATURITY_THRESHOLDS,
+  MaturityLevel,
+  SECURITY_GATE,
+} from "../pillar.js";
 
 describe("PillarId", () => {
   it("validates all 8 pillar IDs", () => {

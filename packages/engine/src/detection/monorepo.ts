@@ -6,19 +6,13 @@ interface MonorepoSpec {
   /** Config file that identifies the monorepo tool */
   configFile: string;
   /** Extract workspace package paths from the config */
-  extractPackages: (
-    content: string,
-    context: RepoContext,
-  ) => Promise<string[]>;
+  extractPackages: (content: string, context: RepoContext) => Promise<string[]>;
 }
 
 /**
  * Parse a pnpm-workspace.yaml file to extract package globs and resolve them.
  */
-async function parsePnpmWorkspace(
-  content: string,
-  context: RepoContext,
-): Promise<string[]> {
+async function parsePnpmWorkspace(content: string, context: RepoContext): Promise<string[]> {
   // Simple YAML parsing for the packages field
   const packages: string[] = [];
   let inPackages = false;
@@ -48,10 +42,7 @@ async function parsePnpmWorkspace(
 /**
  * Resolve a workspace glob pattern (e.g. "packages/*") to actual directories.
  */
-function resolveWorkspaceGlob(
-  glob: string,
-  files: readonly string[],
-): string[] {
+function resolveWorkspaceGlob(glob: string, files: readonly string[]): string[] {
   const dirs = new Set<string>();
 
   if (glob.endsWith("/*") || glob.endsWith("/**")) {
@@ -75,10 +66,7 @@ function resolveWorkspaceGlob(
  * Parse turbo.json or nx.json: packages are typically defined elsewhere
  * (package.json workspaces), so we look for those.
  */
-async function parseJsonWorkspaces(
-  _content: string,
-  context: RepoContext,
-): Promise<string[]> {
+async function parseJsonWorkspaces(_content: string, context: RepoContext): Promise<string[]> {
   // Check package.json for workspaces field
   const pkg = await context.readJson<{
     workspaces?: string[] | { packages?: string[] };
@@ -86,9 +74,7 @@ async function parseJsonWorkspaces(
 
   if (!pkg?.workspaces) return [];
 
-  const globs = Array.isArray(pkg.workspaces)
-    ? pkg.workspaces
-    : pkg.workspaces.packages ?? [];
+  const globs = Array.isArray(pkg.workspaces) ? pkg.workspaces : (pkg.workspaces.packages ?? []);
 
   const packages: string[] = [];
   for (const glob of globs) {
@@ -101,10 +87,7 @@ async function parseJsonWorkspaces(
 /**
  * Parse lerna.json for packages field.
  */
-async function parseLernaConfig(
-  content: string,
-  context: RepoContext,
-): Promise<string[]> {
+async function parseLernaConfig(content: string, context: RepoContext): Promise<string[]> {
   try {
     const config = JSON.parse(content) as { packages?: string[] };
     if (!config.packages) {
@@ -124,10 +107,7 @@ async function parseLernaConfig(
 /**
  * Parse Cargo.toml for workspace members.
  */
-async function parseCargoWorkspace(
-  content: string,
-  context: RepoContext,
-): Promise<string[]> {
+async function parseCargoWorkspace(content: string, context: RepoContext): Promise<string[]> {
   const packages: string[] = [];
   let inMembers = false;
 
@@ -141,9 +121,7 @@ async function parseCargoWorkspace(
       // Check for inline array
       const match = trimmed.match(/members\s*=\s*\[([^\]]*)\]/);
       if (match?.[1]) {
-        const members = match[1].split(",").map((m) =>
-          m.trim().replace(/['"]/g, ""),
-        );
+        const members = match[1].split(",").map((m) => m.trim().replace(/['"]/g, ""));
         for (const member of members) {
           if (member) {
             packages.push(...resolveWorkspaceGlob(member, context.files));
@@ -171,10 +149,7 @@ async function parseCargoWorkspace(
 /**
  * Parse go.work for workspace directories.
  */
-async function parseGoWorkspace(
-  content: string,
-  _context: RepoContext,
-): Promise<string[]> {
+async function parseGoWorkspace(content: string, _context: RepoContext): Promise<string[]> {
   const packages: string[] = [];
   let inUse = false;
 
@@ -236,9 +211,7 @@ const MONOREPO_SPECS: MonorepoSpec[] = [
 /**
  * Detect if the repository is a monorepo and identify the tool used.
  */
-export async function detectMonorepo(
-  context: RepoContext,
-): Promise<DetectedMonorepo | null> {
+export async function detectMonorepo(context: RepoContext): Promise<DetectedMonorepo | null> {
   for (const spec of MONOREPO_SPECS) {
     const content = await context.readFile(spec.configFile);
     if (content === null) continue;

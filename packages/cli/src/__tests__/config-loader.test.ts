@@ -45,7 +45,7 @@ pillars:
 `;
     mockedFs.readFile.mockResolvedValue(yaml);
     const config = await loadConfigFile("/repo/.ariscan.yml");
-    expect(config.pillars?.weights).toEqual({ P1: 0.25, P2: 0.10 });
+    expect(config.pillars?.weights).toEqual({ P1: 0.25, P2: 0.1 });
   });
 
   it("returns empty config for empty YAML", async () => {
@@ -100,13 +100,13 @@ describe("fileConfigToScanConfig", () => {
     const result = fileConfigToScanConfig({
       pillars: {
         exclude: ["P8"],
-        weights: { P1: 0.20, P8: 0.05 },
+        weights: { P1: 0.2, P8: 0.05 },
       },
     });
     // P8 should be disabled AND have weight
     expect(result.pillars?.P8?.enabled).toBe(false);
     expect(result.pillars?.P8?.weight).toBe(0.05);
-    expect(result.pillars?.P1?.weight).toBe(0.20);
+    expect(result.pillars?.P1?.weight).toBe(0.2);
   });
 
   it("returns empty object for empty config", () => {

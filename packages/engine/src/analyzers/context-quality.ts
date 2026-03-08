@@ -18,9 +18,7 @@ const CONTEXT_FILES = [
 ] as const;
 
 /** Directory patterns to check (any file under these dirs counts as a match) */
-const CONTEXT_DIRS = [
-  ".claude/commands",
-] as const;
+const CONTEXT_DIRS = [".claude/commands"] as const;
 
 /** Keywords that indicate critical build/test/architecture info */
 const CRITICAL_INFO_PATTERNS = [
@@ -183,7 +181,8 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         remediation: {
           action: "create-file",
           path: "AGENTS.md",
-          description: "Create an AGENTS.md file with project-specific context for AI coding agents",
+          description:
+            "Create an AGENTS.md file with project-specific context for AI coding agents",
           estimatedImpact: "+12 points composite",
           confidence: "high",
         },
@@ -211,11 +210,13 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               code: "ARI-CTX-002",
               severity: "medium",
               pillar: PILLAR,
-              message: "AGENTS.md is too short (< 10 lines). Effective context files provide detailed project-specific guidance.",
+              message:
+                "AGENTS.md is too short (< 10 lines). Effective context files provide detailed project-specific guidance.",
               remediation: {
                 action: "modify-config",
                 path: "AGENTS.md",
-                description: "Expand AGENTS.md with architecture overview, conventions, and common pitfalls",
+                description:
+                  "Expand AGENTS.md with architecture overview, conventions, and common pitfalls",
                 confidence: "high",
               },
             });
@@ -233,11 +234,13 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               code: "ARI-CTX-005",
               severity: "medium",
               pillar: PILLAR,
-              message: "AGENTS.md has critical info (build commands, architecture) buried below the first 20% of the file. Front-load important context for better agent performance.",
+              message:
+                "AGENTS.md has critical info (build commands, architecture) buried below the first 20% of the file. Front-load important context for better agent performance.",
               remediation: {
                 action: "modify-config",
                 path: "AGENTS.md",
-                description: "Move build commands, test commands, and architecture overview to the top of AGENTS.md",
+                description:
+                  "Move build commands, test commands, and architecture overview to the top of AGENTS.md",
                 confidence: "medium",
               },
             });
@@ -252,9 +255,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
             // Check if the referenced path exists as a file or as a directory prefix
             const rpClean = rp.replace(/\/$/, "");
             const existsAsFile = fileSet.has(rpClean);
-            const existsAsDir = context.files.some(
-              (f) => f.startsWith(rpClean + "/"),
-            );
+            const existsAsDir = context.files.some((f) => f.startsWith(rpClean + "/"));
             if (!existsAsFile && !existsAsDir) {
               stalePaths.push(rp);
             }
@@ -268,7 +269,8 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               remediation: {
                 action: "modify-config",
                 path: "AGENTS.md",
-                description: "Review and update AGENTS.md to remove or fix references to non-existent paths",
+                description:
+                  "Review and update AGENTS.md to remove or fix references to non-existent paths",
                 confidence: "low",
               },
             });
@@ -281,11 +283,13 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               code: "ARI-CTX-007",
               severity: "medium",
               pillar: PILLAR,
-              message: "AGENTS.md appears to contain auto-generated or boilerplate content without project-specific details.",
+              message:
+                "AGENTS.md appears to contain auto-generated or boilerplate content without project-specific details.",
               remediation: {
                 action: "modify-config",
                 path: "AGENTS.md",
-                description: "Replace boilerplate content with project-specific architecture, conventions, and build instructions",
+                description:
+                  "Replace boilerplate content with project-specific architecture, conventions, and build instructions",
                 confidence: "medium",
               },
             });
@@ -327,11 +331,13 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               code: "ARI-CTX-005",
               severity: "medium",
               pillar: PILLAR,
-              message: "CLAUDE.md has critical info (build commands, architecture) buried below the first 20% of the file. Front-load important context for better agent performance.",
+              message:
+                "CLAUDE.md has critical info (build commands, architecture) buried below the first 20% of the file. Front-load important context for better agent performance.",
               remediation: {
                 action: "modify-config",
                 path: "CLAUDE.md",
-                description: "Move build commands, test commands, and architecture overview to the top of CLAUDE.md",
+                description:
+                  "Move build commands, test commands, and architecture overview to the top of CLAUDE.md",
                 confidence: "medium",
               },
             });
@@ -348,11 +354,13 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
           code: "ARI-CTX-003",
           severity: "low",
           pillar: PILLAR,
-          message: "No .agentignore file found. This file helps agents exclude irrelevant files from context.",
+          message:
+            "No .agentignore file found. This file helps agents exclude irrelevant files from context.",
           remediation: {
             action: "create-file",
             path: ".agentignore",
-            description: "Create .agentignore to exclude generated files, vendor code, and binaries from agent context",
+            description:
+              "Create .agentignore to exclude generated files, vendor code, and binaries from agent context",
             confidence: "medium",
           },
         });
@@ -373,7 +381,8 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         remediation: {
           action: "create-file",
           path: "README.md",
-          description: "Create a README.md with project overview, setup instructions, and architecture summary",
+          description:
+            "Create a README.md with project overview, setup instructions, and architecture summary",
           confidence: "high",
         },
       });

@@ -6,31 +6,124 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22
+  ARI_SCORE_FLOOR: 55
+
 jobs:
-  check:
-    name: Lint, Typecheck, Test, Build
+  # ─── Fast checks (no build needed) ────────────────────────────
+  format:
+    name: Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+
+  # ─── Type check (needs workspace deps built) ──────────────────
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
-      - run: pnpm lint
+
+  # ─── Test suite ────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm test
+
+  # ─── Build (depends on quality gates) ─────────────────────────
+  build:
+    name: Build
+    needs: [format, lint, typecheck, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
-      - name: Self-scan
-        run: node packages/cli/dist/cli.js . --json > scan-result.json
+      # ── Self-scan: dog-food the scanner ──
+      - name: Self-scan (ARI)
+        id: ari
+        run: |
+          node packages/cli/dist/cli.js . --json > scan-result.json
+          SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('scan-result.json','utf8')).score)")
+          LEVEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('scan-result.json','utf8')).level)")
+          echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+          echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
+          echo "### ARI Self-Scan: $SCORE/100 ($LEVEL)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload scan result
         uses: actions/upload-artifact@v4
         with:
           name: ari-scan-result
           path: scan-result.json
+          retention-days: 90
+
+      # ── Score floor gate ──
+      - name: ARI score gate
+        run: |
+          SCORE=${{ steps.ari.outputs.score }}
+          FLOOR=${{ env.ARI_SCORE_FLOOR }}
+          if [ "$SCORE" -lt "$FLOOR" ]; then
+            echo "::error::ARI score $SCORE is below floor $FLOOR"
+            exit 1
+          fi
+          echo "ARI score $SCORE meets floor $FLOOR"
+
+  # ─── Dependency review (PRs only) ─────────────────────────────
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high

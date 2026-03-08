@@ -30,7 +30,10 @@ export function calculateCompositeScore(pillars: PillarResult[]): number {
  * Classify a composite score into a maturity level.
  */
 export function classifyMaturityLevel(score: number): MaturityLevel {
-  for (const [level, { min, max }] of Object.entries(MATURITY_THRESHOLDS) as [MaturityLevel, { min: number; max: number }][]) {
+  for (const [level, { min, max }] of Object.entries(MATURITY_THRESHOLDS) as [
+    MaturityLevel,
+    { min: number; max: number },
+  ][]) {
     if (score >= min && score <= max) {
       return level;
     }

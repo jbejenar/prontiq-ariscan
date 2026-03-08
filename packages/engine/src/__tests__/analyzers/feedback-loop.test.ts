@@ -184,8 +184,12 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       const modernPkg = JSON.stringify({ scripts: { build: "tsup src/index.ts" } });
       const legacyPkg = JSON.stringify({ scripts: { build: "tsc" } });
 
-      const modern = await feedbackLoopAnalyzer.analyze(createMockContext({ "package.json": modernPkg }));
-      const legacy = await feedbackLoopAnalyzer.analyze(createMockContext({ "package.json": legacyPkg }));
+      const modern = await feedbackLoopAnalyzer.analyze(
+        createMockContext({ "package.json": modernPkg }),
+      );
+      const legacy = await feedbackLoopAnalyzer.analyze(
+        createMockContext({ "package.json": legacyPkg }),
+      );
 
       expect(modern.score).toBeGreaterThan(legacy.score);
     });
@@ -285,7 +289,8 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       const pkg = JSON.stringify({ scripts: {} });
       const ctxWith = createMockContext({
         "package.json": pkg,
-        "commitlint.config.js": "module.exports = { extends: ['@commitlint/config-conventional'] };",
+        "commitlint.config.js":
+          "module.exports = { extends: ['@commitlint/config-conventional'] };",
       });
       const ctxWithout = createMockContext({ "package.json": pkg });
       const withCommitlint = await feedbackLoopAnalyzer.analyze(ctxWith);

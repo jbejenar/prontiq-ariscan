@@ -17,7 +17,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     let score = 50; // Start at midpoint and adjust
 
     const sourceFiles = context.files.filter(
-      (f) => /\.[jt]sx?$|\.py$|\.go$|\.java$|\.cs$|\.rb$|\.rs$/.test(f) &&
+      (f) =>
+        /\.[jt]sx?$|\.py$|\.go$|\.java$|\.cs$|\.rb$|\.rs$/.test(f) &&
         !f.includes("node_modules") &&
         !f.includes("dist/") &&
         !f.includes("build/"),
@@ -116,7 +117,10 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         code: "ARI-NAV-003",
         severity: "low",
         pillar: PILLAR,
-        message: `Inconsistent file naming: ${styles.filter((s) => s.count > 0).map((s) => `${s.name}(${s.count})`).join(", ")}`,
+        message: `Inconsistent file naming: ${styles
+          .filter((s) => s.count > 0)
+          .map((s) => `${s.name}(${s.count})`)
+          .join(", ")}`,
         remediation: {
           action: "refactor",
           description: `Standardize file naming to ${dominant.name}`,
@@ -131,8 +135,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     }
 
     // Index/barrel files (good for navigation)
-    const indexFiles = context.files.filter(
-      (f) => /index\.[jt]sx?$|mod\.rs$|__init__\.py$/.test(f),
+    const indexFiles = context.files.filter((f) =>
+      /index\.[jt]sx?$|mod\.rs$|__init__\.py$/.test(f),
     );
     if (indexFiles.length > 0 && dirs.size > 3) {
       const barrelRatio = indexFiles.length / dirs.size;
@@ -142,9 +146,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     }
 
     // Import analysis — count imports per file, flag files with >20 imports
-    const importableFiles = sourceFiles.filter(
-      (f) => /\.[jt]sx?$|\.py$/.test(f),
-    );
+    const importableFiles = sourceFiles.filter((f) => /\.[jt]sx?$|\.py$/.test(f));
     const sampledForImports = importableFiles.slice(0, 30);
     let heavyImportCount = 0;
 
@@ -152,9 +154,9 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       const content = await context.readFile(file);
       if (!content) continue;
 
-      const importLines = content.split("\n").filter(
-        (line) => /^\s*(import\s|from\s|require\s*\()/.test(line),
-      );
+      const importLines = content
+        .split("\n")
+        .filter((line) => /^\s*(import\s|from\s|require\s*\()/.test(line));
 
       if (importLines.length > 20) {
         heavyImportCount++;
@@ -167,7 +169,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
             message: `File has ${importLines.length} imports — high coupling, consider splitting`,
             remediation: {
               action: "refactor",
-              description: "Reduce imports by splitting the file into smaller focused modules or using barrel imports",
+              description:
+                "Reduce imports by splitting the file into smaller focused modules or using barrel imports",
               confidence: "medium",
             },
           });
@@ -234,7 +237,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
               message: `Potential circular dependency between "${fileA}" and "${fileB}"`,
               remediation: {
                 action: "refactor",
-                description: "Break the circular dependency by extracting shared code into a separate module",
+                description:
+                  "Break the circular dependency by extracting shared code into a separate module",
                 confidence: "low",
               },
             });
@@ -284,7 +288,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     }
 
     const deadCodeCandidates: string[] = [];
-    const entryPatterns = /index\.[jt]sx?$|main\.[jt]sx?$|app\.[jt]sx?$|mod\.rs$|__init__\.py$|server\.[jt]sx?$/;
+    const entryPatterns =
+      /index\.[jt]sx?$|main\.[jt]sx?$|app\.[jt]sx?$|mod\.rs$|__init__\.py$|server\.[jt]sx?$/;
     const sampledForDead = tsJsFiles.slice(0, 30);
     for (const file of sampledForDead) {
       const fileName = file.split("/").pop() ?? "";
@@ -311,7 +316,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         message: `Found ${deadCodeCandidates.length} source file(s) that appear unused (never imported): ${deadCodeCandidates.slice(0, 3).join(", ")}${deadCodeCandidates.length > 3 ? ` and ${deadCodeCandidates.length - 3} more` : ""}`,
         remediation: {
           action: "refactor",
-          description: "Review potentially dead code files and remove them or ensure they are properly imported",
+          description:
+            "Review potentially dead code files and remove them or ensure they are properly imported",
           confidence: "low",
         },
       });
@@ -332,7 +338,10 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       let currentNesting = 0;
       for (const line of lines) {
         const trimmed = line.trim();
-        if (/^(if|else if|else|switch|for|while|try|catch)\b/.test(trimmed) || /\{\s*$/.test(trimmed)) {
+        if (
+          /^(if|else if|else|switch|for|while|try|catch)\b/.test(trimmed) ||
+          /\{\s*$/.test(trimmed)
+        ) {
           currentNesting++;
           if (currentNesting > maxNestingDepth) {
             maxNestingDepth = currentNesting;
@@ -351,7 +360,11 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         const line = lines[i];
         if (line === undefined) continue;
         const trimmed = line.trim();
-        if (/^(export\s+)?(async\s+)?function\b|^(export\s+)?(const|let|var)\s+\w+\s*=\s*(async\s+)?\(/.test(trimmed)) {
+        if (
+          /^(export\s+)?(async\s+)?function\b|^(export\s+)?(const|let|var)\s+\w+\s*=\s*(async\s+)?\(/.test(
+            trimmed,
+          )
+        ) {
           inFunction = true;
           functionStartLine = i;
         }
@@ -402,9 +415,10 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       problemAreas.push(`${complexFiles.length} high-complexity file(s)`);
     }
 
-    const costlyPaths = problemAreas.length > 0
-      ? ` | Top issues: ${problemAreas.join(", ")}`
-      : " | No major navigation issues";
+    const costlyPaths =
+      problemAreas.length > 0
+        ? ` | Top issues: ${problemAreas.join(", ")}`
+        : " | No major navigation issues";
 
     score = Math.min(100, Math.max(0, score));
 

@@ -75,9 +75,7 @@ describe("formatJson", () => {
   it("includes $schema and $id fields", () => {
     const output = formatJson(mockResult);
     const parsed = JSON.parse(output);
-    expect(parsed.$schema).toBe(
-      "https://prontiq.dev/schemas/ari-scan-result/v1.json",
-    );
+    expect(parsed.$schema).toBe("https://prontiq.dev/schemas/ari-scan-result/v1.json");
     expect(parsed.$id).toContain("ari-scan-");
     expect(parsed.$id).toContain(mockResult.metadata.timestamp);
   });
@@ -99,9 +97,7 @@ describe("formatJson", () => {
   it("includes pillar status when present", () => {
     const resultWithStatus: ScanResult = {
       ...mockResult,
-      pillars: mockResult.pillars.map((p, i) =>
-        i === 0 ? { ...p, status: "good" as const } : p,
-      ),
+      pillars: mockResult.pillars.map((p, i) => (i === 0 ? { ...p, status: "good" as const } : p)),
     };
     const output = formatJson(resultWithStatus);
     const parsed = JSON.parse(output);
@@ -117,12 +113,8 @@ describe("formatJsonSchema", () => {
 
   it("has correct $schema and $id", () => {
     const parsed = JSON.parse(formatJsonSchema());
-    expect(parsed.$schema).toBe(
-      "https://json-schema.org/draft/2020-12/schema",
-    );
-    expect(parsed.$id).toBe(
-      "https://prontiq.dev/schemas/ari-scan-result/v1.json",
-    );
+    expect(parsed.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
+    expect(parsed.$id).toBe("https://prontiq.dev/schemas/ari-scan-result/v1.json");
   });
 
   it("describes required top-level properties", () => {
@@ -138,9 +130,7 @@ describe("formatJsonSchema", () => {
   it("defines finding in $defs", () => {
     const parsed = JSON.parse(formatJsonSchema());
     expect(parsed.$defs.finding).toBeDefined();
-    expect(parsed.$defs.finding.properties.code.pattern).toBe(
-      "^ARI-[A-Z]{3}-\\d{3}$",
-    );
+    expect(parsed.$defs.finding.properties.code.pattern).toBe("^ARI-[A-Z]{3}-\\d{3}$");
   });
 
   it("includes contextFiles in properties", () => {

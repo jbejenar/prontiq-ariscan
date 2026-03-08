@@ -74,8 +74,7 @@ describe("detectMonorepo", () => {
 
   it("detects Cargo workspaces", async () => {
     const ctx = createMockContext({
-      "Cargo.toml":
-        '[workspace]\nmembers = [\n  "crates/*"\n]\n\n[package]\nname = "root"',
+      "Cargo.toml": '[workspace]\nmembers = [\n  "crates/*"\n]\n\n[package]\nname = "root"',
       "crates/core/src/lib.rs": "",
       "crates/cli/src/main.rs": "",
     });

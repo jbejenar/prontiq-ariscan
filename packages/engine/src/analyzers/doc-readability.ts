@@ -49,7 +49,8 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
           message: "Server code detected but no API contract (OpenAPI, GraphQL schema, tRPC)",
           remediation: {
             action: "create-file",
-            description: "Add machine-readable API contract (OpenAPI spec, GraphQL schema, or tRPC router)",
+            description:
+              "Add machine-readable API contract (OpenAPI spec, GraphQL schema, or tRPC router)",
             confidence: "medium",
           },
           evidence: {
@@ -62,8 +63,8 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
     }
 
     // Error taxonomy / structured error codes
-    const hasErrorTaxonomy = context.files.some(
-      (f) => /error.taxonomy|error.codes|errors?\.(json|ya?ml)/i.test(f),
+    const hasErrorTaxonomy = context.files.some((f) =>
+      /error.taxonomy|error.codes|errors?\.(json|ya?ml)/i.test(f),
     );
     if (hasErrorTaxonomy) {
       score += 15;
@@ -75,7 +76,10 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
     // Check root package.json
     const pkg = await context.readJson<Record<string, unknown>>("package.json");
     if (pkg) {
-      const deps = { ...(pkg["dependencies"] as Record<string, string> ?? {}), ...(pkg["devDependencies"] as Record<string, string> ?? {}) };
+      const deps = {
+        ...((pkg["dependencies"] as Record<string, string>) ?? {}),
+        ...((pkg["devDependencies"] as Record<string, string>) ?? {}),
+      };
       hasEnvValidation = envValidationPatterns.some((p) => p in deps);
     }
     // Also check workspace package.json files (monorepo support)
@@ -86,7 +90,10 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
       for (const wpf of workspacePkgFiles) {
         const wpkg = await context.readJson<Record<string, unknown>>(wpf);
         if (wpkg) {
-          const deps = { ...(wpkg["dependencies"] as Record<string, string> ?? {}), ...(wpkg["devDependencies"] as Record<string, string> ?? {}) };
+          const deps = {
+            ...((wpkg["dependencies"] as Record<string, string>) ?? {}),
+            ...((wpkg["devDependencies"] as Record<string, string>) ?? {}),
+          };
           if (envValidationPatterns.some((p) => p in deps)) {
             hasEnvValidation = true;
             break;
@@ -99,9 +106,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
     }
 
     // ADR / decision records
-    const hasADRs = context.files.some(
-      (f) => /adr|decision|rfc/i.test(f) && /\.md$/.test(f),
-    );
+    const hasADRs = context.files.some((f) => /adr|decision|rfc/i.test(f) && /\.md$/.test(f));
     if (hasADRs) {
       score += 10;
     }
@@ -113,9 +118,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
     }
 
     // Type exports / JSDoc
-    let hasTypeExports = context.files.some(
-      (f) => /\.d\.ts$|types\.[jt]s$/i.test(f),
-    );
+    let hasTypeExports = context.files.some((f) => /\.d\.ts$|types\.[jt]s$/i.test(f));
     // Also check for schema/types/interface definition files (common in monorepos)
     if (!hasTypeExports) {
       hasTypeExports = context.files.some(
@@ -131,7 +134,10 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
         .slice(0, 5);
       for (const cf of candidateFiles) {
         const content = await context.readFile(cf);
-        if (content && /z\.(object|enum|string|number|union|intersection|array)\s*\(/.test(content)) {
+        if (
+          content &&
+          /z\.(object|enum|string|number|union|intersection|array)\s*\(/.test(content)
+        ) {
           hasTypeExports = true;
           break;
         }
@@ -153,15 +159,11 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
     }
 
     // --- ARI-DOC-002: Machine-readable runbook detection ---
-    const runbookFiles = context.files.filter(
-      (f) => /runbook|playbook|procedures/i.test(f.split("/").pop() ?? f),
+    const runbookFiles = context.files.filter((f) =>
+      /runbook|playbook|procedures/i.test(f.split("/").pop() ?? f),
     );
-    const machineReadableRunbooks = runbookFiles.filter(
-      (f) => /\.(json|ya?ml)$/.test(f),
-    );
-    const proseOnlyRunbooks = runbookFiles.filter(
-      (f) => /\.md$/.test(f),
-    );
+    const machineReadableRunbooks = runbookFiles.filter((f) => /\.(json|ya?ml)$/.test(f));
+    const proseOnlyRunbooks = runbookFiles.filter((f) => /\.md$/.test(f));
 
     if (machineReadableRunbooks.length > 0) {
       score += 5;
@@ -181,7 +183,8 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
 
     // --- ARI-DOC-003: JSDoc coverage measurement ---
     const tsJsFiles = context.files.filter(
-      (f) => /\.[jt]sx?$/.test(f) &&
+      (f) =>
+        /\.[jt]sx?$/.test(f) &&
         !f.includes("node_modules") &&
         !f.includes("dist/") &&
         !f.includes("build/") &&
@@ -212,7 +215,8 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
           message: `Only ${Math.round(jsdocRatio * 100)}% of sampled source files (${filesWithJsdoc}/${sampled.length}) contain JSDoc comments`,
           remediation: {
             action: "refactor",
-            description: "Add JSDoc comments to exported functions and classes for better AI comprehension",
+            description:
+              "Add JSDoc comments to exported functions and classes for better AI comprehension",
             confidence: "medium",
           },
         });
@@ -223,9 +227,13 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
     if (readme) {
       // Extract file path references from README (e.g., src/foo.ts, ./bar/baz.js, packages/engine/)
       // Match both file paths (with extension) and directory paths (trailing slash or no extension)
-      const pathRefs = readme.match(/(?:^|\s|`)((?:\.\/|src\/|packages\/|lib\/)[a-zA-Z0-9_\-/.]+)/gm);
+      const pathRefs = readme.match(
+        /(?:^|\s|`)((?:\.\/|src\/|packages\/|lib\/)[a-zA-Z0-9_\-/.]+)/gm,
+      );
       if (pathRefs && pathRefs.length > 0) {
-        const cleanedPaths = pathRefs.map((p) => p.trim().replace(/^`|`$/g, "").replace(/^\.\//, ""));
+        const cleanedPaths = pathRefs.map((p) =>
+          p.trim().replace(/^`|`$/g, "").replace(/^\.\//, ""),
+        );
         let missingCount = 0;
         for (const ref of cleanedPaths) {
           const hasExtension = /\.[a-zA-Z]+$/.test(ref);
@@ -253,7 +261,8 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
             remediation: {
               action: "modify-config",
               path: "README.md",
-              description: "Update README to reflect current file structure and remove stale path references",
+              description:
+                "Update README to reflect current file structure and remove stale path references",
               confidence: "medium",
             },
           });
