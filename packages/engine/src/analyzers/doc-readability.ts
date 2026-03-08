@@ -72,10 +72,27 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
     // Env var validation
     const envValidationPatterns = ["t3-env", "zod", "joi", "yup", "pydantic"];
     let hasEnvValidation = false;
+    // Check root package.json
     const pkg = await context.readJson<Record<string, unknown>>("package.json");
     if (pkg) {
       const deps = { ...(pkg["dependencies"] as Record<string, string> ?? {}), ...(pkg["devDependencies"] as Record<string, string> ?? {}) };
       hasEnvValidation = envValidationPatterns.some((p) => p in deps);
+    }
+    // Also check workspace package.json files (monorepo support)
+    if (!hasEnvValidation) {
+      const workspacePkgFiles = context.files.filter(
+        (f) => f !== "package.json" && f.endsWith("/package.json") && !f.includes("node_modules"),
+      );
+      for (const wpf of workspacePkgFiles) {
+        const wpkg = await context.readJson<Record<string, unknown>>(wpf);
+        if (wpkg) {
+          const deps = { ...(wpkg["dependencies"] as Record<string, string> ?? {}), ...(wpkg["devDependencies"] as Record<string, string> ?? {}) };
+          if (envValidationPatterns.some((p) => p in deps)) {
+            hasEnvValidation = true;
+            break;
+          }
+        }
+      }
     }
     if (hasEnvValidation) {
       score += 10;
@@ -96,9 +113,30 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
     }
 
     // Type exports / JSDoc
-    const hasTypeExports = context.files.some(
+    let hasTypeExports = context.files.some(
       (f) => /\.d\.ts$|types\.[jt]s$/i.test(f),
     );
+    // Also check for schema/types/interface definition files (common in monorepos)
+    if (!hasTypeExports) {
+      hasTypeExports = context.files.some(
+        (f) =>
+          /\.schema\.[jt]s$|\.types\.[jt]s$|\.interface\.[jt]s$/i.test(f) ||
+          /\/(types|schemas|interfaces)\//.test(f),
+      );
+    }
+    // Check source files for Zod schema exports (sample up to 5)
+    if (!hasTypeExports) {
+      const candidateFiles = context.files
+        .filter((f) => /\.[jt]sx?$/.test(f) && !f.includes("node_modules") && !f.includes("dist/"))
+        .slice(0, 5);
+      for (const cf of candidateFiles) {
+        const content = await context.readFile(cf);
+        if (content && /z\.(object|enum|string|number|union|intersection|array)\s*\(/.test(content)) {
+          hasTypeExports = true;
+          break;
+        }
+      }
+    }
     if (hasTypeExports) {
       score += 10;
     }
@@ -114,6 +152,115 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
       }
     }
 
+    // --- ARI-DOC-002: Machine-readable runbook detection ---
+    const runbookFiles = context.files.filter(
+      (f) => /runbook|playbook|procedures/i.test(f.split("/").pop() ?? f),
+    );
+    const machineReadableRunbooks = runbookFiles.filter(
+      (f) => /\.(json|ya?ml)$/.test(f),
+    );
+    const proseOnlyRunbooks = runbookFiles.filter(
+      (f) => /\.md$/.test(f),
+    );
+
+    if (machineReadableRunbooks.length > 0) {
+      score += 5;
+    } else if (proseOnlyRunbooks.length > 0) {
+      findings.push({
+        code: "ARI-DOC-002",
+        severity: "low",
+        pillar: PILLAR,
+        message: `Found ${proseOnlyRunbooks.length} prose-only runbook(s) but no machine-readable (YAML/JSON) runbooks`,
+        remediation: {
+          action: "create-file",
+          description: "Convert runbooks to YAML or JSON format for machine-readable operations",
+          confidence: "medium",
+        },
+      });
+    }
+
+    // --- ARI-DOC-003: JSDoc coverage measurement ---
+    const tsJsFiles = context.files.filter(
+      (f) => /\.[jt]sx?$/.test(f) &&
+        !f.includes("node_modules") &&
+        !f.includes("dist/") &&
+        !f.includes("build/") &&
+        !f.includes(".d.ts"),
+    );
+
+    if (tsJsFiles.length > 0) {
+      const sampled = tsJsFiles.slice(0, 15);
+      let filesWithJsdoc = 0;
+
+      for (const file of sampled) {
+        const content = await context.readFile(file);
+        if (!content) continue;
+        if (/\/\*\*[\s\S]*?\*\//.test(content)) {
+          filesWithJsdoc++;
+        }
+      }
+
+      const jsdocRatio = filesWithJsdoc / sampled.length;
+      if (jsdocRatio >= 0.5) {
+        score += 5;
+      }
+      if (jsdocRatio < 0.3) {
+        findings.push({
+          code: "ARI-DOC-003",
+          severity: "low",
+          pillar: PILLAR,
+          message: `Only ${Math.round(jsdocRatio * 100)}% of sampled source files (${filesWithJsdoc}/${sampled.length}) contain JSDoc comments`,
+          remediation: {
+            action: "refactor",
+            description: "Add JSDoc comments to exported functions and classes for better AI comprehension",
+            confidence: "medium",
+          },
+        });
+      }
+    }
+
+    // --- ARI-DOC-004: Documentation-code drift detection ---
+    if (readme) {
+      // Extract file path references from README (e.g., src/foo.ts, ./bar/baz.js, packages/engine/)
+      // Match both file paths (with extension) and directory paths (trailing slash or no extension)
+      const pathRefs = readme.match(/(?:^|\s|`)((?:\.\/|src\/|packages\/|lib\/)[a-zA-Z0-9_\-/.]+)/gm);
+      if (pathRefs && pathRefs.length > 0) {
+        const cleanedPaths = pathRefs.map((p) => p.trim().replace(/^`|`$/g, "").replace(/^\.\//, ""));
+        let missingCount = 0;
+        for (const ref of cleanedPaths) {
+          const hasExtension = /\.[a-zA-Z]+$/.test(ref);
+          let exists: boolean;
+          if (hasExtension) {
+            // File reference: exact or suffix match
+            exists = context.files.some((f) => f === ref || f.endsWith(ref));
+          } else {
+            // Directory reference: check if any file starts with this path
+            const dirPrefix = ref.endsWith("/") ? ref : ref + "/";
+            exists = context.files.some((f) => f.startsWith(dirPrefix) || f.startsWith(ref + "/"));
+          }
+          if (!exists) {
+            missingCount++;
+          }
+        }
+        const driftRatio = missingCount / cleanedPaths.length;
+        if (driftRatio > 0.3) {
+          score -= 5;
+          findings.push({
+            code: "ARI-DOC-004",
+            severity: "medium",
+            pillar: PILLAR,
+            message: `README references ${cleanedPaths.length} file paths but ${missingCount} (${Math.round(driftRatio * 100)}%) no longer exist — documentation may be stale`,
+            remediation: {
+              action: "modify-config",
+              path: "README.md",
+              description: "Update README to reflect current file structure and remove stale path references",
+              confidence: "medium",
+            },
+          });
+        }
+      }
+    }
+
     score = Math.min(100, Math.max(0, score));
 
     return {
@@ -123,7 +270,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
       weight: PILLAR_WEIGHTS[PILLAR],
       confidence: "medium",
       findings,
-      summary: `API specs: ${apiSpecs.length}, GraphQL: ${graphqlSchemas.length > 0}, Error taxonomy: ${hasErrorTaxonomy}`,
+      summary: `API specs: ${apiSpecs.length}, GraphQL: ${graphqlSchemas.length > 0}, Error taxonomy: ${hasErrorTaxonomy}, Runbooks: ${machineReadableRunbooks.length} machine-readable / ${proseOnlyRunbooks.length} prose`,
     };
   },
 };

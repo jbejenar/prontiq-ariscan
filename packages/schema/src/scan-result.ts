@@ -7,6 +7,9 @@ export type Severity = z.infer<typeof Severity>;
 export const Confidence = z.enum(["high", "medium", "low"]);
 export type Confidence = z.infer<typeof Confidence>;
 
+export const EstimatedImpact = z.enum(["high", "medium", "low"]);
+export type EstimatedImpact = z.infer<typeof EstimatedImpact>;
+
 export const Remediation = z.object({
   action: z.enum([
     "create-file",
@@ -17,8 +20,14 @@ export const Remediation = z.object({
     "add-script",
     "configure-tool",
   ]),
+  /** File path relevant to this remediation (e.g. file to create or modify). */
   path: z.string().optional(),
   description: z.string(),
+  /**
+   * Expected impact on the ARI score if remediation is applied.
+   * Free-form string, conventionally formatted as "+N points composite"
+   * or "+N points <pillar>".
+   */
   estimatedImpact: z.string().optional(),
   confidence: Confidence,
 });
@@ -43,6 +52,28 @@ export const Finding = z.object({
 });
 export type Finding = z.infer<typeof Finding>;
 
+export const PillarStatus = z.enum([
+  "excellent",
+  "good",
+  "needs-improvement",
+  "poor",
+]);
+export type PillarStatus = z.infer<typeof PillarStatus>;
+
+/**
+ * Derive a status label from a numeric score.
+ *   >= 80 → "excellent"
+ *   >= 60 → "good"
+ *   >= 40 → "needs-improvement"
+ *   <  40 → "poor"
+ */
+export function scoreToStatus(score: number): PillarStatus {
+  if (score >= 80) return "excellent";
+  if (score >= 60) return "good";
+  if (score >= 40) return "needs-improvement";
+  return "poor";
+}
+
 export const PillarResult = z.object({
   pillar: PillarId,
   name: z.string(),
@@ -51,6 +82,7 @@ export const PillarResult = z.object({
   confidence: Confidence,
   findings: z.array(Finding),
   summary: z.string(),
+  status: PillarStatus.optional(),
 });
 export type PillarResult = z.infer<typeof PillarResult>;
 
@@ -69,6 +101,31 @@ export const LevelMeta = z.object({
   description: z.string(),
 });
 export type LevelMeta = z.infer<typeof LevelMeta>;
+
+export const ContextFileType = z.enum([
+  "agents-md",
+  "claude-md",
+  "cursorrules",
+  "copilot-instructions",
+  "aider-config",
+  "agentignore",
+  "mcp-config",
+  "other",
+]);
+export type ContextFileType = z.infer<typeof ContextFileType>;
+
+/** Metadata about a discovered context file in the target repository. */
+export const ContextFileInfo = z.object({
+  /** Relative path within the repo. */
+  path: z.string(),
+  /** Classified type of the context file. */
+  type: ContextFileType,
+  /** File size in bytes. */
+  size: z.number().optional(),
+  /** Number of lines in the file. */
+  lineCount: z.number().optional(),
+});
+export type ContextFileInfo = z.infer<typeof ContextFileInfo>;
 
 export const DetectedLanguage = z.object({
   language: z.string(),
@@ -106,5 +163,7 @@ export const ScanResult = z.object({
   pillars: z.array(PillarResult),
   findings: z.array(Finding),
   detection: DetectionResult.optional(),
+  /** Discovered context files in the scanned repository. */
+  contextFiles: z.array(ContextFileInfo).optional(),
 });
 export type ScanResult = z.infer<typeof ScanResult>;

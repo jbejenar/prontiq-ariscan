@@ -190,6 +190,89 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       }
     }
 
+    // --- ARI-BLD-006: Monorepo project references ---
+    const hasTurboJson = await context.fileExists("turbo.json");
+    const hasNxJson = await context.fileExists("nx.json");
+    const hasLernaJson = await context.fileExists("lerna.json");
+    const hasPnpmWorkspace = await context.fileExists("pnpm-workspace.yaml");
+    const detectedMonorepoTools: string[] = [];
+    if (hasTurboJson) detectedMonorepoTools.push("Turborepo");
+    if (hasNxJson) detectedMonorepoTools.push("Nx");
+    if (hasLernaJson) detectedMonorepoTools.push("Lerna");
+    if (hasPnpmWorkspace) detectedMonorepoTools.push("pnpm workspaces");
+
+    if (detectedMonorepoTools.length > 0) {
+      const hasProjectRefs = tsconfig
+        ? (() => {
+            const refs = tsconfig["references"] as unknown[] | undefined;
+            return refs && Array.isArray(refs) && refs.length > 0;
+          })()
+        : false;
+
+      findings.push({
+        code: "ARI-BLD-006",
+        severity: hasProjectRefs ? "info" : "medium",
+        pillar: PILLAR,
+        message: `Monorepo detected (${detectedMonorepoTools.join(", ")})${hasProjectRefs ? " with TypeScript project references configured" : " — consider adding TypeScript project references for faster incremental builds"}`,
+        remediation: hasProjectRefs
+          ? undefined
+          : {
+              action: "modify-config",
+              path: "tsconfig.json",
+              description: "Add project references to tsconfig.json for each workspace package",
+              confidence: "medium",
+            },
+      });
+    }
+
+    // --- ARI-BLD-007: Lockfile drift detection ---
+    if (pkg) {
+      const packageManagerField = pkg["packageManager"] as string | undefined;
+      if (packageManagerField) {
+        const pmName = packageManagerField.split("@")[0];
+        const lockfileMap: Record<string, string[]> = {
+          pnpm: ["pnpm-lock.yaml"],
+          npm: ["package-lock.json"],
+          yarn: ["yarn.lock"],
+          bun: ["bun.lockb"],
+        };
+        const expectedLockfiles = pmName ? lockfileMap[pmName] : undefined;
+        if (expectedLockfiles) {
+          let hasExpected = false;
+          for (const lf of expectedLockfiles) {
+            if (await context.fileExists(lf)) {
+              hasExpected = true;
+              break;
+            }
+          }
+          if (!hasExpected) {
+            // Check if a different lockfile exists
+            const allLockfileNames = Object.values(lockfileMap).flat();
+            const wrongLockfiles: string[] = [];
+            for (const lf of allLockfileNames) {
+              if (await context.fileExists(lf)) {
+                wrongLockfiles.push(lf);
+              }
+            }
+            if (wrongLockfiles.length > 0) {
+              score -= 5;
+              findings.push({
+                code: "ARI-BLD-007",
+                severity: "high",
+                pillar: PILLAR,
+                message: `packageManager field specifies "${pmName}" but found lockfile(s) for a different package manager: ${wrongLockfiles.join(", ")}`,
+                remediation: {
+                  action: "modify-config",
+                  description: `Either update packageManager field to match the lockfile or regenerate the lockfile using ${pmName}`,
+                  confidence: "high",
+                },
+              });
+            }
+          }
+        }
+      }
+    }
+
     // Go interface{} / any abuse detection
     const goFiles = context.files.filter((f) => f.endsWith(".go") && !f.includes("vendor/"));
     if (goFiles.length > 0) {

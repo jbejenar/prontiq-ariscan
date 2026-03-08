@@ -249,6 +249,163 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       score -= Math.min(15, circularCount * 5);
     }
 
+    // --- ARI-NAV-006: Dead code detection heuristic ---
+    // Collect all import references from sampled files
+    const allImportTargets = new Set<string>();
+    for (const [, imports] of importMap) {
+      for (const imp of imports) {
+        allImportTargets.add(imp);
+      }
+    }
+
+    // Also scan additional files not yet in importMap for import targets
+    const additionalFiles = tsJsFiles.filter((f) => !importMap.has(f)).slice(0, 20);
+    for (const file of additionalFiles) {
+      const content = await context.readFile(file);
+      if (!content) continue;
+      const importRegex = /(?:import\s.*?from\s+['"](.+?)['"]|require\s*\(\s*['"](.+?)['"]\s*\))/g;
+      let match: RegExpExecArray | null;
+      while ((match = importRegex.exec(content)) !== null) {
+        const importPath = match[1] ?? match[2];
+        if (importPath && importPath.startsWith(".")) {
+          const fileDir = file.split("/").slice(0, -1).join("/");
+          const segments = importPath.replace(/\.[jt]sx?$/, "").split("/");
+          const resolved: string[] = fileDir ? fileDir.split("/") : [];
+          for (const seg of segments) {
+            if (seg === "..") {
+              resolved.pop();
+            } else if (seg !== ".") {
+              resolved.push(seg);
+            }
+          }
+          allImportTargets.add(resolved.join("/"));
+        }
+      }
+    }
+
+    const deadCodeCandidates: string[] = [];
+    const entryPatterns = /index\.[jt]sx?$|main\.[jt]sx?$|app\.[jt]sx?$|mod\.rs$|__init__\.py$|server\.[jt]sx?$/;
+    const sampledForDead = tsJsFiles.slice(0, 30);
+    for (const file of sampledForDead) {
+      const fileName = file.split("/").pop() ?? "";
+      // Skip entry points and index files
+      if (entryPatterns.test(fileName)) continue;
+      // Skip test files
+      if (/\.test\.|\.spec\.|__tests__/.test(file)) continue;
+
+      const fileBase = file.replace(/\.[jt]sx?$/, "");
+      const isImported = [...allImportTargets].some(
+        (imp) => imp === fileBase || imp === file || fileBase.endsWith("/" + imp.split("/").pop()),
+      );
+      if (!isImported) {
+        deadCodeCandidates.push(file);
+      }
+    }
+
+    if (deadCodeCandidates.length > 3) {
+      score -= 5;
+      findings.push({
+        code: "ARI-NAV-006",
+        severity: "low",
+        pillar: PILLAR,
+        message: `Found ${deadCodeCandidates.length} source file(s) that appear unused (never imported): ${deadCodeCandidates.slice(0, 3).join(", ")}${deadCodeCandidates.length > 3 ? ` and ${deadCodeCandidates.length - 3} more` : ""}`,
+        remediation: {
+          action: "refactor",
+          description: "Review potentially dead code files and remove them or ensure they are properly imported",
+          confidence: "low",
+        },
+      });
+    }
+
+    // --- ARI-NAV-007: Cognitive complexity estimate ---
+    const complexFiles: Array<{ file: string; reason: string }> = [];
+    const sampledForComplexity = importableFiles.slice(0, 20);
+
+    for (const file of sampledForComplexity) {
+      const content = await context.readFile(file);
+      if (!content) continue;
+
+      const lines = content.split("\n");
+
+      // Count nested conditionals depth
+      let maxNestingDepth = 0;
+      let currentNesting = 0;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (/^(if|else if|else|switch|for|while|try|catch)\b/.test(trimmed) || /\{\s*$/.test(trimmed)) {
+          currentNesting++;
+          if (currentNesting > maxNestingDepth) {
+            maxNestingDepth = currentNesting;
+          }
+        }
+        if (/^\}/.test(trimmed)) {
+          currentNesting = Math.max(0, currentNesting - 1);
+        }
+      }
+
+      // Check for long functions (>50 lines between function boundaries)
+      let inFunction = false;
+      let functionStartLine = 0;
+      let hasLongFunction = false;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line === undefined) continue;
+        const trimmed = line.trim();
+        if (/^(export\s+)?(async\s+)?function\b|^(export\s+)?(const|let|var)\s+\w+\s*=\s*(async\s+)?\(/.test(trimmed)) {
+          inFunction = true;
+          functionStartLine = i;
+        }
+        if (inFunction && /^\};\s*$|^\}\s*$/.test(trimmed) && i - functionStartLine > 50) {
+          hasLongFunction = true;
+          inFunction = false;
+        }
+      }
+
+      if (maxNestingDepth >= 5) {
+        complexFiles.push({ file, reason: `nesting depth ${maxNestingDepth}` });
+      } else if (hasLongFunction) {
+        complexFiles.push({ file, reason: "long function (>50 lines)" });
+      }
+    }
+
+    if (complexFiles.length > 0) {
+      score -= Math.min(10, complexFiles.length * 3);
+      const topComplex = complexFiles.slice(0, 3);
+      findings.push({
+        code: "ARI-NAV-007",
+        severity: "medium",
+        pillar: PILLAR,
+        message: `Found ${complexFiles.length} file(s) with high cognitive complexity: ${topComplex.map((c) => `${c.file} (${c.reason})`).join(", ")}`,
+        remediation: {
+          action: "refactor",
+          description: "Reduce nesting depth and break long functions into smaller, focused units",
+          confidence: "medium",
+        },
+      });
+    }
+
+    // Build summary with "most costly navigation paths"
+    const problemAreas: string[] = [];
+    if (stuffedDirs.length > 0) {
+      problemAreas.push(`${stuffedDirs.length} overstuffed dir(s)`);
+    }
+    if (heavyImportCount > 0) {
+      problemAreas.push(`${heavyImportCount} high-coupling file(s)`);
+    }
+    if (circularCount > 0) {
+      problemAreas.push(`${circularCount} circular dep(s)`);
+    }
+    if (deadCodeCandidates.length > 0) {
+      problemAreas.push(`${deadCodeCandidates.length} potentially dead file(s)`);
+    }
+    if (complexFiles.length > 0) {
+      problemAreas.push(`${complexFiles.length} high-complexity file(s)`);
+    }
+
+    const costlyPaths = problemAreas.length > 0
+      ? ` | Top issues: ${problemAreas.join(", ")}`
+      : " | No major navigation issues";
+
     score = Math.min(100, Math.max(0, score));
 
     return {
@@ -258,7 +415,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       weight: PILLAR_WEIGHTS[PILLAR],
       confidence: sourceFiles.length > 10 ? "medium" : "low",
       findings,
-      summary: `${sourceFiles.length} source files across ${dirs.size} directories, max depth ${maxDepth}, naming ${Math.round(consistency * 100)}% consistent`,
+      summary: `${sourceFiles.length} source files across ${dirs.size} directories, max depth ${maxDepth}, naming ${Math.round(consistency * 100)}% consistent${costlyPaths}`,
     };
   },
 };

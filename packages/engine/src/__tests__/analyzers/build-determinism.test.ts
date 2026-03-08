@@ -341,6 +341,85 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     });
   });
 
+  describe("ARI-BLD-006: Monorepo project references", () => {
+    it("emits ARI-BLD-006 when turbo.json is detected", async () => {
+      const ctx = createMockContext({
+        "turbo.json": JSON.stringify({ pipeline: { build: {} } }),
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-006")).toBe(true);
+    });
+
+    it("emits ARI-BLD-006 when nx.json is detected", async () => {
+      const ctx = createMockContext({
+        "nx.json": JSON.stringify({ tasksRunnerOptions: {} }),
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-006")).toBe(true);
+    });
+
+    it("emits ARI-BLD-006 when pnpm-workspace.yaml is detected", async () => {
+      const ctx = createMockContext({
+        "pnpm-workspace.yaml": "packages:\n  - packages/*",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-006")).toBe(true);
+    });
+
+    it("emits info severity when project references are configured", async () => {
+      const ctx = createMockContext({
+        "turbo.json": JSON.stringify({ pipeline: { build: {} } }),
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: { strict: true },
+          references: [{ path: "./packages/core" }],
+        }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-006");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("does not emit ARI-BLD-006 when no monorepo tool is detected", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-006")).toBe(false);
+    });
+  });
+
+  describe("ARI-BLD-007: Lockfile drift detection", () => {
+    it("emits ARI-BLD-007 when packageManager says pnpm but only package-lock.json exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ packageManager: "pnpm@9.0.0" }),
+        "package-lock.json": "{}",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-007")).toBe(true);
+    });
+
+    it("does not emit ARI-BLD-007 when lockfile matches packageManager", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ packageManager: "pnpm@9.0.0" }),
+        "pnpm-lock.yaml": "lockfileVersion: 5",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-007")).toBe(false);
+    });
+
+    it("does not emit ARI-BLD-007 when no packageManager field exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "my-app" }),
+        "package-lock.json": "{}",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-007")).toBe(false);
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

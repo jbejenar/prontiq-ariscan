@@ -80,6 +80,89 @@ describe("navigabilityAnalyzer (P7)", () => {
     });
   });
 
+  describe("ARI-NAV-006: Dead code detection", () => {
+    it("emits ARI-NAV-006 when multiple files are never imported", async () => {
+      const files: Record<string, string> = {
+        "src/index.ts": "export * from './used';",
+        "src/used.ts": "export const used = 1;",
+      };
+      // Add several orphan files that are never imported
+      for (let i = 0; i < 5; i++) {
+        files[`src/orphan${i}.ts`] = `export const orphan${i} = ${i};`;
+      }
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-006")).toBe(true);
+    });
+
+    it("does not flag index/entry-point files as dead code", async () => {
+      const ctx = createMockContext({
+        "src/index.ts": "export const app = 1;",
+        "src/main.ts": "export const main = 1;",
+        "src/app.ts": "export const app = 1;",
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-006")).toBe(false);
+    });
+  });
+
+  describe("ARI-NAV-007: Cognitive complexity estimate", () => {
+    it("emits ARI-NAV-007 for deeply nested code", async () => {
+      const deeplyNested = [
+        "export function complex() {",
+        "  if (true) {",
+        "    if (true) {",
+        "      if (true) {",
+        "        if (true) {",
+        "          if (true) {",
+        "            return 1;",
+        "          }",
+        "        }",
+        "      }",
+        "    }",
+        "  }",
+        "}",
+      ].join("\n");
+      const ctx = createMockContext({
+        "src/complex.ts": deeplyNested,
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-007")).toBe(true);
+    });
+
+    it("does not emit ARI-NAV-007 for simple flat code", async () => {
+      const files: Record<string, string> = {};
+      for (let i = 0; i < 5; i++) {
+        files[`src/simple${i}.ts`] = `export function fn${i}() {\n  return ${i};\n}`;
+      }
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-007")).toBe(false);
+    });
+  });
+
+  describe("summary includes top issues", () => {
+    it("includes problem areas in summary when issues exist", async () => {
+      const imports = Array.from({ length: 25 }, (_, i) =>
+        `import { mod${i} } from './mod${i}';`,
+      ).join("\n");
+      const ctx = createMockContext({
+        "src/heavy.ts": imports + "\nexport const x = 1;",
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("Top issues:");
+    });
+
+    it("shows no major issues when repo is clean", async () => {
+      const ctx = createMockContext({
+        "src/index.ts": "import { x } from './mod';\nexport { x };",
+        "src/mod.ts": "export const x = 1;",
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("No major navigation issues");
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const files: Record<string, string> = {};
