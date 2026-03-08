@@ -145,6 +145,62 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       score += 10;
     }
 
+    // Doctor/health-check command detection
+    let hasDoctorCmd = false;
+    const allScriptNames = Object.keys(scripts);
+    for (const scriptName of allScriptNames) {
+      if (/doctor|health|check:env|verify:env|diagnose/i.test(scriptName)) {
+        hasDoctorCmd = true;
+        break;
+      }
+    }
+    // Also check script values for doctor commands
+    if (!hasDoctorCmd) {
+      for (const scriptValue of Object.values(scripts)) {
+        if (/doctor|health-check|healthcheck/i.test(scriptValue)) {
+          hasDoctorCmd = true;
+          break;
+        }
+      }
+    }
+    if (hasDoctorCmd) {
+      score += 5;
+    } else {
+      findings.push({
+        code: "ARI-ENV-004",
+        severity: "low",
+        pillar: PILLAR,
+        message: "No doctor/health-check command found in package.json scripts",
+        remediation: {
+          action: "add-script",
+          description: "Add a 'doctor' or 'health-check' script that validates the dev environment (node version, required tools, etc.)",
+          confidence: "medium",
+        },
+      });
+    }
+
+    // Seed/fixture data detection
+    const seedFixtureDirs = ["seeds/", "seed/", "fixtures/", "fixture/", "testdata/", "test-data/", "test_data/"];
+    let hasSeedData = false;
+    for (const dir of seedFixtureDirs) {
+      if (context.files.some((f) => f.startsWith(dir) || f.includes(`/${dir}`))) {
+        hasSeedData = true;
+        break;
+      }
+    }
+    // Also check for seed scripts in package.json
+    if (!hasSeedData) {
+      for (const scriptName of allScriptNames) {
+        if (/seed|fixture/i.test(scriptName)) {
+          hasSeedData = true;
+          break;
+        }
+      }
+    }
+    if (hasSeedData) {
+      score += 5;
+    }
+
     score = Math.min(100, Math.max(0, score));
 
     return {

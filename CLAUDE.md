@@ -34,7 +34,7 @@ Build order matters: `schema` -> `engine` -> `cli`. Turborepo handles this autom
 
 1. **Import extensions** — forgetting `.js` in relative imports causes runtime errors. TypeScript compiles fine but Node ESM resolution fails. Always write `import { foo } from "./bar.js"`.
 2. **Build before test** — the engine imports from `@prontiq/schema` via its built output. Run `pnpm build` after schema changes before testing engine.
-3. **Pillar weights must sum to 1.0** — if you change weights in `packages/schema/src/pillars.ts`, ensure they still total exactly 1.0 or the composite score breaks.
+3. **Pillar weights must sum to 1.0** — if you change weights in `packages/schema/src/pillar.ts`, ensure they still total exactly 1.0 or the composite score breaks.
 4. **Finding codes are stable** — codes like `ARI-CTX-001` may be referenced by users in config files for suppression. Don't renumber existing codes.
 5. **Score clamping** — every analyzer must clamp its score to [0, 100] via `Math.min(100, Math.max(0, score))` before returning.
 6. **No `any`** — the ESLint config enforces `@typescript-eslint/no-explicit-any`. Use `unknown` and narrow.

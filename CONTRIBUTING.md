@@ -11,8 +11,8 @@ Thank you for your interest in contributing. This guide covers setup, developmen
 ## Setup
 
 ```bash
-git clone https://github.com/prontiq/ariscan.git
-cd ariscan
+git clone https://github.com/jbejenar/prontiq-ariscan.git
+cd prontiq-ariscan
 pnpm install
 pnpm build
 ```
@@ -65,7 +65,7 @@ Dependencies are one-directional: `cli -> engine -> schema`.
 
 ## How to Add a New Pillar Analyzer
 
-1. **Define the pillar** in `packages/schema/src/pillars.ts` — add a new `PillarId`, name, and weight (weights must sum to 1.0).
+1. **Define the pillar** in `packages/schema/src/pillar.ts` — add a new `PillarId`, name, and weight (weights must sum to 1.0).
 
 2. **Create the analyzer** at `packages/engine/src/analyzers/{name}.ts`:
    - Import from `@prontiq/schema` and `./analyzer.interface.js`

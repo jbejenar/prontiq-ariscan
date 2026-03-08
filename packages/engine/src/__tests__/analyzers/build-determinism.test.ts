@@ -263,6 +263,84 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     });
   });
 
+  describe("TypeScript projectReferences", () => {
+    it("adds points for tsconfig with references", async () => {
+      const withRefs = createMockContext({
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: { strict: true },
+          references: [{ path: "./packages/core" }, { path: "./packages/cli" }],
+        }),
+      });
+      const withoutRefs = createMockContext({
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: { strict: true },
+        }),
+      });
+      const r1 = await buildDeterminismAnalyzer.analyze(withRefs);
+      const r2 = await buildDeterminismAnalyzer.analyze(withoutRefs);
+      expect(r1.score - r2.score).toBe(5);
+    });
+
+    it("does not add points for empty references array", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: { strict: true },
+          references: [],
+        }),
+      });
+      const baseline = createMockContext({
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: { strict: true },
+        }),
+      });
+      const r1 = await buildDeterminismAnalyzer.analyze(ctx);
+      const r2 = await buildDeterminismAnalyzer.analyze(baseline);
+      expect(r1.score).toBe(r2.score);
+    });
+  });
+
+  describe("Go interface{}/any abuse detection", () => {
+    it("emits ARI-BLD-004 for excessive interface{} usage", async () => {
+      const goContent = Array(12).fill('func doStuff(x interface{}) {}').join("\n");
+      const ctx = createMockContext({
+        "go.mod": "module example.com/app\ngo 1.21",
+        "main.go": goContent,
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-004")).toBe(true);
+    });
+
+    it("does not emit ARI-BLD-004 for minimal any usage", async () => {
+      const ctx = createMockContext({
+        "go.mod": "module example.com/app\ngo 1.21",
+        "main.go": 'package main\n\nfunc main() {\n  x := 42\n  println(x)\n}',
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-004")).toBe(false);
+    });
+  });
+
+  describe("Rust excessive unwrap() detection", () => {
+    it("emits ARI-BLD-005 for excessive unwrap() usage", async () => {
+      const rsContent = Array(25).fill('let x = some_result.unwrap();').join("\n");
+      const ctx = createMockContext({
+        "Cargo.toml": '[package]\nname = "app"',
+        "src/main.rs": rsContent,
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-005")).toBe(true);
+    });
+
+    it("does not emit ARI-BLD-005 for clean Rust code", async () => {
+      const ctx = createMockContext({
+        "Cargo.toml": '[package]\nname = "app"',
+        "src/main.rs": 'fn main() -> Result<(), Box<dyn std::error::Error>> {\n  let x = some_fn()?;\n  Ok(())\n}',
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-005")).toBe(false);
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

@@ -70,6 +70,33 @@ export const LevelMeta = z.object({
 });
 export type LevelMeta = z.infer<typeof LevelMeta>;
 
+export const DetectedLanguage = z.object({
+  language: z.string(),
+  confidence: z.number().min(0).max(1),
+  primary: z.boolean(),
+});
+export type DetectedLanguage = z.infer<typeof DetectedLanguage>;
+
+export const DetectedFramework = z.object({
+  framework: z.string(),
+  confidence: z.number().min(0).max(1),
+});
+export type DetectedFramework = z.infer<typeof DetectedFramework>;
+
+export const DetectedMonorepo = z.object({
+  tool: z.string(),
+  workspaceRoot: z.string(),
+  packages: z.array(z.string()),
+});
+export type DetectedMonorepo = z.infer<typeof DetectedMonorepo>;
+
+export const DetectionResult = z.object({
+  languages: z.array(DetectedLanguage),
+  frameworks: z.array(DetectedFramework),
+  monorepo: DetectedMonorepo.nullable(),
+});
+export type DetectionResult = z.infer<typeof DetectionResult>;
+
 export const ScanResult = z.object({
   metadata: ScanMetadata,
   score: z.number().min(0).max(100),
@@ -78,5 +105,6 @@ export const ScanResult = z.object({
   securityGateTriggered: z.boolean(),
   pillars: z.array(PillarResult),
   findings: z.array(Finding),
+  detection: DetectionResult.optional(),
 });
 export type ScanResult = z.infer<typeof ScanResult>;

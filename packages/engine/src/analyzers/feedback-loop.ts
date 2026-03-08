@@ -145,6 +145,103 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
       score += 5;
     }
 
+    // Estimated execution time categories based on test runner config
+    const vitestConfig = await context.readFile("vitest.config.ts") ?? await context.readFile("vitest.config.js");
+    const jestConfig = await context.readFile("jest.config.ts") ?? await context.readFile("jest.config.js") ?? await context.readFile("jest.config.json");
+    const testRunnerConfig = vitestConfig ?? jestConfig;
+
+    if (testRunnerConfig) {
+      // Check for timeout settings to estimate execution time
+      const timeoutMatch = testRunnerConfig.match(/timeout\s*[:=]\s*(\d+)/);
+      if (timeoutMatch && timeoutMatch[1]) {
+        const timeout = parseInt(timeoutMatch[1], 10);
+        if (timeout <= 30000) {
+          score += 5;
+        } else if (timeout <= 60000) {
+          score += 3;
+        } else {
+          findings.push({
+            code: "ARI-FBK-005",
+            severity: "medium",
+            pillar: PILLAR,
+            message: `Test timeout is ${timeout}ms (>60s) — slow feedback loop`,
+            remediation: {
+              action: "modify-config",
+              description: "Lower test timeouts and optimize slow tests. Target <30s for unit tests.",
+              confidence: "medium",
+            },
+            evidence: {
+              paper: "DORA, 2024",
+              finding: "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
+              confidence: "high",
+            },
+          });
+        }
+      } else if (vitestConfig) {
+        // Vitest defaults to 5s timeout — assume fast
+        score += 5;
+      }
+    }
+
+    // Changeset scope controls (conventional commits, PR size limits)
+    let hasChangesetControls = false;
+    const commitlintConfigs = [
+      "commitlint.config.js",
+      "commitlint.config.cjs",
+      "commitlint.config.ts",
+      ".commitlintrc",
+      ".commitlintrc.json",
+      ".commitlintrc.yml",
+      ".commitlintrc.yaml",
+      ".commitlintrc.js",
+      ".commitlintrc.cjs",
+    ];
+    for (const cfg of commitlintConfigs) {
+      if (await context.fileExists(cfg)) {
+        hasChangesetControls = true;
+        break;
+      }
+    }
+
+    // Also check package.json for commitlint config
+    if (!hasChangesetControls && pkg) {
+      const commitlint = pkg["commitlint"] as Record<string, unknown> | undefined;
+      if (commitlint) {
+        hasChangesetControls = true;
+      }
+    }
+
+    // Check for changesets package
+    if (!hasChangesetControls) {
+      if (await context.fileExists(".changeset/config.json")) {
+        hasChangesetControls = true;
+      }
+    }
+
+    // Check for PR size bot config (danger, pronto, etc.)
+    if (!hasChangesetControls) {
+      const hasDangerfile = await context.fileExists("dangerfile.ts") || await context.fileExists("dangerfile.js");
+      if (hasDangerfile) {
+        hasChangesetControls = true;
+      }
+    }
+
+    if (hasChangesetControls) {
+      score += 5;
+    } else {
+      findings.push({
+        code: "ARI-FBK-006",
+        severity: "low",
+        pillar: PILLAR,
+        message: "No changeset scope controls found (commitlint, changesets, or Danger)",
+        remediation: {
+          action: "configure-tool",
+          description: "Add commitlint for conventional commits or @changesets/cli for scoped changesets",
+          confidence: "medium",
+        },
+      });
+    }
+
     score = Math.min(100, Math.max(0, score));
 
     return {

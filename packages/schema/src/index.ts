@@ -19,6 +19,10 @@ export {
   ScanMetadata,
   LevelMeta,
   ScanResult,
+  DetectedLanguage,
+  DetectedFramework,
+  DetectedMonorepo,
+  DetectionResult,
 } from "./scan-result.js";
 
-export { PillarOverride, ScanConfig } from "./config.js";
+export { PillarOverride, ScanConfig, FileConfig } from "./config.js";

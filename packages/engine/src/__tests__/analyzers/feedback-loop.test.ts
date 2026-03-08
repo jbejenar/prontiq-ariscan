@@ -196,6 +196,86 @@ describe("feedbackLoopAnalyzer (P2)", () => {
     });
   });
 
+  describe("estimated execution time categories", () => {
+    it("gives bonus for vitest config (fast by default)", async () => {
+      const pkg = JSON.stringify({ scripts: { test: "vitest run" } });
+      const ctxWith = createMockContext({
+        "package.json": pkg,
+        "vitest.config.ts": "export default { test: { timeout: 5000 } }",
+      });
+      const ctxWithout = createMockContext({
+        "package.json": pkg,
+      });
+      const withConfig = await feedbackLoopAnalyzer.analyze(ctxWith);
+      const withoutConfig = await feedbackLoopAnalyzer.analyze(ctxWithout);
+      expect(withConfig.score).toBeGreaterThan(withoutConfig.score);
+    });
+
+    it("emits ARI-FBK-005 for slow test timeout (>60s)", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "vitest run" } }),
+        "vitest.config.ts": "export default { test: { timeout: 120000 } }",
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-FBK-005")).toBe(true);
+    });
+
+    it("does not emit ARI-FBK-005 for fast test timeout", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "vitest run" } }),
+        "vitest.config.ts": "export default { test: { timeout: 5000 } }",
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-FBK-005")).toBe(false);
+    });
+  });
+
+  describe("changeset scope controls", () => {
+    it("adds points for commitlint config", async () => {
+      const pkg = JSON.stringify({ scripts: {} });
+      const ctxWith = createMockContext({
+        "package.json": pkg,
+        "commitlint.config.js": "module.exports = { extends: ['@commitlint/config-conventional'] };",
+      });
+      const ctxWithout = createMockContext({ "package.json": pkg });
+      const withCommitlint = await feedbackLoopAnalyzer.analyze(ctxWith);
+      const withoutCommitlint = await feedbackLoopAnalyzer.analyze(ctxWithout);
+      expect(withCommitlint.score).toBeGreaterThan(withoutCommitlint.score);
+    });
+
+    it("adds points for .changeset/config.json", async () => {
+      const pkg = JSON.stringify({ scripts: {} });
+      const ctxWith = createMockContext({
+        "package.json": pkg,
+        ".changeset/config.json": JSON.stringify({ changelog: "@changesets/cli" }),
+      });
+      const ctxWithout = createMockContext({ "package.json": pkg });
+      const withChangesets = await feedbackLoopAnalyzer.analyze(ctxWith);
+      const withoutChangesets = await feedbackLoopAnalyzer.analyze(ctxWithout);
+      expect(withChangesets.score).toBeGreaterThan(withoutChangesets.score);
+    });
+
+    it("adds points for commitlint in package.json", async () => {
+      const pkg = JSON.stringify({
+        scripts: {},
+        commitlint: { extends: ["@commitlint/config-conventional"] },
+      });
+      const ctxWith = createMockContext({ "package.json": pkg });
+      const ctxWithout = createMockContext({ "package.json": JSON.stringify({ scripts: {} }) });
+      const withCommitlint = await feedbackLoopAnalyzer.analyze(ctxWith);
+      const withoutCommitlint = await feedbackLoopAnalyzer.analyze(ctxWithout);
+      expect(withCommitlint.score).toBeGreaterThan(withoutCommitlint.score);
+    });
+
+    it("emits ARI-FBK-006 when no changeset controls", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-FBK-006")).toBe(true);
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const maxPkg = JSON.stringify({

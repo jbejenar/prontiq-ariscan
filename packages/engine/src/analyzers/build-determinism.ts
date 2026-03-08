@@ -182,6 +182,73 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       score += 5;
     }
 
+    // TypeScript projectReferences check
+    if (tsconfig) {
+      const references = tsconfig["references"] as unknown[] | undefined;
+      if (references && Array.isArray(references) && references.length > 0) {
+        score += 5;
+      }
+    }
+
+    // Go interface{} / any abuse detection
+    const goFiles = context.files.filter((f) => f.endsWith(".go") && !f.includes("vendor/"));
+    if (goFiles.length > 0) {
+      let goAnyCount = 0;
+      const goSampled = goFiles.slice(0, 20);
+      for (const goFile of goSampled) {
+        const content = await context.readFile(goFile);
+        if (!content) continue;
+        const interfaceMatches = content.match(/\binterface\s*\{\s*\}/g);
+        const anyMatches = content.match(/\bany\b/g);
+        goAnyCount += (interfaceMatches?.length ?? 0) + (anyMatches?.length ?? 0);
+      }
+      if (goAnyCount > 10) {
+        score -= 5;
+        findings.push({
+          code: "ARI-BLD-004",
+          severity: "medium",
+          pillar: PILLAR,
+          message: `Found ${goAnyCount} uses of interface{}/any in Go files — reduces type safety`,
+          remediation: {
+            action: "refactor",
+            description: "Replace interface{}/any with concrete types or generics where possible",
+            confidence: "medium",
+          },
+        });
+      } else if (goAnyCount === 0) {
+        score += 5;
+      }
+    }
+
+    // Rust excessive unwrap() detection
+    const rsFiles = context.files.filter((f) => f.endsWith(".rs") && !f.includes("target/"));
+    if (rsFiles.length > 0) {
+      let unwrapCount = 0;
+      const rsSampled = rsFiles.slice(0, 20);
+      for (const rsFile of rsSampled) {
+        const content = await context.readFile(rsFile);
+        if (!content) continue;
+        const matches = content.match(/\.unwrap\(\)/g);
+        unwrapCount += matches?.length ?? 0;
+      }
+      if (unwrapCount > 20) {
+        score -= 5;
+        findings.push({
+          code: "ARI-BLD-005",
+          severity: "medium",
+          pillar: PILLAR,
+          message: `Found ${unwrapCount} uses of .unwrap() in Rust files — risk of panics at runtime`,
+          remediation: {
+            action: "refactor",
+            description: "Replace .unwrap() with proper error handling (?, match, unwrap_or, etc.)",
+            confidence: "medium",
+          },
+        });
+      } else if (unwrapCount === 0 && rsFiles.length > 0) {
+        score += 5;
+      }
+    }
+
     score = Math.min(100, Math.max(0, score));
 
     return {
