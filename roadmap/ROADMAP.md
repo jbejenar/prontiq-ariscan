@@ -698,7 +698,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 
 ### Epic P1.1 — Core Scanner Runtime
 
-#### Ticket P1.01 — CLI Scaffold and Config Runtime (🔴)
+#### Ticket P1.01 — CLI Scaffold and Config Runtime (🔴) ✅ Done
 
 - **User story:** As a maintainer, I need a stable command entrypoint and predictable config behavior so I can integrate `ariscan` into my workflow without surprises.
 - **Problem statement:** There is no standard CLI tool for measuring AI coding agent readiness. Developers need a single command that works out of the box, respects local configuration, and produces deterministic, machine-parseable output suitable for CI pipelines.
@@ -721,7 +721,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** CLI entrypoint, config loading, flag parsing, exit codes, basic error handling, `ARI-*` error taxonomy scaffold, AGENTS.md + CLAUDE.md for the ariscan repo itself (dog-fooding).
 - **Out of scope:** Scoring logic (separate tickets), output formatting (separate tickets), network features.
 
-#### Ticket P1.02 — Language and Framework Detection (🔴)
+#### Ticket P1.02 — Language and Framework Detection (🔴) 🔧 Partial
 
 - **User story:** As a developer, I need ariscan to automatically detect my project's languages and frameworks so the scoring is relevant without manual configuration.
 - **Problem statement:** Agent readiness criteria differ by language — TypeScript strict mode is irrelevant for Go, Python venv matters more than Node modules. Accurate detection is prerequisite to meaningful scoring. Monorepo detection is critical because monorepos require different scoring strategies (per-package analysis, project reference checks). Research from Multi-SWE-bench (Zan et al., 2025) confirms agents perform differently across languages, and SWE-bench Pro shows agents struggle especially with complex JS/TS monorepos where "erratic" performance is common.
@@ -744,7 +744,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** File-system-based detection (package.json, Cargo.toml, go.mod, pyproject.toml, etc.), framework marker files.
 - **Out of scope:** Runtime detection, version-specific analysis, dependency graph resolution.
 
-#### Ticket P1.03 — Context File Discovery (🔴)
+#### Ticket P1.03 — Context File Discovery (🔴) ✅ Done
 
 - **User story:** As an agent user, I need ariscan to find all my agent context files so I know what guidance my agents are receiving and whether it's well-formed.
 - **Problem statement:** The AI coding agent ecosystem is fragmented across multiple context file formats (AGENTS.md, CLAUDE.md, .cursorrules, copilot-instructions.md, .github/copilot-instructions.md). Research shows 60,000+ repos on GitHub have adopted AGENTS.md, but quality varies dramatically. Gloaguen et al. (2026, ETH Zurich) found that LLM-generated context files actually decrease agent success rates by 2-3% while increasing inference costs by 20%+, while human-written files improve performance by ~4% on niche repos. Discovery is the prerequisite to quality assessment.
@@ -774,7 +774,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 
 ### Epic P1.2 — Baseline Pillar Scoring
 
-#### Ticket P1.04 — Context Additionality Baseline (Pillar 1) (🟠)
+#### Ticket P1.04 — Context Additionality Baseline (Pillar 1) (🟠) 🔧 Partial
 
 - **User story:** As a maintainer, I need to know whether my context files are actually helping my agents or just duplicating what's already in the README.
 - **Problem statement:** The most impactful finding from Gloaguen et al. (2026, ETH Zurich) is that auto-generated AGENTS.md files *hurt* agent performance by 2-3% while increasing inference cost by 20%+. The mechanism is information redundancy — context files that restate the README add noise to the agent's context window without providing new signal. The "Lost in the Middle" effect (Liu et al., 2024) shows >30% performance degradation when relevant information sits in the middle of long contexts. Context volume alone degrades reasoning even when retrieval succeeds (arXiv 2510.05381, 2025). Information Gain per Turn decay and Token Waste Ratio are associated with 30-40% performance drops (OpenReview, 2025). This means a context file that duplicates existing information is *worse* than no context file at all.
@@ -807,7 +807,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Text similarity analysis, section-level comparison, front-loading heuristics.
 - **Out of scope:** Deep semantic understanding, cross-repo comparison, generation of improved files (P2.01).
 
-#### Ticket P1.05 — Feedback Loop Proxy (Pillar 2) (🔴)
+#### Ticket P1.05 — Feedback Loop Proxy (Pillar 2) (🔴) ✅ Done
 
 - **User story:** As an engineering lead, I need to know how fast my team's feedback loops are because slow loops are the primary cost multiplier for AI agent workflows.
 - **Problem statement:** DORA 2024 found that AI adoption actually *decreased* delivery throughput by 1.5% and stability by 7.2% because AI increases batch sizes and larger changesets introduce more risk. The mechanism: agentic self-correction loops increase token costs by 10-20x compared to single-shot attempts (4Geeks, 2025), making feedback latency the primary cost multiplier. If a test suite takes 10 minutes, an agent needing 5 iterations consumes 50 minutes of wall-clock time and thousands of idle tokens. Research from SAP HANA (Berndt et al., 2024) shows positive correlation between test execution time and flakiness rate — faster tests are also more reliable. Local feedback speed should be weighted ~2x higher than CI speed because local signals are the primary fuel for agentic self-correction loops (Jellyfish DPE research, 2025).
@@ -845,7 +845,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Static inference from config files and scripts, CI config parsing (GitHub Actions, GitLab CI).
 - **Out of scope:** Actual execution timing (P3.05 simulation), network-dependent CI queries.
 
-#### Ticket P1.06 — Test Isolation Anti-patterns v1 (Pillar 3) (🔴)
+#### Ticket P1.06 — Test Isolation Anti-patterns v1 (Pillar 3) (🔴) ✅ Done
 
 - **User story:** As a developer using AI agents, I need to know which of my tests will cause agents to waste tokens chasing phantom failures.
 - **Problem statement:** Test isolation is elevated to 18% weight (from 12.5% equal weight) because research shows it is a *leading indicator* of agent-authored code quality. Unlike humans who "retry and ignore," agents treat test failures as definitive signals to modify code. If the failure was flaky, the agent begins "fixing" valid code, introducing real regressions (creating a destructive loop). At Google, 41% of intermittent test failures are flaky (Memon et al., 2017). External dependencies and network instabilities are the predominant cause of systemic flakiness — contradicting older studies that rated concurrency as primary (Systemic Flakiness, 2025). Flaky test repair costs ~$2,250/month per developer (Leinen et al., 2024). 63% of LLM-generated flaky tests trace to unordered collection assumptions (Berndt et al., 2026). Critically, "flakiness transfer" means agents propagate instability from existing flaky tests into newly generated test cases. 26% of builds at Microsoft are affected by flaky tests (Lam et al., 2019).
@@ -898,7 +898,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Static analysis of test files, pattern matching for known anti-patterns, provider pattern detection.
 - **Out of scope:** Runtime flakiness measurement (requires execution), CI log analysis, dynamic analysis.
 
-#### Ticket P1.07 — Order-sensitive Assertion Detection (Pillar 3) (🟠)
+#### Ticket P1.07 — Order-sensitive Assertion Detection (Pillar 3) (🟠) ⬜ Not Started
 
 - **User story:** As a test maintainer, I need to identify tests that will fail intermittently due to non-deterministic ordering so I can fix them before agents propagate the pattern.
 - **Problem statement:** Berndt et al. (2026) found that 63% of LLM-generated flaky tests were caused by unordered collection assumptions — asserting equality on Maps, Sets, or dictionaries without sorting. This is the single largest category of LLM-introduced flakiness. "Flakiness transfer" means agents learn from existing tests — if your existing tests have ordering issues, agents will propagate that instability into every new test they generate.
@@ -918,7 +918,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** AST analysis of assertion statements, type inference for collection types.
 - **Out of scope:** Runtime ordering verification, cross-file assertion tracking.
 
-#### Ticket P1.08 — Onboarding Reproducibility Checks (Pillar 4) (🔴)
+#### Ticket P1.08 — Onboarding Reproducibility Checks (Pillar 4) (🔴) ✅ Done
 
 - **User story:** As a team lead, I need to know how quickly a fresh checkout of my repo can reach a running, testable state — because that's exactly what an agent experiences every time it starts a task.
 - **Problem statement:** The "Tutorial Problem" (VS Code Blog, 2022) shows manual setup instructions have a 94-96% drop-off rate. Agents face an identical hurdle — if a repo requires manual environment variables and globally installed binaries, the agent's "onboarding time" increases dramatically. Standardised environments reduce onboarding time by 60% and integration conflicts by 30% (Microsoft/GitLab, 2022). Industry average time-to-first-commit is 2-4 weeks; top teams achieve 3-5 days (Stripe Developer Coefficient). For agents, "onboarding" is the time from `git clone` to first successful test execution. Repositories using `.devcontainer` or `docker-compose.yml` ensure "development context mirrors app context."
@@ -958,7 +958,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** File presence and validity checks, setup complexity estimation, env var usage analysis.
 - **Out of scope:** Actual setup execution (P3.05 simulation), network dependency resolution.
 
-#### Ticket P1.09 — Machine-readable Docs Baseline (Pillar 5) (🟠)
+#### Ticket P1.09 — Machine-readable Docs Baseline (Pillar 5) (🟠) ✅ Done
 
 - **User story:** As a developer, I need to know whether my documentation is structured for machines to parse or locked in prose that agents struggle with.
 - **Problem statement:** LLMs struggle with "schema drift" and "formatting inconsistency" in prose documentation — token costs triple when agents must retry failed parsing attempts (Tetrate, 2025). LLM embeddings contain more accurate task information when documentation emphasises semantic structure (entities, relations, graphs) over narrative prose (Chalmers Literate Programming study, 2026). Machine-readable formats reduce hallucination rates (bioRxiv OpenEval, 2026). Research argues that "publication systems should optimize separately for the dissemination of data and results versus novel ideas" — API specs and error codes must be machine-readable (JATS XML, OpenAPI).
@@ -989,7 +989,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** File detection, format validation, basic drift detection.
 - **Out of scope:** Content quality assessment, documentation generation, deep semantic analysis.
 
-#### Ticket P1.10 — Type Strictness Scoring Baseline (Pillar 6) (🔴)
+#### Ticket P1.10 — Type Strictness Scoring Baseline (Pillar 6) (🔴) ✅ Done
 
 - **User story:** As a TypeScript developer, I need to know whether my type system configuration is helping or hurting my AI agents, because type errors are the #1 failure mode for LLM-generated code.
 - **Problem statement:** This is potentially the single highest-ROI criterion across the entire rubric. 94% of LLM-generated compilation errors are type-check failures (GitHub Octoverse 2025). Type errors account for 33.6% of all failed LM-generated programs (TyFlow, Huang et al., 2025). Type-constrained decoding significantly reduces compilation errors and improves functional correctness (ETH Zurich, 2025). Microsoft research shows consistent naming and modularity — enforced by type systems — decrease defects by 40%. Bloomberg Engineering (2024) confirms TypeScript strict mode is essential for maintaining invariants at scale. For agents, a strictly typed codebase acts as a "constraint-based guidance system" — the compiler becomes a deterministic, near-instant validator. In dynamically typed languages, agents must rely on runtime execution to find errors, which is significantly more expensive and less reliable.
@@ -1032,7 +1032,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Config file analysis, lockfile validation, build tool detection.
 - **Out of scope:** Actual type coverage measurement (requires compilation), build execution.
 
-#### Ticket P1.11 — Navigability Baseline (Pillar 7) (🟠)
+#### Ticket P1.11 — Navigability Baseline (Pillar 7) (🟠) ✅ Done
 
 - **User story:** As a developer, I need to know how easily AI agents can find and understand relevant code in my repository.
 - **Problem statement:** Developers spend up to 70% of their time comprehending code (Multitudes DX research). Complex code requires 250-500% more maintenance time (IEEE). This applies equally to agents — SWE-agent (Yang et al., NeurIPS 2024) proves that the agent-codebase interface is as important as the underlying model. Vector-only RAG degrades toward zero accuracy when queries involve >5 entities; AST-derived knowledge graphs maintain stable performance at 10+ entities (arXiv 2601.08773, 2025). GraphRAG achieves 3.4x accuracy improvement over vector RAG for multi-hop architectural reasoning (Fluree, 2025). Codebases with clear call hierarchies and predictable patterns enable better retrieval, regardless of retrieval strategy.
@@ -1066,7 +1066,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Static analysis of directory structure, import graphs, naming patterns.
 - **Out of scope:** AST-level graph analysis (P3.07), runtime profiling, semantic code understanding.
 
-#### Ticket P1.12 — Security and Governance Baseline (Pillar 8) (🔴)
+#### Ticket P1.12 — Security and Governance Baseline (Pillar 8) (🔴) ✅ Done
 
 - **User story:** As a security-conscious engineering lead, I need to know whether my repository has the governance controls required to safely use AI coding agents at scale.
 - **Problem statement:** AI-generated code consistently shows higher vulnerability rates than human-written code: ~40% of Copilot-generated programs contain CWE Top 25 vulnerabilities (Pearce et al., 2021), AI PRs have ~1.7x more issues than human PRs (CodeRabbit, 2025), and critical vulnerabilities increase by 37.6% after just 5 iterations of AI "improvement" (IEEE-ISTAS, 2025). AI assistants introduce hardcoded credentials at 2x the human rate (Veracode, 2025). By June 2025, AI-generated code introduced 10,000+ new security findings per month with privilege escalation up 322% and architectural design flaws up 153% (Apiiro, 2025). Security degradation in iterative AI synthesis is a fundamental property of current agents — they focus on functional correctness while inadvertently introducing security anti-patterns from training data. Without governance controls, the speed of AI agents is not a benefit but a liability that "multiplies security flaws entering production."
@@ -1104,7 +1104,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 
 ### Epic P1.3 — Output Contracts and Adoption UX
 
-#### Ticket P1.13 — Composite ARI and Tier Mapping (🔴)
+#### Ticket P1.13 — Composite ARI and Tier Mapping (🔴) ✅ Done
 
 - **User story:** As a developer, I need a single score and maturity level that tells me how ready my codebase is for AI agents, with clear rationale for how it was calculated.
 - **Problem statement:** Individual pillar scores are useful for diagnosis but teams need a single "headline" metric for communication, benchmarking, and goal-setting. The composite score must reflect research-calibrated weights (not equal weights) and the maturity level must map to real-world agent performance expectations grounded in benchmark data.
@@ -1146,7 +1146,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Score aggregation, weighting, maturity mapping, gate enforcement.
 - **Out of scope:** Historical comparison, peer benchmarking.
 
-#### Ticket P1.14 — JSON Output Contract v1 (🔴)
+#### Ticket P1.14 — JSON Output Contract v1 (🔴) 🔧 Partial
 
 - **User story:** As a CI/CD engineer, I need machine-readable output from ariscan so I can build automated workflows around readiness scores.
 - **Problem statement:** CI integration is the primary adoption vector for sustained usage. Without a stable, versioned JSON contract, downstream tooling (GitHub Actions, GitLab CI, custom dashboards) cannot reliably parse results. The schema must be semver-stable to avoid breaking integrations on minor releases.
@@ -1170,7 +1170,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** JSON schema definition (Zod), serialization, validation, versioning policy, `ARI-*` taxonomy integration.
 - **Out of scope:** API endpoint, streaming protocol, GraphQL.
 
-#### Ticket P1.15 — Markdown Report v1 (🟠)
+#### Ticket P1.15 — Markdown Report v1 (🟠) ⬜ Not Started
 
 - **User story:** As a tech lead, I need a shareable human-readable report I can paste into a PR, Slack thread, or wiki to communicate readiness status.
 - **Problem statement:** JSON output serves machines; teams need a human-readable format for communication, decision-making, and executive reporting. The report must be actionable — not just scores, but prioritized recommendations.
@@ -1191,7 +1191,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Markdown generation, terminal formatting, recommendation prioritization.
 - **Out of scope:** HTML report, PDF export, interactive report.
 
-#### Ticket P1.16 — README Badge Support (🟡)
+#### Ticket P1.16 — README Badge Support (🟡) ⬜ Not Started
 
 - **User story:** As an OSS maintainer, I want to display my agent readiness score as a badge in my README for social proof and to signal quality to potential AI agent users.
 - **Problem statement:** README badges are a proven viral distribution mechanism in the OSS ecosystem. Badge presence in popular repos normalizes the concept of agent readiness scoring and drives awareness.
@@ -1211,7 +1211,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** SVG generation, embed snippets, CLI command.
 - **Out of scope:** Dynamic badge service, badge hosting.
 
-#### Ticket P1.17 — Safe `--fix` Starter (🟠)
+#### Ticket P1.17 — Safe `--fix` Starter (🟠) ⬜ Not Started
 
 - **User story:** As a developer, I want ariscan to fix the easiest issues for me so I can improve my score without spending hours on manual changes.
 - **Problem statement:** Scoring without remediation creates "so what?" syndrome. The fastest path to proving value is generating safe, non-destructive fixes for the most common issues. Per Gloaguen et al. (2026), the key is generating *additive* information that agents can't discover independently — not restating the README.
@@ -1237,7 +1237,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** File generation with additive-only content, dry-run preview, idempotency.
 - **Out of scope:** Complex refactoring, code modification, destructive changes.
 
-#### Ticket P1.18 — Benchmark Cohort v1 (🟠)
+#### Ticket P1.18 — Benchmark Cohort v1 (🟠) ⬜ Not Started
 
 - **User story:** As a potential user, I want to see how popular OSS projects score so I can understand what ARI means in practice and how my repos compare.
 - **Problem statement:** Benchmark scores on recognizable projects build credibility, drive interest, and provide calibration data. The benchmark also serves as a regression test for scoring consistency and as launch PR material.
@@ -1263,6 +1263,151 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Repo selection, scanning, result publication, reproducibility tooling.
 - **Out of scope:** Continuous benchmarking (P2.12), automated updates.
 
+### P1 Implementation Notes (2026-03-08)
+
+This section captures learnings, gaps, and decisions from the initial implementation pass.
+It is the source of truth for what was actually built vs. what was specified.
+
+#### Architecture Decisions (deviations from RFC-0003)
+
+| Decision | Spec | Implementation | Rationale |
+|---|---|---|---|
+| Package naming | `@prontiq/core` | `@prontiq/schema` | Clearer purpose; "core" was overloaded. `schema` is Zod schemas only. |
+| Tree-sitter WASM | Required for P1 | **Deferred to P2/P3** | All P1 analyzers use regex/heuristic detection. AST analysis needed for P1.07 (order-sensitive assertions), P3.07 (advanced navigability), and deep anti-pattern detection. Regex is sufficient for baseline scoring. |
+| RepoContext interface | Includes `languages`, `frameworks`, `monorepo`, `contextFiles`, `config` | Only `rootPath`, `files`, `readFile()`, `fileExists()`, `readJson()` | Language/framework detection (P1.02) not yet a standalone module. Simpler interface was sufficient for all 8 analyzers. Expand when P1.02 is fully built. |
+| Analyzer execution | `Promise.all()` parallel | `Promise.all()` parallel (fixed from initial sequential) | RFC-0003 specifies parallel. Initial build was sequential; fixed during audit. |
+| Config passthrough | `scan(path, config)` uses config for filtering/overrides | Config wired for pillar enable/disable only | Weight overrides and `.ariscan.yml` loading deferred to P3.01 (Readiness-as-Code). |
+| Error taxonomy | `docs/error-taxonomy.json` machine-readable file | Finding codes inline in analyzers (`ARI-XXX-NNN`) | Error taxonomy JSON file deferred. Codes are consistent and validated by Zod regex. |
+
+#### Per-Ticket Implementation Gaps
+
+**P1.01 (CLI Scaffold) ✅ Done — gaps:**
+- Config precedence (CLI > .ariscanrc > defaults) not implemented. Only CLI flags work. `.ariscan.yml` loading deferred to P3.01.
+- `--help` does not include usage examples (citty auto-generates help).
+- `--verbose`/`--quiet` modes work but `--quiet` only suppresses the "Scanning..." line.
+- Performance: scans complete in <100ms on this repo (well under 60s target).
+
+**P1.02 (Language Detection) 🔧 Partial — gaps:**
+- No standalone detection module (`packages/engine/src/detection/` does not exist).
+- Each analyzer detects language-relevant files inline (e.g., P6 checks tsconfig.json, go.mod, Cargo.toml).
+- No framework detection, no monorepo boundary detection, no confidence scores.
+- No `languages`/`frameworks`/`monorepo` fields in scan output.
+
+**P1.03 (Context File Discovery) ✅ Done — gaps:**
+- Discovery is embedded in P1 analyzer, not a standalone reusable module.
+- No parse status (valid/warning/error) per context file.
+- No nested monorepo discovery.
+
+**P1.04 (Context Additionality) 🔧 Partial — gaps:**
+- **Semantic comparison engine: not implemented.** This is the core value of P1.04.
+- No additionality score (% new information vs README/CONTRIBUTING).
+- No redundancy percentage.
+- No front-loading analysis (critical info in first 20%).
+- No conciseness ratio / token budget analysis.
+- No staleness detection.
+- No LLM-generated content detection.
+- What IS implemented: file presence, line count, heading detection, code block detection, negative instruction detection.
+- Scoring baseline (no context = 20%) matches spec.
+
+**P1.05 (Feedback Loop) ✅ Done — gaps:**
+- No estimated execution times (scored by presence, not speed).
+- No local-vs-CI 2x weighting differential.
+- No changeset scope controls detection.
+- Watch mode detection limited to `test:watch`/`test:dev` script names.
+
+**P1.06 (Test Isolation) ✅ Done — gaps:**
+- **Regex-based, not AST-level.** RFC-0003 specifies Tree-sitter for cross-language AST analysis.
+- Missing: unordered collection assertions (63% of LLM flakiness — Berndt 2026). This is P1.07.
+- Missing: test order dependency, external filesystem dependency, concurrency/race conditions.
+- Missing: root cause category mapping (Luo 2014 taxonomy).
+- False positive: anti-pattern regex matches pattern strings in our own test fixture files (known limitation of regex approach).
+- P3 scoring bug fixed: DI pattern regex no longer matches `.devcontainer` paths.
+- Research citation bug fixed: Berndt 2026 citation was applied to all anti-patterns; should use Systemic Flakiness 2025 for external dependency patterns and Luo 2014 for taxonomy.
+
+**P1.08 (Dev Environment) ✅ Done — gaps:**
+- No time-to-first-test-pass estimate.
+- No doctor/health-check command detection.
+- No seed/fixture data detection.
+- No "likely first-run blockers" summary.
+
+**P1.09 (Machine-readable Docs) ✅ Done — gaps:**
+- No documentation-code consistency / drift detection.
+- No machine-readable runbook detection.
+- Env var validation checks root package.json only (misses monorepo sub-packages).
+- RFC detection added during audit (was missing: `/rfc/i` now included in ADR pattern).
+
+**P1.10 (Type Strictness) ✅ Done — gaps:**
+- Cross-language checks are presence-based only (mypy config exists vs. strict mode analysis).
+- No type coverage percentage.
+- No cross-pillar type bonus (P2 and P7).
+- No Go `interface{}`/`any` abuse detection.
+- No Rust `unwrap()` abuse detection.
+- No `projectReferences` check for TypeScript monorepos.
+- Build tool detection improved during audit: turbo now recognized as modern build orchestrator.
+
+**P1.11 (Navigability) ✅ Done — gaps:**
+- **No import graph analysis** (requires AST / Tree-sitter).
+- No circular dependency detection.
+- No dead code / unused export detection.
+- No code duplication / clone detection.
+- No cognitive complexity scoring.
+- No "most costly navigation paths" summary.
+- What IS implemented: directory structure, depth, files-per-dir, naming consistency, barrel files, module boundary clarity.
+
+**P1.12 (Security & Governance) ✅ Done — gaps:**
+- Branch protection is inferred from CI workflow triggers, not actual GitHub API / ruleset config.
+- No agent scope controls detection (agent path restrictions).
+- No AI-specific review checklist detection in PR templates.
+- License compliance checks file presence only, not CI integration.
+
+**P1.13 (Composite ARI) ✅ Done — no gaps.**
+- Weighted aggregation, security gate, maturity classification all work correctly.
+- Weights verified against README and RFC-0001.
+
+**P1.14 (JSON Output) 🔧 Partial — gaps:**
+- SARIF output not implemented.
+- No `--json-schema` flag for schema export.
+- No `$schema` field in JSON output.
+- Missing `languages`, `frameworks`, `monorepo`, `contextFiles` from output (depends on P1.02).
+- `remediation` and `evidence` are optional in implementation (spec says required on every finding).
+
+**P1.15 (Markdown Report) ⬜ Not Started.**
+**P1.16 (README Badge) ⬜ Not Started.**
+**P1.17 (Safe --fix) ⬜ Not Started.**
+**P1.18 (Benchmark Cohort) ⬜ Not Started.**
+
+#### Scoring Calibration Observations
+
+Self-scan on this repo: **64/100, L3 Capable** (after bug fixes).
+
+| Pillar | Score | Notes |
+|---|---|---|
+| P1 | 100 | AGENTS.md + CLAUDE.md + .agentignore + README all present and quality. Ceiling effect — no headroom to distinguish great from excellent. |
+| P2 | 85 | Strong: test/lint/typecheck/build scripts, CI, turbo. Missing: pre-commit hooks (.husky dir not initialized), watch mode scripts. |
+| P3 | 20 | Low due to anti-pattern false positives in test fixture files (known regex limitation). True isolation quality is good. |
+| P4 | 65 | Devcontainer + CONTRIBUTING + .nvmrc. No .env.example, no bootstrap script detected (pnpm install is in devcontainer postCreateCommand but not a standalone script). |
+| P5 | 25 | CLI tool with no API contracts (expected). RFCs detected as decision records after bug fix. CHANGELOG present. README structured. |
+| P6 | 85 | Strict TypeScript, lockfile, turbo+tsup, packageManager field. Strong. |
+| P7 | 65 | Good structure (packages/), but mixed naming conventions (camelCase+kebab+snake). |
+| P8 | 65 | CODEOWNERS, SECURITY.md, dependabot, LICENSE, .gitignore sensitive patterns, CI PR trigger. Missing: secrets scanning, SAST. |
+
+**Known P3 false positive:** `test-isolation.test.ts` contains anti-pattern strings as mock context data for testing the analyzer itself. The regex scanner correctly flags them, but they are not real anti-patterns. This is a meta-testing limitation that Tree-sitter AST analysis would resolve (distinguishing string literals from code).
+
+#### Deferred to P2/P3
+
+| Feature | Deferred From | Deferred To | Reason |
+|---|---|---|---|
+| Tree-sitter WASM grammars | P1 (RFC-0003) | P3.07 | Regex sufficient for baseline; AST needed for advanced analysis |
+| Language/framework detection module | P1.02 | P2 | Inline detection in analyzers is working; standalone module is a refactor |
+| Semantic additionality engine | P1.04 | P2 | Core P1.04 value; requires NLP/similarity analysis not in scope for baseline |
+| .ariscan.yml config loading | P1.01 | P3.01 | Policy-as-code is a P3 feature |
+| SARIF output | P1.14 | P2 | JSON and terminal output are primary; SARIF is CI-integration |
+| Error taxonomy JSON | P1.01 | P2 | Codes are inline and consistent; machine-readable file is convenience |
+| Markdown output | P1.15 | P2 | Lower priority than terminal + JSON |
+| README badge | P1.16 | P2 | Requires npm publishing first |
+| --fix starter | P1.17 | P2.01 | Overlaps with AGENTS.md generator |
+| Benchmark cohort | P1.18 | Post-P1 | Requires npm publishing and external repo scanning |
+
 ### P1 Exit Criteria
 
 - All 8 pillars produce numeric score + rationale + confidence level.
@@ -1272,6 +1417,18 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - README badge renders correctly on GitHub.
 - `--fix` generates additive-only content verified by additionality scorer.
 - 20+ public repos scored and published as benchmark.
+
+#### P1 Exit Criteria Status (2026-03-08)
+
+| Criterion | Status | Notes |
+|---|---|---|
+| All 8 pillars score + rationale + confidence | ✅ Met | All 8 analyzers return score, summary, confidence, and findings |
+| JSON output validates against schema | ✅ Met | Zod schema validation; `--json` produces valid JSON |
+| Deterministic repeat runs | ✅ Met | Same input → same score (no network, no random, no time-dependent logic) |
+| npm package published | ⬜ Not met | Not yet published to npm |
+| README badge renders | ⬜ Not met | P1.16 not started |
+| --fix generates content | ⬜ Not met | P1.17 not started |
+| 20+ repos benchmarked | ⬜ Not met | P1.18 not started |
 
 ---
 

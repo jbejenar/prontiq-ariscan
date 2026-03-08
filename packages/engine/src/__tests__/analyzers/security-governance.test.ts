@@ -1,0 +1,255 @@
+import { describe, it, expect } from "vitest";
+import { securityGovernanceAnalyzer } from "../../analyzers/security-governance.js";
+import { createMockContext } from "../helpers.js";
+
+describe("securityGovernanceAnalyzer (P8)", () => {
+  it("always reports pillar P8 with weight 0.05", async () => {
+    const ctx = createMockContext({});
+    const result = await securityGovernanceAnalyzer.analyze(ctx);
+    expect(result.pillar).toBe("P8");
+    expect(result.weight).toBe(0.05);
+  });
+
+  it("always supports any repo", async () => {
+    const ctx = createMockContext({});
+    expect(await securityGovernanceAnalyzer.supports(ctx)).toBe(true);
+  });
+
+  describe("empty repo", () => {
+    it("scores near 0", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.score).toBeLessThanOrEqual(5);
+    });
+
+    it("emits findings for missing CODEOWNERS, SECURITY.md, secrets scanning, dependabot", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const codes = result.findings.map((f) => f.code);
+      expect(codes).toContain("ARI-SEC-001"); // CODEOWNERS
+      expect(codes).toContain("ARI-SEC-002"); // SECURITY.md
+      expect(codes).toContain("ARI-SEC-003"); // secrets scanning
+      expect(codes).toContain("ARI-SEC-004"); // dependabot/renovate
+    });
+  });
+
+  describe("repo with CODEOWNERS + SECURITY.md + dependabot", () => {
+    it("scores a decent amount", async () => {
+      const ctx = createMockContext({
+        ".github/CODEOWNERS": "* @team-lead",
+        "SECURITY.md": "# Security Policy\nReport vulnerabilities to security@example.com",
+        ".github/dependabot.yml": "version: 2\nupdates:\n  - package-ecosystem: npm",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      // CODEOWNERS: 15, SECURITY.md: 10, dependabot: 15 = 40
+      expect(result.score).toBeGreaterThanOrEqual(40);
+    });
+
+    it("does not emit ARI-SEC-001, ARI-SEC-002, or ARI-SEC-004", async () => {
+      const ctx = createMockContext({
+        ".github/CODEOWNERS": "* @team-lead",
+        "SECURITY.md": "# Security Policy",
+        ".github/dependabot.yml": "version: 2",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const codes = result.findings.map((f) => f.code);
+      expect(codes).not.toContain("ARI-SEC-001");
+      expect(codes).not.toContain("ARI-SEC-002");
+      expect(codes).not.toContain("ARI-SEC-004");
+    });
+  });
+
+  describe("full security setup", () => {
+    const fullSecurityFiles: Record<string, string> = {
+      ".github/CODEOWNERS": "* @team-lead\nsrc/security/ @security-team",
+      "SECURITY.md": "# Security Policy\nReport to security@example.com",
+      ".gitleaks.toml": "[allowlist]\ndescription = 'global'",
+      ".github/dependabot.yml": "version: 2\nupdates:\n  - package-ecosystem: npm",
+      ".github/workflows/security.yml": [
+        "name: Security",
+        "on: push",
+        "jobs:",
+        "  sast:",
+        "    runs-on: ubuntu-latest",
+        "    steps:",
+        "      - uses: github/codeql-action/analyze@v2",
+        "      - uses: zricethezav/gitleaks-action@v2",
+      ].join("\n"),
+      LICENSE: "MIT License",
+      ".github/pull_request_template.md": "## Description\n## Checklist",
+      ".gitignore": "node_modules/\n.env\ncredentials/\n",
+    };
+
+    it("scores high (>= 80)", async () => {
+      const ctx = createMockContext(fullSecurityFiles);
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      // CODEOWNERS: 15, SECURITY.md: 10, gitleaks: 15, dependabot: 15,
+      // PR with pull_request trigger: 15, SAST (codeql): 15, LICENSE: 5,
+      // PR template: 5, .gitignore with .env: 5 = 100
+      expect(result.score).toBeGreaterThanOrEqual(80);
+    });
+
+    it("emits no major findings", async () => {
+      const ctx = createMockContext(fullSecurityFiles);
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const highFindings = result.findings.filter(
+        (f) => f.severity === "high" || f.severity === "critical",
+      );
+      expect(highFindings).toHaveLength(0);
+    });
+  });
+
+  describe("CODEOWNERS in different locations", () => {
+    it("detects CODEOWNERS at root", async () => {
+      const ctx = createMockContext({ CODEOWNERS: "* @owner" });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-001")).toBe(false);
+    });
+
+    it("detects CODEOWNERS in .github/", async () => {
+      const ctx = createMockContext({ ".github/CODEOWNERS": "* @owner" });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-001")).toBe(false);
+    });
+
+    it("detects CODEOWNERS in docs/", async () => {
+      const ctx = createMockContext({ "docs/CODEOWNERS": "* @owner" });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-001")).toBe(false);
+    });
+  });
+
+  describe("secrets scanning detection", () => {
+    it("detects .gitleaks.toml", async () => {
+      const ctx = createMockContext({ ".gitleaks.toml": "[allowlist]" });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-003")).toBe(false);
+    });
+
+    it("detects .pre-commit-config.yaml", async () => {
+      const ctx = createMockContext({
+        ".pre-commit-config.yaml": "repos:\n  - repo: https://github.com/pre-commit/pre-commit-hooks",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-003")).toBe(false);
+    });
+
+    it("detects gitleaks in CI workflows", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/secrets.yml": "name: Secrets\njobs:\n  scan:\n    steps:\n      - uses: gitleaks/gitleaks-action@v2",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-003")).toBe(false);
+    });
+
+    it("detects trufflehog in CI workflows", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/security.yml": "name: Security\njobs:\n  scan:\n    steps:\n      - run: trufflehog --json .",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-003")).toBe(false);
+    });
+  });
+
+  describe("dependency audit detection", () => {
+    it("detects renovate.json", async () => {
+      const ctx = createMockContext({
+        "renovate.json": JSON.stringify({ extends: ["config:base"] }),
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-004")).toBe(false);
+    });
+
+    it("detects .github/renovate.json", async () => {
+      const ctx = createMockContext({
+        ".github/renovate.json": JSON.stringify({ extends: ["config:base"] }),
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-004")).toBe(false);
+    });
+  });
+
+  describe("SAST in workflows", () => {
+    it("detects CodeQL", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/codeql.yml": "name: CodeQL\njobs:\n  analyze:\n    steps:\n      - uses: github/codeql-action/analyze@v2",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      // SAST adds 15 points
+      expect(result.score).toBeGreaterThanOrEqual(15);
+    });
+
+    it("detects semgrep", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/sast.yml": "name: SAST\njobs:\n  scan:\n    steps:\n      - run: semgrep scan",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.score).toBeGreaterThanOrEqual(15);
+    });
+  });
+
+  describe("branch protection / PR requirements", () => {
+    it("detects pull_request trigger in workflows", async () => {
+      const withPR = createMockContext({
+        ".github/workflows/ci.yml": "name: CI\non:\n  pull_request:\n    branches: [main]",
+      });
+      const without = createMockContext({
+        ".github/workflows/ci.yml": "name: CI\non:\n  push:\n    branches: [main]",
+      });
+
+      const prResult = await securityGovernanceAnalyzer.analyze(withPR);
+      const noPrResult = await securityGovernanceAnalyzer.analyze(without);
+      expect(prResult.score).toBeGreaterThan(noPrResult.score);
+    });
+  });
+
+  describe("additional governance items", () => {
+    it("adds points for LICENSE file", async () => {
+      const with_ = createMockContext({ LICENSE: "MIT License" });
+      const without_ = createMockContext({});
+      const r1 = await securityGovernanceAnalyzer.analyze(with_);
+      const r2 = await securityGovernanceAnalyzer.analyze(without_);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+
+    it("adds points for PR template", async () => {
+      const with_ = createMockContext({
+        ".github/pull_request_template.md": "## Description",
+      });
+      const without_ = createMockContext({});
+      const r1 = await securityGovernanceAnalyzer.analyze(with_);
+      const r2 = await securityGovernanceAnalyzer.analyze(without_);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+
+    it("adds points for .gitignore with sensitive patterns", async () => {
+      const with_ = createMockContext({
+        ".gitignore": "node_modules/\n.env\nsecrets/\n",
+      });
+      const without_ = createMockContext({
+        ".gitignore": "node_modules/\ndist/\n",
+      });
+      const r1 = await securityGovernanceAnalyzer.analyze(with_);
+      const r2 = await securityGovernanceAnalyzer.analyze(without_);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+  });
+
+  describe("score clamping", () => {
+    it("never exceeds 100", async () => {
+      const ctx = createMockContext({
+        ".github/CODEOWNERS": "* @owner",
+        "SECURITY.md": "# Policy",
+        ".gitleaks.toml": "[allowlist]",
+        ".github/dependabot.yml": "version: 2",
+        ".github/workflows/ci.yml": "on: pull_request\njobs:\n  sast:\n    steps:\n      - uses: github/codeql-action/analyze@v2\n      - run: gitleaks detect",
+        LICENSE: "MIT",
+        ".github/pull_request_template.md": "## Desc",
+        ".gitignore": ".env\ncredentials\n",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.score).toBeLessThanOrEqual(100);
+      expect(result.score).toBeGreaterThanOrEqual(0);
+    });
+  });
+});
