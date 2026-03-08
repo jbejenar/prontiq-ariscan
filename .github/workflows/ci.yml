@@ -115,12 +115,10 @@ jobs:
           echo "ARI score $SCORE meets floor $FLOOR"
 
   # ─── Dependency review (PRs only) ─────────────────────────────
-  # Requires Dependency Graph enabled: Settings → Code security → Dependency graph
   dependency-review:
     name: Dependency Review
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/dependency-review-action@v4
