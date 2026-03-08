@@ -1,10 +1,12 @@
 import { defineCommand, runMain } from "citty";
 import { resolve } from "node:path";
-import { access } from "node:fs/promises";
+import { access, writeFile } from "node:fs/promises";
 import { scan } from "@prontiq/engine";
 import { formatTerminal } from "./output/terminal.js";
 import { formatJson, formatJsonSchema } from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
+import { formatSarif } from "./output/sarif.js";
+import { generateBadgeSvg, generateBadgeSnippets } from "./output/badge.js";
 import { resolveConfig } from "./config-loader.js";
 import type { ScanResult } from "@prontiq/schema";
 
@@ -17,7 +19,9 @@ const main = defineCommand({
 Examples:
   npx ariscan .                    # Scan current directory
   npx ariscan /path/to/repo --json # JSON output
-  npx ariscan . --threshold 60     # Fail if score < 60`,
+  npx ariscan . --threshold 60     # Fail if score < 60
+  npx ariscan . --format sarif     # SARIF output for Code Scanning
+  npx ariscan . --badge badge.svg  # Generate badge SVG`,
   },
   args: {
     path: {
@@ -28,7 +32,7 @@ Examples:
     },
     format: {
       type: "string",
-      description: "Output format: terminal, json, markdown",
+      description: "Output format: terminal, json, sarif, markdown",
       default: "terminal",
     },
     json: {
@@ -60,6 +64,11 @@ Examples:
       type: "boolean",
       description: "Print the JSON Schema for scan output and exit",
       default: false,
+    },
+    badge: {
+      type: "string",
+      description: "Generate an SVG badge file at the given path (e.g. badge.svg)",
+      required: false,
     },
   },
   async run({ args }) {
@@ -111,12 +120,25 @@ Examples:
       process.exit(2);
     }
 
+    // Generate badge if requested
+    if (args.badge) {
+      const badgePath = resolve(args.badge);
+      const svg = generateBadgeSvg(result);
+      await writeFile(badgePath, svg, "utf-8");
+      if (!args.quiet) {
+        process.stderr.write(`Badge written to ${badgePath}\n`);
+        process.stderr.write(generateBadgeSnippets(args.badge));
+      }
+    }
+
     if (format === "json") {
       process.stdout.write(formatJson(result));
+    } else if (format === "sarif") {
+      process.stdout.write(formatSarif(result));
     } else if (format === "markdown") {
       process.stdout.write(formatMarkdown(result));
     } else {
-      process.stdout.write(formatTerminal(result, { verbose: args.verbose }));
+      process.stdout.write(formatTerminal(result, { verbose: args.verbose, quiet: args.quiet }));
     }
 
     const threshold = config.threshold ?? cliThreshold;

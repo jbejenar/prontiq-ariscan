@@ -3,6 +3,7 @@ import type { ScanResult, PillarResult, MaturityLevel } from "@prontiq/schema";
 
 interface TerminalOptions {
   verbose?: boolean;
+  quiet?: boolean;
 }
 
 function levelColor(level: MaturityLevel): (text: string) => string {
@@ -65,6 +66,12 @@ function formatPillar(pillar: PillarResult): string {
 }
 
 export function formatTerminal(result: ScanResult, options: TerminalOptions = {}): string {
+  // Quiet mode: single-line summary suitable for CI pipelines
+  if (options.quiet) {
+    const gate = result.securityGateTriggered ? " [SECURITY GATE]" : "";
+    return `ARI ${result.score}/100 ${result.level} (${result.levelMeta.name})${gate}\n`;
+  }
+
   const lines: string[] = [];
   const colorFn = levelColor(result.level);
 
@@ -125,8 +132,62 @@ export function formatTerminal(result: ScanResult, options: TerminalOptions = {}
     }
   }
 
-  // Verbose: all findings
+  // Verbose: per-pillar summaries, detection info, and all findings
   if (options.verbose) {
+    // Per-pillar summaries
+    lines.push("");
+    lines.push(pc.dim(`  ${"─".repeat(60)}`));
+    lines.push(pc.bold("  Pillar Details"));
+    lines.push("");
+
+    for (const pillar of result.pillars) {
+      lines.push(
+        `  ${pc.bold(pillar.pillar)} ${pc.dim("confidence:")} ${pillar.confidence}  ${pc.dim("summary:")} ${pillar.summary}`,
+      );
+    }
+
+    // Detection info
+    if (result.detection) {
+      lines.push("");
+      lines.push(pc.dim(`  ${"─".repeat(60)}`));
+      lines.push(pc.bold("  Detection"));
+      lines.push("");
+
+      if (result.detection.languages.length > 0) {
+        const langs = result.detection.languages
+          .map(
+            (l) =>
+              `${l.language} (${Math.round(l.confidence * 100)}%${l.primary ? ", primary" : ""})`,
+          )
+          .join(", ");
+        lines.push(`  ${pc.dim("Languages:")} ${langs}`);
+      }
+      if (result.detection.frameworks.length > 0) {
+        const fws = result.detection.frameworks
+          .map((f) => `${f.framework} (${Math.round(f.confidence * 100)}%)`)
+          .join(", ");
+        lines.push(`  ${pc.dim("Frameworks:")} ${fws}`);
+      }
+      if (result.detection.monorepo) {
+        lines.push(`  ${pc.dim("Monorepo:")} ${result.detection.monorepo.tool}`);
+      }
+    }
+
+    // Context files
+    if (result.contextFiles && result.contextFiles.length > 0) {
+      lines.push("");
+      lines.push(pc.dim(`  ${"─".repeat(60)}`));
+      lines.push(pc.bold("  Context Files"));
+      lines.push("");
+
+      for (const cf of result.contextFiles) {
+        const status = cf.parseStatus ? ` [${cf.parseStatus}]` : "";
+        const size = cf.size ? ` (${cf.size} bytes)` : "";
+        lines.push(`  ${pc.dim(cf.type.padEnd(22))} ${cf.path}${size}${status}`);
+      }
+    }
+
+    // All remaining findings
     const remaining = result.findings.filter(
       (f) => f.severity !== "critical" && f.severity !== "high",
     );
