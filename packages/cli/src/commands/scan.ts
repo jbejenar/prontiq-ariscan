@@ -4,7 +4,7 @@ import { access } from "node:fs/promises";
 import { scan } from "@prontiq/engine";
 import type { ScanConfig, ScanResult } from "@prontiq/schema";
 import { formatTerminal } from "../output/terminal.js";
-import { formatJson } from "../output/json.js";
+import { formatJson, formatJsonSchema } from "../output/json.js";
 import { formatMarkdown } from "../output/markdown.js";
 import { resolveConfig } from "../config-loader.js";
 
@@ -14,11 +14,17 @@ export interface ScanOptions {
   verbose: boolean;
   quiet: boolean;
   json: boolean;
+  jsonSchema: boolean;
   threshold: number;
   config?: string;
 }
 
 export async function runScan(options: ScanOptions): Promise<void> {
+  if (options.jsonSchema) {
+    process.stdout.write(formatJsonSchema());
+    return;
+  }
+
   const repoPath = resolve(options.path);
 
   // Validate path exists
@@ -120,6 +126,11 @@ export const scanCommand = defineCommand({
       description: "Path to .ariscan.yml config file",
       required: false,
     },
+    jsonSchema: {
+      type: "boolean",
+      description: "Print the JSON Schema for scan output and exit",
+      default: false,
+    },
   },
   async run({ args }) {
     await runScan({
@@ -128,6 +139,7 @@ export const scanCommand = defineCommand({
       verbose: args.verbose,
       quiet: args.quiet,
       json: args.json,
+      jsonSchema: args.jsonSchema,
       threshold: parseInt(args.threshold, 10),
       config: args.config,
     });

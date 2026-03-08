@@ -110,6 +110,9 @@ export const ContextFileType = z.enum([
 export type ContextFileType = z.infer<typeof ContextFileType>;
 
 /** Metadata about a discovered context file in the target repository. */
+export const ParseStatus = z.enum(["valid", "warning", "error"]);
+export type ParseStatus = z.infer<typeof ParseStatus>;
+
 export const ContextFileInfo = z.object({
   /** Relative path within the repo. */
   path: z.string(),
@@ -119,6 +122,10 @@ export const ContextFileInfo = z.object({
   size: z.number().optional(),
   /** Number of lines in the file. */
   lineCount: z.number().optional(),
+  /** ISO 8601 timestamp of last modification. */
+  lastModified: z.string().datetime().optional(),
+  /** Whether the file content parsed without issues. */
+  parseStatus: ParseStatus.optional(),
 });
 export type ContextFileInfo = z.infer<typeof ContextFileInfo>;
 

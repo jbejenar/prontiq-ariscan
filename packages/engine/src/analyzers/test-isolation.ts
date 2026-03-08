@@ -21,30 +21,54 @@ const ANTI_PATTERNS = [
     code: "ARI-TST-001",
     message: "Cloud SDK reference in test file",
     severity: "high" as const,
+    remediation:
+      "Use dependency injection to decouple tests from cloud SDKs. " +
+      "Example: replace `new S3Client()` inside the test with a parameter — " +
+      "`function upload(client: S3Client, ...) { ... }` — then pass a mock in tests. " +
+      "Agents waste ~200-500 tokens retrying when tests depend on external cloud services that are unavailable or rate-limited.",
   },
   {
     pattern: /\bfetch\s*\(|axios\.|requests\.(get|post|put|delete)|http\.Get/i,
     code: "ARI-TST-002",
     message: "Direct HTTP call in test — should use mocks/stubs",
     severity: "high" as const,
+    remediation:
+      "Replace live HTTP calls with a mock or interceptor. " +
+      "Example (msw): `server.use(http.get('/api/data', () => HttpResponse.json({ ok: true })))`. " +
+      "Example (vi.mock): `vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}'))`. " +
+      "Agents waste ~200-500 tokens retrying when tests fail due to network timeouts or flaky remote endpoints.",
   },
   {
     pattern: /\b(Date\.now|new Date|time\.Now|datetime\.now)\b/,
     code: "ARI-TST-003",
     message: "Non-deterministic time usage in test",
     severity: "medium" as const,
+    remediation:
+      "Inject a clock or use fake timers to make time deterministic. " +
+      "Example (Vitest): `vi.useFakeTimers(); vi.setSystemTime(new Date('2025-01-01')); ... vi.useRealTimers()`. " +
+      "Agents waste ~100-300 tokens debugging intermittent failures caused by time-sensitive assertions that pass only at certain times of day.",
   },
   {
     pattern: /\bMath\.random\b|random\.\w+\(/,
     code: "ARI-TST-004",
     message: "Non-deterministic random usage in test",
     severity: "medium" as const,
+    remediation:
+      "Replace Math.random with a seeded PRNG or inject the random source. " +
+      "Example: `function generateId(rng: () => number = Math.random) { ... }` " +
+      "then in tests: `generateId(() => 0.42)`. " +
+      "Agents waste ~100-300 tokens when non-deterministic values cause snapshot mismatches or assertion drift across runs.",
   },
   {
     pattern: /process\.env\[|os\.environ|os\.Getenv/,
     code: "ARI-TST-005",
     message: "Direct environment variable access in test",
     severity: "medium" as const,
+    remediation:
+      "Pass configuration as a parameter instead of reading env vars directly. " +
+      "Example: replace `process.env['DB_URL']` with `function connect(dbUrl: string) { ... }` " +
+      "and call `connect('postgres://localhost/test')` in tests. " +
+      "Agents waste ~100-300 tokens when tests fail in CI due to missing or differently-named environment variables.",
   },
 ];
 
@@ -206,7 +230,9 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         remediation: {
           action: "create-file",
           description:
-            "Add test files for your source code. A healthy test-to-source ratio is 0.5-1.0.",
+            "Add test files for your source code. A healthy test-to-source ratio is 0.5-1.0. " +
+            "Example: create `src/utils.test.ts` with `import { add } from './utils'; test('add', () => expect(add(1,2)).toBe(3));`. " +
+            "Agents waste ~500-1000 tokens attempting to verify changes when no tests exist, often resorting to manual inspection instead of automated validation.",
           confidence: "high",
         },
         evidence: {
@@ -243,7 +269,10 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         message: `Low test-to-source ratio: ${ratio.toFixed(2)} (${testFiles.length} tests / ${sourceFiles.length} sources)`,
         remediation: {
           action: "create-file",
-          description: "Add more test files. Target a test-to-source ratio of 0.5 or higher.",
+          description:
+            "Add more test files. Target a test-to-source ratio of 0.5 or higher. " +
+            "Start by adding tests for your most critical modules: `describe('PaymentService', () => { it('charges correct amount', ...) })`. " +
+            "Agents waste ~300-600 tokens per untested module, as they cannot validate changes automatically and must rely on manual reasoning.",
           confidence: "medium",
         },
       });
@@ -270,7 +299,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             message: ap.message,
             remediation: {
               action: "refactor",
-              description: "Replace with mock/stub/fake implementation for test isolation",
+              description: ap.remediation,
               confidence: "medium",
             },
             evidence: {
@@ -300,7 +329,11 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             message: "Test file accesses the real filesystem — should use mocks or in-memory FS",
             remediation: {
               action: "refactor",
-              description: "Replace real filesystem calls with mock/stub/in-memory implementations",
+              description:
+                "Replace real filesystem calls with mock/stub/in-memory implementations. " +
+                "Example (Vitest): `vi.mock('fs', () => ({ readFileSync: vi.fn(() => '{\"key\":\"value\"}') }))`. " +
+                "Or use dependency injection: `function loadConfig(reader: (path: string) => string) { ... }`. " +
+                "Agents waste ~200-400 tokens when tests fail because expected files are missing in CI or a different OS has incompatible paths.",
               confidence: "medium",
             },
           });
@@ -329,7 +362,11 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               remediation: {
                 action: "refactor",
                 description:
-                  "Sort the collection before asserting, or use an unordered matcher (e.g. toContain, arrayContaining)",
+                  "Sort the collection before asserting, or use an unordered matcher. " +
+                  "Example: replace `expect(Object.keys(obj)).toEqual(['a','b','c'])` with " +
+                  "`expect(Object.keys(obj).sort()).toEqual(['a','b','c'])` or " +
+                  "`expect(Object.keys(obj)).toEqual(expect.arrayContaining(['a','b','c']))`. " +
+                  "Agents waste ~150-400 tokens debugging flaky order-dependent failures that pass locally but fail in CI due to different JS engine iteration order.",
                 confidence: "medium",
               },
               evidence: paperForCategory("unordered-collection"),
@@ -363,7 +400,9 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
           remediation: {
             action: "create-file",
             description:
-              "Add test files for untested source modules. Aim for at least 1 test file per 2 source files.",
+              "Add test files for untested source modules. Aim for at least 1 test file per 2 source files. " +
+              "Prioritize modules with complex logic: `describe('calculateTotal', () => { it('applies discount', ...) })`. " +
+              "Agents waste ~500-1000 tokens per task when most modules lack tests, as they cannot verify correctness and must re-read source code repeatedly.",
             confidence: "high",
           },
         });
@@ -391,7 +430,12 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               remediation: {
                 action: "refactor",
                 description:
-                  "Avoid mutating global state in tests. Use dependency injection or per-test setup/teardown to isolate environment.",
+                  "Avoid mutating global state in tests. Use dependency injection or per-test setup/teardown to isolate environment. " +
+                  "Example: replace `process.env.NODE_ENV = 'test'` with " +
+                  "`const env = { ...process.env, NODE_ENV: 'test' }; const svc = createService({ env })`. " +
+                  "If mutation is unavoidable, save and restore in beforeEach/afterEach: " +
+                  "`const orig = process.env.NODE_ENV; afterEach(() => { process.env.NODE_ENV = orig; })`. " +
+                  "Agents waste ~300-600 tokens diagnosing cascading failures when one test's global mutation leaks into subsequent tests.",
                 confidence: "high",
               },
               evidence: paperForCategory(gm.category),
@@ -432,7 +476,10 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
                   remediation: {
                     action: "refactor",
                     description:
-                      "Move shared state setup into beforeEach/afterEach for proper test isolation",
+                      "Move shared state setup into beforeEach/afterEach for proper test isolation. " +
+                      "Example: replace `let db; beforeAll(() => { db = connect(); })` with " +
+                      "`let db; beforeEach(() => { db = connect(); }); afterEach(() => { db.close(); })`. " +
+                      "Agents waste ~200-500 tokens when tests pass individually but fail when run together due to shared state from beforeAll leaking across tests.",
                     confidence: "medium",
                   },
                   evidence: paperForCategory(od.category),
@@ -453,7 +500,10 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
                 remediation: {
                   action: "refactor",
                   description:
-                    "Remove .only modifiers before committing — they skip other tests and mask failures",
+                    "Remove .only modifiers before committing — they skip other tests and mask failures. " +
+                    "Example: change `it.only('works', ...)` to `it('works', ...)`. " +
+                    "Consider adding a lint rule: `no-only-tests/no-only-tests` (eslint-plugin-no-only-tests). " +
+                    "Agents waste ~200-400 tokens when .only silently skips tests, leading to false confidence that changes are safe.",
                   confidence: "high",
                 },
                 evidence: paperForCategory(od.category),
@@ -485,7 +535,10 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               remediation: {
                 action: "refactor",
                 description:
-                  "Replace timing-based waits with event-driven assertions (e.g., waitFor with condition, flush timers with fake timers)",
+                  "Replace timing-based waits with event-driven assertions or fake timers. " +
+                  "Example (Vitest): `vi.useFakeTimers(); myFunc(); vi.advanceTimersByTime(1000); expect(callback).toHaveBeenCalled(); vi.useRealTimers()`. " +
+                  "Example (Testing Library): `await waitFor(() => expect(screen.getByText('Done')).toBeVisible())`. " +
+                  "Agents waste ~300-600 tokens when timing-based tests flake under CI load, triggering repeated re-runs and false failure investigations.",
                 confidence: "medium",
               },
               evidence: paperForCategory(cp.category),
@@ -511,7 +564,11 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             remediation: {
               action: "refactor",
               description:
-                "Replace hardcoded credentials with environment variables or test-specific secrets management",
+                "Replace hardcoded credentials with environment variables or test fixtures. " +
+                "Example: replace `const apiKey = 'sk-live-abc123...'` with " +
+                "`const apiKey = process.env['TEST_API_KEY'] ?? 'test-placeholder'` or use a `.env.test` file. " +
+                "For unit tests, prefer a clearly-fake value: `const apiKey = 'test-key-not-real'`. " +
+                "Agents waste ~100-200 tokens when credentials are flagged by secret scanners, blocking CI pipelines and requiring manual intervention.",
               confidence: "high",
             },
             evidence: paperForCategory("resource-leak"),

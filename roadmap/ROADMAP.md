@@ -755,10 +755,10 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     - [x] `copilot-instructions.md` / `.github/copilot-instructions.md`
     - [x] MCP configuration files (`.mcp.json`, `mcp.config.js`) *(added 2026-03-09)*
     - [x] `.aider.conf.yml` / `.aiderignore`
-  - [ ] For each discovered file: path, file type, size, last modified date, parse status (valid/warning/error). *(partial: path, size, lineCount tracked via ContextFileInfo. Missing: last modified date, parse status)*
+  - [x] For each discovered file: path, file type, size, last modified date, parse status (valid/warning/error). *(completed 2026-03-09: ContextFileInfo now includes lastModified via fs.stat and parseStatus via content validation)*
   - [ ] Cross-agent compatibility report: which agents have dedicated context files vs none.
   - [x] Nested file discovery for monorepos (subdirectory-level AGENTS.md files). *(added 2026-03-09)*
-  - [ ] Discovery includes path, file type, size, last modified, and parsing status for each file. *(partial: path, size, lineCount via ContextFileInfo. Missing: lastModified, parseStatus)*
+  - [x] Discovery includes path, file type, size, last modified, and parsing status for each file. *(completed 2026-03-09: ContextFileInfo now includes all fields)*
   - [ ] Non-parsable files are surfaced with actionable warnings.
   - [ ] Discovers nested context files in monorepo subdirectories.
   - [ ] Zero false negatives on benchmark cohort (every known context file is found).
@@ -858,8 +858,8 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
   - Each finding maps to:
     - [x] Severity (critical/warning/info). *(severity now includes critical level, added 2026-03-09)*
     - [x] Root cause category (from Luo 2014 taxonomy). *(Luo 2014 root cause taxonomy evidence fields added to all test isolation findings 2026-03-09)*
-    - [ ] Fix hint with code example. *(partial: generic remediation text only)*
-    - [ ] Agent impact explanation ("This pattern causes agents to waste ~X tokens...").
+    - [x] Fix hint with code example. *(completed 2026-03-09: every finding now includes language-specific code examples in remediation descriptions)*
+    - [x] Agent impact explanation ("This pattern causes agents to waste ~X tokens..."). *(completed 2026-03-09: every finding includes token cost estimates)*
   - [x] Provider pattern / DI detection: whether infrastructure is abstracted behind interfaces. *(checks filenames for `provider|factory|container|inject`, excluding `.devcontainer`)*
   - [x] Memory/mock implementation detection: in-memory implementations for cloud providers. *(checks `__mocks__`, `.mock.`, `mock/`)*
 - **Scoring criteria (research-calibrated):**
@@ -876,7 +876,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
   | Docker/container test execution | Berndt 2026: containerised execution controls environmental flakiness |
 
 - **Acceptance criteria:**
-  - [ ] Each finding maps to severity, root cause category, and fix hint. *(partial: severity present, fix hint generic, Luo 2014 taxonomy absent)*
+  - [x] Each finding maps to severity, root cause category, and fix hint. *(completed 2026-03-09: severity, Luo 2014 taxonomy, code example fix hints, and agent impact explanations all present)*
   - [ ] False-positive rate <10% on benchmark cohort.
   - [ ] Detection covers TypeScript/JavaScript (jest, vitest, mocha), Python (pytest, unittest), Go (testing), Java (JUnit), Rust (cargo test). *(partial: covers TS/JS, Go, Python, Java, C#, Ruby. Missing: Rust cargo test. Not language-specific tuned.)*
   - [ ] Provider pattern detection clearly distinguishes direct SDK usage from abstracted interfaces. *(filename heuristic only, not structural code analysis)*
@@ -1152,7 +1152,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
   - [x] Schema includes: context file inventory. *(ContextFileInfo type with path, type, size, lineCount added to ScanResult 2026-03-09)*
   - [ ] Semver impact rules: patch = new optional fields only, minor = new pillar/criterion, major = breaking schema changes.
   - [ ] Schema file published in repo and npm package. *(partial: Zod schemas in @prontiq/schema. formatJsonSchema() function added 2026-03-09 but no standalone JSON Schema file.)*
-  - [ ] `--json-schema` flag that outputs the schema itself for validation tooling. *(partial: formatJsonSchema() function exists 2026-03-09 but no CLI flag wired)*
+  - [x] `--json-schema` flag that outputs the schema itself for validation tooling. *(wired 2026-03-09: `--jsonSchema` flag outputs JSON Schema and exits)*
   - [x] All findings use `ARI-*` taxonomy codes. *(Finding.code regex enforces `^ARI-[A-Z]{3}-\d{3}$`)*
   - [ ] Structured remediation data (action, generator command, estimated impact). *(partial: has action, description, estimatedImpact, confidence, path. EstimatedImpact enum type added 2026-03-09. No generator command. remediation/evidence optional — spec says required.)*
   - [ ] SARIF projection. *(`sarif` in config enum but no SARIF formatter exists)*
@@ -1641,7 +1641,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 7 | Context file inventory | ✅ Done | `ContextFileInfo` type with path, type, size, lineCount added to ScanResult. Added 2026-03-09. |
 | 8 | Semver impact rules | ❌ Not done | No versioning policy |
 | 9 | Schema published in repo + npm | 🔧 Partial | Zod schemas in `@prontiq/schema`. `formatJsonSchema()` function added 2026-03-09 but no standalone JSON Schema file published. |
-| 10 | `--json-schema` flag for schema export | 🔧 Partial | `formatJsonSchema()` function exists (2026-03-09) but no CLI flag wired. |
+| 10 | `--json-schema` flag for schema export | ✅ Done | `--jsonSchema` CLI flag wired (2026-03-09). Outputs full JSON Schema and exits. |
 
 **AI-first design:**
 

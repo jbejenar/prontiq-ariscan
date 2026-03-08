@@ -1,60 +1,59 @@
 # Next Session Guide
 
-## Session: 2026-03-09
+## Session: 2026-03-09 (second session)
 **Phase:** P1 — MVP CLI Foundation (nearing completion)
-**Self-scan:** 62/100 (L3 Capable) — score dropped from 66 due to more rigorous checks revealing real gaps
-**Tests:** 370 passing across 19 test files
+**Self-scan:** 76/100 (L4 Productive) — up from 62 (L3) due to fix hints, ContextFileInfo fields, .env.example, and worktree cleanup
+**Tests:** 375 passing across 15 test files
 **Quality gate:** typecheck, lint, test, build — all green
+**Roadmap progress:** 151/273 deliverables complete (55%)
 
 ## Items Completed This Session
-- Schema: ContextFileInfo, PillarStatus, EstimatedImpact types; $schema/$id fields; formatJsonSchema()
-- P1 (Context Quality): 4 new findings (ARI-CTX-005 through 008) — front-loading, staleness, boilerplate, conciseness
-- P2 (Feedback Loop): 3 new findings (ARI-FBK-007 through 009) — watch mode, incremental build, estimated latency; 2x/1x local/CI weighting
-- P3 (Test Isolation): 4 new findings (ARI-TST-011 through 014) — mutable globals, order dependency, concurrency, hardcoded credentials; Luo 2014 taxonomy
-- P4 (Dev Environment): 8 new findings (ARI-ENV-005 through 012) — devcontainer validation, first-run blockers, env var completeness, per-criterion status
-- P5 (Doc Readability): 3 new findings (ARI-DOC-002 through 004) — runbooks, JSDoc coverage, drift detection
-- P6 (Build Determinism): 2 new findings (ARI-BLD-006, 007) — monorepo project refs, lockfile drift
-- P7 (Navigability): 2 new findings (ARI-NAV-006, 007) — dead code, cognitive complexity; "most costly paths" summary
-- P8 (Security): 1 new finding (ARI-SEC-007) — licence compliance; configuration status labels; tightened branch protection
-- Research calibrator findings addressed: boilerplate detection + branch protection heuristic
+- CLI: `--jsonSchema` flag wired (P1.14) — outputs JSON Schema and exits
+- Schema: `ParseStatus` enum, `lastModified`/`parseStatus` fields on ContextFileInfo (P1.03)
+- Test Isolation (P3): Code example fix hints and agent impact explanations on all 14 findings
+- Dogfooding: `.env.example` added for P4 dev environment score improvement
+- Self-scan score improved: 62 → 76 (+14 points, L3 → L4)
 
-## Items Deferred
+## Items Deferred (unchanged from previous session)
 - Semantic additionality engine (P1.04): requires NLP/similarity analysis — deferred to P2
 - Code duplication / clone detection (P1.11): not yet attempted
 - Cross-pillar type bonus (P1.13): designed but not implemented
 - SARIF output (P1.14): format in config enum but no formatter
 - Per-function cognitive complexity (P1.11): file-level estimate only, not per-function with aggregation
 - P1.16 (Badge), P1.17 (--fix), P1.18 (Benchmark): not started — P2 priority
+- Cross-agent compatibility report (P1.03): not started
 
 ## Key Decisions Made
-- Self-scan score decrease (66 to 62) is expected: stricter checks expose real gaps
-- Local feedback signals weighted 2x vs CI signals (per DORA research)
-- Luo 2014 root cause taxonomy added as evidence fields on all test isolation findings
-- Security summary now uses configured/partial/missing status labels instead of binary present/absent
-- ContextFileInfo tracks path, type, size, lineCount (not lastModified — would require git/stat calls)
+- Self-scan score increase (62 → 76) driven by: .env.example improving P4, worktree cleanup removing false-positive AGENTS.md duplicates from P1/P7, and improved test isolation remediation text
+- `--jsonSchema` flag uses citty's camelCase convention (not `--json-schema` kebab-case)
+- parseStatus uses simple validation: JSON files parsed, YAML checked for non-empty, markdown assumed valid
+- lastModified comes from `fs.stat().mtime` — acceptable for a scan tool that reads the filesystem
 
 ## Next Session Should Start With
 
-### Priority 1: Wire --json-schema CLI flag
-The `formatJsonSchema()` function exists but no CLI flag is wired. Quick win.
+### Priority 1: Close remaining P1 gaps
+Focus on items that are partially done but close to completion:
+- P1.03: Cross-agent compatibility report (which agents have context files vs none)
+- P1.03: Non-parsable file warnings (surface files that fail parse validation)
+- P1.11: Per-function cognitive complexity (currently file-level only)
+- P1.11: Code duplication/clone detection
 
-### Priority 2: Address self-scan score regression
-The ariscan repo itself dropped to 62/100. Improve the repo to recover score:
-- Add `.env.example` (even if minimal) to satisfy ARI-ENV-006/007
-- Add pre-commit hooks (husky) to improve P2 score
-- Review P3 false positives from test fixture files
+### Priority 2: Remaining P1.14 JSON contract items
+- Semver impact rules documentation
+- CI validation test (output validates against JSON Schema)
+- Standalone JSON Schema file published in repo
 
-### Priority 3: Close remaining P1 gaps
-Focus on the items that are partially done but close to completion:
-- P1.03: Add lastModified and parseStatus to ContextFileInfo (requires fs.stat calls)
-- P1.06: Add code example fix hints and agent impact explanations to test isolation findings
-- P1.11: Per-function cognitive complexity aggregation (currently file-level only)
+### Priority 3: P1 polish
+- P1.01: Improve `--verbose` mode (show per-finding details) and `--quiet` mode (suppress all non-output)
+- P1.01: Document exit code matrix in `--help`
+- P1.15: "First 3 actions" quick-start section in markdown output
+- P1.15: Recommendations ordered by impact × ease
 
 ### Priority 4: P2 planning
 If P1 gaps are sufficiently closed, begin P2 context intelligence:
 - P2.01: Context quality generator (additive-only AGENTS.md generation)
-- P2.02: `audit agents-md` command
-- Semantic additionality engine (deferred from P1.04)
+- P2.03: .agentignore generator
+- P2.04: Context budget analyzer
 
 ## Blockers
 - None. All quality gates pass.

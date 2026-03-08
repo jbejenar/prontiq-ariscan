@@ -1,4 +1,12 @@
-import type { ScanResult, ScanConfig, ContextFileInfo, ContextFileType } from "@prontiq/schema";
+import type {
+  ScanResult,
+  ScanConfig,
+  ContextFileInfo,
+  ContextFileType,
+  ParseStatus,
+} from "@prontiq/schema";
+import { stat } from "node:fs/promises";
+import { join } from "node:path";
 import { ANALYZERS } from "./analyzers/registry.js";
 import { createRepoContext } from "./context/repo-context.js";
 import { aggregateResults } from "./scoring/composite.js";
@@ -36,6 +44,29 @@ function classifyContextFile(filePath: string): ContextFileType {
   return "other";
 }
 
+/** Determine parse status for a context file based on its type and content. */
+function determineParseStatus(filePath: string, content: string): ParseStatus {
+  if (!content || content.trim().length === 0) return "warning";
+
+  // JSON files: try parsing
+  if (filePath.endsWith(".json")) {
+    try {
+      JSON.parse(content);
+      return "valid";
+    } catch {
+      return "error";
+    }
+  }
+
+  // YAML files: check for non-empty content (basic check)
+  if (filePath.endsWith(".yml") || filePath.endsWith(".yaml")) {
+    return content.trim().length > 0 ? "valid" : "warning";
+  }
+
+  // Markdown and other files: valid if non-empty
+  return "valid";
+}
+
 /** Discover context files in the repository and return metadata for each. */
 async function discoverContextFiles(context: RepoContext): Promise<ContextFileInfo[]> {
   // Collect candidate paths: known root files + nested AGENTS.md + .claude/commands/*
@@ -58,6 +89,16 @@ async function discoverContextFiles(context: RepoContext): Promise<ContextFileIn
       if (!exists) return;
 
       const content = await context.readFile(filePath);
+
+      // Get lastModified from file stat
+      let lastModified: string | undefined;
+      try {
+        const fileStat = await stat(join(context.rootPath, filePath));
+        lastModified = fileStat.mtime.toISOString();
+      } catch {
+        // stat failed — skip lastModified
+      }
+
       const entry: ContextFileInfo = {
         path: filePath,
         type: classifyContextFile(filePath),
@@ -65,8 +106,10 @@ async function discoverContextFiles(context: RepoContext): Promise<ContextFileIn
           ? {
               size: Buffer.byteLength(content, "utf-8"),
               lineCount: content.split("\n").length,
+              parseStatus: determineParseStatus(filePath, content),
             }
           : {}),
+        ...(lastModified ? { lastModified } : {}),
       };
       results.push(entry);
     }),

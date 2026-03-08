@@ -22,6 +22,7 @@ export {
   ScanMetadata,
   LevelMeta,
   ContextFileType,
+  ParseStatus,
   ContextFileInfo,
   ScanResult,
   DetectedLanguage,
