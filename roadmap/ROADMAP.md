@@ -1261,7 +1261,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 This section captures learnings, gaps, and decisions from the initial implementation pass.
 It is the source of truth for what was actually built vs. what was specified.
 
-**Grand total across P1.01–P1.18: 107 done, 14 partial, 35 not done (~156 sub-items audited). Updated 2026-03-08 (session 3). +11 done, -4 partial, -7 not done from session 2.**
+**Grand total across P1.01–P1.18: 107 done, 19 partial, 40 not done (166 sub-items audited). Updated 2026-03-08 (session 3). Counts derived from per-section header tallies + P1.15-P1.18 summary.**
 
 #### Architecture Decisions (deviations from RFC-0003)
 
@@ -1626,7 +1626,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.14 — JSON Output Contract v1 (9 done, 3 partial, 4 not done) — updated 2026-03-09
+#### P1.14 — JSON Output Contract v1 (11 done, 4 partial, 4 not done) — updated 2026-03-08
 
 **Deliverables:**
 
