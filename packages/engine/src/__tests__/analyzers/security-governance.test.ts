@@ -128,7 +128,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
 
     it("detects .pre-commit-config.yaml", async () => {
       const ctx = createMockContext({
-        ".pre-commit-config.yaml": "repos:\n  - repo: https://github.com/pre-commit/pre-commit-hooks",
+        ".pre-commit-config.yaml":
+          "repos:\n  - repo: https://github.com/pre-commit/pre-commit-hooks",
       });
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-SEC-003")).toBe(false);
@@ -136,7 +137,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
 
     it("detects gitleaks in CI workflows", async () => {
       const ctx = createMockContext({
-        ".github/workflows/secrets.yml": "name: Secrets\njobs:\n  scan:\n    steps:\n      - uses: gitleaks/gitleaks-action@v2",
+        ".github/workflows/secrets.yml":
+          "name: Secrets\njobs:\n  scan:\n    steps:\n      - uses: gitleaks/gitleaks-action@v2",
       });
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-SEC-003")).toBe(false);
@@ -144,7 +146,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
 
     it("detects trufflehog in CI workflows", async () => {
       const ctx = createMockContext({
-        ".github/workflows/security.yml": "name: Security\njobs:\n  scan:\n    steps:\n      - run: trufflehog --json .",
+        ".github/workflows/security.yml":
+          "name: Security\njobs:\n  scan:\n    steps:\n      - run: trufflehog --json .",
       });
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-SEC-003")).toBe(false);
@@ -172,7 +175,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
   describe("SAST in workflows", () => {
     it("detects CodeQL", async () => {
       const ctx = createMockContext({
-        ".github/workflows/codeql.yml": "name: CodeQL\njobs:\n  analyze:\n    steps:\n      - uses: github/codeql-action/analyze@v2",
+        ".github/workflows/codeql.yml":
+          "name: CodeQL\njobs:\n  analyze:\n    steps:\n      - uses: github/codeql-action/analyze@v2",
       });
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       // SAST adds 15 points
@@ -181,7 +185,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
 
     it("detects semgrep", async () => {
       const ctx = createMockContext({
-        ".github/workflows/sast.yml": "name: SAST\njobs:\n  scan:\n    steps:\n      - run: semgrep scan",
+        ".github/workflows/sast.yml":
+          "name: SAST\njobs:\n  scan:\n    steps:\n      - run: semgrep scan",
       });
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       expect(result.score).toBeGreaterThanOrEqual(15);
@@ -251,7 +256,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
   describe("AI-specific review checklist in PR templates", () => {
     it("adds points when PR template mentions AI review", async () => {
       const with_ = createMockContext({
-        ".github/PULL_REQUEST_TEMPLATE.md": "## Description\n## AI Review\n- [ ] Was this code AI-generated?\n- [ ] Have AI changes been reviewed for security?",
+        ".github/PULL_REQUEST_TEMPLATE.md":
+          "## Description\n## AI Review\n- [ ] Was this code AI-generated?\n- [ ] Have AI changes been reviewed for security?",
       });
       const without_ = createMockContext({
         ".github/PULL_REQUEST_TEMPLATE.md": "## Description\n## Checklist\n- [ ] Tests pass",
@@ -263,7 +269,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
 
     it("detects LLM/agent/copilot keywords in PR template", async () => {
       const ctx = createMockContext({
-        ".github/PULL_REQUEST_TEMPLATE.md": "## Checklist\n- [ ] If LLM-generated, verify no hardcoded credentials",
+        ".github/PULL_REQUEST_TEMPLATE.md":
+          "## Checklist\n- [ ] If LLM-generated, verify no hardcoded credentials",
       });
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-SEC-005")).toBe(false);
@@ -378,7 +385,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
         "SECURITY.md": "# Policy",
         ".gitleaks.toml": "[allowlist]",
         ".github/dependabot.yml": "version: 2",
-        ".github/workflows/ci.yml": "on: pull_request\njobs:\n  sast:\n    steps:\n      - uses: github/codeql-action/analyze@v2\n      - run: gitleaks detect",
+        ".github/workflows/ci.yml":
+          "on: pull_request\njobs:\n  sast:\n    steps:\n      - uses: github/codeql-action/analyze@v2\n      - run: gitleaks detect",
         LICENSE: "MIT",
         ".github/pull_request_template.md": "## Desc",
         ".gitignore": ".env\ncredentials\n",

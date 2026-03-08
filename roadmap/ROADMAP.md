@@ -2529,6 +2529,114 @@ P1 deterministic scoring foundation
 - **Risk:** `.agentignore` standard fails to gain adoption.
   - **Mitigation:** publish parser as MIT-licensed library. Advocate with agent vendors. Include in `--fix` output.
 
+## CI/CD & Build Pipeline — AI-First Design (added 2026-03-09)
+
+> **Principle:** AI agents are first-class developers on this repo. Every CI signal must be fast, parallel, structured, and machine-parseable. We dog-food our own scanner as a quality gate. If we wouldn't accept this CI setup from a repo we scan, we don't accept it for ourselves.
+
+### Design Decisions
+
+| Decision | Rationale |
+|---|---|
+| **Parallel jobs** (format, lint, typecheck, test) | AI agents waste tokens waiting. A single 3-min blob job is hostile. Parallel jobs give granular, fast failure signals — an agent knows "lint failed" vs "test failed" within seconds, not minutes. |
+| **ARI score floor gate** | We scan other repos for readiness. If our own score drops below 55, the build fails. Dog-fooding is non-negotiable. The floor rises as we mature. |
+| **ARI delta comment on PRs** | Every PR gets a sticky comment showing score delta per pillar + top findings. AI agents submitting PRs can read this structured feedback and self-correct. Humans get the same signal. |
+| **Pre-commit hooks** (husky + lint-staged) | Fastest feedback loop. P2 analyzer scores this — so we practice it. Format + lint on staged files only (<2s). |
+| **Dependency review** | P8 analyzer checks for this. GitHub's dependency-review-action catches known vulnerabilities in new deps before merge. |
+| **Concurrency control** | `cancel-in-progress: true` per branch. If an AI agent pushes 3 commits in quick succession, only the latest runs. Saves CI minutes and reduces noise. |
+| **PR template with AI agent attribution** | AI agents fill structured sections. Humans review structured sections. The "Agent" field normalizes AI contributions as expected, not exceptional. |
+| **Issue templates** (bug, false-positive, analyzer improvement) | Structured input for both human and AI reporters. False-positive template is critical — scoring tools live or die on precision trust. |
+| **Build depends on quality gates** | Build only runs after format+lint+typecheck+test pass. No point building if the code is broken. Saves CI minutes. |
+| **90-day artifact retention** | Scan results archived for trend analysis. Future: time-series ARI score tracking. |
+
+### Ticket CI.01 — Parallel CI Pipeline (🔴 P0) ✅ Done
+
+- **Deliverables:**
+  - [x] Split monolithic CI job into 5 parallel jobs: format, lint, typecheck, test, build
+  - [x] Build job depends on all 4 quality gates passing
+  - [x] Concurrency control: cancel-in-progress per branch
+  - [x] Self-scan in build job with score extraction to step outputs
+  - [x] ARI score floor gate (configurable via `ARI_SCORE_FLOOR` env var)
+  - [x] Score + level in GitHub step summary
+  - [x] 90-day artifact retention for scan results
+
+### Ticket CI.02 — ARI PR Delta Report (🔴 P0) ✅ Done
+
+- **Deliverables:**
+  - [x] Separate workflow triggered on `pull_request`
+  - [x] Scans both PR branch and base branch
+  - [x] Generates per-pillar delta table (base vs PR, with directional icons)
+  - [x] Top 5 findings listed
+  - [x] Sticky comment (updates on re-push, doesn't spam)
+  - [x] Machine-readable output (AI agents can parse the structured comment)
+
+### Ticket CI.03 — Pre-commit Hooks (🟠 P1) ✅ Done
+
+- **Deliverables:**
+  - [x] Husky initialized with `.husky/pre-commit`
+  - [x] lint-staged: ESLint --fix + Prettier on `*.ts` files
+  - [x] lint-staged: Prettier on `*.json`, `*.md`, `*.yml` files
+  - [x] `prepare` script in root package.json for automatic setup on `pnpm install`
+
+### Ticket CI.04 — PR Template (🟠 P1) ✅ Done
+
+- **Deliverables:**
+  - [x] `.github/PULL_REQUEST_TEMPLATE.md` with structured sections
+  - [x] Summary, ARI Impact, Test Plan, Checklist sections
+  - [x] AI agent attribution field (normalize AI contributions)
+  - [x] Checklist encodes repo conventions (no `any`, `.js` imports, stable finding codes, weight sum)
+
+### Ticket CI.05 — Issue Templates (🟠 P1) ✅ Done
+
+- **Deliverables:**
+  - [x] Bug report template with scan output + environment fields
+  - [x] False positive template with finding code + repo context (critical for scoring trust)
+  - [x] Analyzer improvement template with pillar + research basis fields
+
+### Ticket CI.06 — Dependency Review (🟠 P1) ✅ Done
+
+- **Deliverables:**
+  - [x] `actions/dependency-review-action@v4` on PRs
+  - [x] Fail on high-severity vulnerabilities
+  - [x] Aligns with P8 analyzer expectations (we check others for this — we must do it ourselves)
+
+### Ticket CI.07 — Release Automation (🟠 P1) ⬜ Not Started
+
+- **Deliverables:**
+  - [ ] Changesets (`@changesets/cli`) for semantic versioning
+  - [ ] Automated npm publish workflow on merge to main with version bump
+  - [ ] CHANGELOG.md auto-generation from changesets
+  - [ ] GitHub Release creation with scan result artifact attached
+  - [ ] Provenance attestation for npm packages (`--provenance` flag)
+- **Why:** npm publishing is a P1 exit criterion. Provenance attestation is AI-first — agents downloading `ariscan` from npm should be able to verify the package hasn't been tampered with.
+- **Dependencies:** npm org setup, `NPM_TOKEN` secret.
+
+### Ticket CI.08 — Test Coverage Reporting (🟡 P2) ⬜ Not Started
+
+- **Deliverables:**
+  - [ ] Vitest coverage with `@vitest/coverage-v8`
+  - [ ] Coverage report in CI artifacts
+  - [ ] PR comment with coverage delta (not a gate — visibility only)
+  - [ ] Coverage badge in README
+- **Why:** Visibility, not enforcement. Coverage % as a gate creates perverse incentives (testing getters/setters to hit numbers). But seeing coverage drop on a PR is a useful signal for reviewers — human or AI.
+
+### Ticket CI.09 — Branch Protection Rules Documentation (🟡 P2) ⬜ Not Started
+
+- **Deliverables:**
+  - [ ] Document required branch protection settings for `main` in CONTRIBUTING.md
+  - [ ] Require CI pass, require review, no force push
+  - [ ] Consider GitHub rulesets (newer API, code-as-config)
+- **Why:** P8 analyzer checks for branch protection enforcement patterns. We should document ours.
+
+### Ticket CI.10 — SARIF Upload for Code Scanning (🟡 P2) ⬜ Not Started
+
+- **Deliverables:**
+  - [ ] `--format sarif` output from ariscan (blocked on P1.14 SARIF formatter)
+  - [ ] Upload SARIF to GitHub Code Scanning in CI
+  - [ ] ARI findings appear as GitHub code scanning alerts
+- **Why:** AI-first — GitHub Copilot surfaces code scanning alerts inline. If ARI findings are in the code scanning database, Copilot sees them automatically. This is the zero-friction integration path.
+
+---
+
 ## Package Plan
 
 | Package | Status | Purpose |

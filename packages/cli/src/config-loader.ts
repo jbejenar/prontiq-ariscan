@@ -103,16 +103,16 @@ export async function resolveConfig(options: {
 
   // Load config file
   let fileConfig: FileConfigType | undefined;
-  const resolvedConfigPath = configPath
-    ? resolve(configPath)
-    : await findConfigFile(repoPath);
+  const resolvedConfigPath = configPath ? resolve(configPath) : await findConfigFile(repoPath);
 
   if (resolvedConfigPath) {
     try {
       fileConfig = await loadConfigFile(resolvedConfigPath);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`Warning: Failed to load config file ${resolvedConfigPath}: ${message}\n`);
+      process.stderr.write(
+        `Warning: Failed to load config file ${resolvedConfigPath}: ${message}\n`,
+      );
     }
   }
 

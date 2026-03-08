@@ -76,7 +76,8 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
     } else {
       // Check for Python type checking
       const hasPyproject = await context.fileExists("pyproject.toml");
-      const hasMypy = await context.fileExists("mypy.ini") || await context.fileExists(".mypy.ini");
+      const hasMypy =
+        (await context.fileExists("mypy.ini")) || (await context.fileExists(".mypy.ini"));
       const hasPyrightConfig = await context.fileExists("pyrightconfig.json");
 
       if (hasMypy || hasPyrightConfig) {
@@ -178,7 +179,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
     }
 
     // Package manager consistency
-    if (await context.fileExists(".npmrc") || pkg?.["packageManager"]) {
+    if ((await context.fileExists(".npmrc")) || pkg?.["packageManager"]) {
       score += 5;
     }
 

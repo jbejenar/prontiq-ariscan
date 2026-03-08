@@ -51,7 +51,8 @@ describe("testIsolationAnalyzer (P3)", () => {
       }
       // 4 test files (ratio = 1.0)
       for (let i = 0; i < 4; i++) {
-        files[`src/module${i}.test.ts`] = `import { mod${i} } from './module${i}'; test('works', () => {});`;
+        files[`src/module${i}.test.ts`] =
+          `import { mod${i} } from './module${i}'; test('works', () => {});`;
       }
       const ctx = createMockContext(files);
       const result = await testIsolationAnalyzer.analyze(ctx);

@@ -208,8 +208,12 @@ describe("buildDeterminismAnalyzer (P6)", () => {
       const modernPkg = JSON.stringify({ scripts: { build: "tsup src/index.ts" } });
       const legacyPkg = JSON.stringify({ scripts: { build: "tsc" } });
 
-      const modern = await buildDeterminismAnalyzer.analyze(createMockContext({ "package.json": modernPkg }));
-      const legacy = await buildDeterminismAnalyzer.analyze(createMockContext({ "package.json": legacyPkg }));
+      const modern = await buildDeterminismAnalyzer.analyze(
+        createMockContext({ "package.json": modernPkg }),
+      );
+      const legacy = await buildDeterminismAnalyzer.analyze(
+        createMockContext({ "package.json": legacyPkg }),
+      );
       // Modern: build(10) + modern bonus(10), legacy: build(10)
       expect(modern.score).toBeGreaterThan(legacy.score);
     });
@@ -218,8 +222,12 @@ describe("buildDeterminismAnalyzer (P6)", () => {
       const webpackPkg = JSON.stringify({ scripts: { build: "webpack --mode production" } });
       const tsupPkg = JSON.stringify({ scripts: { build: "tsup" } });
 
-      const webpack = await buildDeterminismAnalyzer.analyze(createMockContext({ "package.json": webpackPkg }));
-      const tsup = await buildDeterminismAnalyzer.analyze(createMockContext({ "package.json": tsupPkg }));
+      const webpack = await buildDeterminismAnalyzer.analyze(
+        createMockContext({ "package.json": webpackPkg }),
+      );
+      const tsup = await buildDeterminismAnalyzer.analyze(
+        createMockContext({ "package.json": tsupPkg }),
+      );
       // webpack: build(10) + webpack(5), tsup: build(10) + modern(10)
       expect(tsup.score).toBeGreaterThan(webpack.score);
     });
@@ -301,7 +309,7 @@ describe("buildDeterminismAnalyzer (P6)", () => {
 
   describe("Go interface{}/any abuse detection", () => {
     it("emits ARI-BLD-004 for excessive interface{} usage", async () => {
-      const goContent = Array(12).fill('func doStuff(x interface{}) {}').join("\n");
+      const goContent = Array(12).fill("func doStuff(x interface{}) {}").join("\n");
       const ctx = createMockContext({
         "go.mod": "module example.com/app\ngo 1.21",
         "main.go": goContent,
@@ -313,7 +321,7 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     it("does not emit ARI-BLD-004 for minimal any usage", async () => {
       const ctx = createMockContext({
         "go.mod": "module example.com/app\ngo 1.21",
-        "main.go": 'package main\n\nfunc main() {\n  x := 42\n  println(x)\n}',
+        "main.go": "package main\n\nfunc main() {\n  x := 42\n  println(x)\n}",
       });
       const result = await buildDeterminismAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-BLD-004")).toBe(false);
@@ -322,7 +330,7 @@ describe("buildDeterminismAnalyzer (P6)", () => {
 
   describe("Rust excessive unwrap() detection", () => {
     it("emits ARI-BLD-005 for excessive unwrap() usage", async () => {
-      const rsContent = Array(25).fill('let x = some_result.unwrap();').join("\n");
+      const rsContent = Array(25).fill("let x = some_result.unwrap();").join("\n");
       const ctx = createMockContext({
         "Cargo.toml": '[package]\nname = "app"',
         "src/main.rs": rsContent,
@@ -334,7 +342,8 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     it("does not emit ARI-BLD-005 for clean Rust code", async () => {
       const ctx = createMockContext({
         "Cargo.toml": '[package]\nname = "app"',
-        "src/main.rs": 'fn main() -> Result<(), Box<dyn std::error::Error>> {\n  let x = some_fn()?;\n  Ok(())\n}',
+        "src/main.rs":
+          "fn main() -> Result<(), Box<dyn std::error::Error>> {\n  let x = some_fn()?;\n  Ok(())\n}",
       });
       const result = await buildDeterminismAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-BLD-005")).toBe(false);

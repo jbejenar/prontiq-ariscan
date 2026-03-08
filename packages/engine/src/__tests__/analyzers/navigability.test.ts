@@ -26,8 +26,9 @@ describe("navigabilityAnalyzer (P7)", () => {
 
   describe("import analysis", () => {
     it("emits ARI-NAV-004 for files with >20 imports", async () => {
-      const imports = Array.from({ length: 25 }, (_, i) =>
-        `import { mod${i} } from './mod${i}';`,
+      const imports = Array.from(
+        { length: 25 },
+        (_, i) => `import { mod${i} } from './mod${i}';`,
       ).join("\n");
       const ctx = createMockContext({
         "src/heavy.ts": imports + "\nexport const x = 1;",
@@ -38,8 +39,9 @@ describe("navigabilityAnalyzer (P7)", () => {
     });
 
     it("does not emit ARI-NAV-004 for files with <= 20 imports", async () => {
-      const imports = Array.from({ length: 5 }, (_, i) =>
-        `import { mod${i} } from './mod${i}';`,
+      const imports = Array.from(
+        { length: 5 },
+        (_, i) => `import { mod${i} } from './mod${i}';`,
       ).join("\n");
       const ctx = createMockContext({
         "src/normal.ts": imports + "\nexport const x = 1;",

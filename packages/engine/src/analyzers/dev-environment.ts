@@ -70,11 +70,13 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
             code: "ARI-ENV-005",
             severity: "medium",
             pillar: PILLAR,
-            message: "Devcontainer is missing 'image' or 'build' field — container may not be functional",
+            message:
+              "Devcontainer is missing 'image' or 'build' field — container may not be functional",
             remediation: {
               action: "modify-config",
               path: ".devcontainer/devcontainer.json",
-              description: "Add an 'image' field (e.g. 'mcr.microsoft.com/devcontainers/typescript-node:1-20') or a 'build' field with Dockerfile reference",
+              description:
+                "Add an 'image' field (e.g. 'mcr.microsoft.com/devcontainers/typescript-node:1-20') or a 'build' field with Dockerfile reference",
               confidence: "high",
             },
           });
@@ -109,9 +111,10 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
     }
 
     // --- Docker Compose ---
-    const hasCompose = await context.fileExists("docker-compose.yml") ||
-      await context.fileExists("docker-compose.yaml") ||
-      await context.fileExists("compose.yml");
+    const hasCompose =
+      (await context.fileExists("docker-compose.yml")) ||
+      (await context.fileExists("docker-compose.yaml")) ||
+      (await context.fileExists("compose.yml"));
     if (hasCompose) {
       score += 10;
     }
@@ -156,7 +159,13 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
     }
 
     // --- Version management ---
-    const versionFiles = [".nvmrc", ".node-version", ".tool-versions", ".python-version", "rust-toolchain.toml"];
+    const versionFiles = [
+      ".nvmrc",
+      ".node-version",
+      ".tool-versions",
+      ".python-version",
+      "rust-toolchain.toml",
+    ];
     let hasVersionPinning = false;
     for (const vf of versionFiles) {
       if (await context.fileExists(vf)) {
@@ -186,7 +195,8 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
     }
 
     // --- Env var documentation ---
-    const hasEnvExample = await context.fileExists(".env.example") || await context.fileExists(".env.template");
+    const hasEnvExample =
+      (await context.fileExists(".env.example")) || (await context.fileExists(".env.template"));
     if (hasEnvExample) {
       score += 10;
     }
@@ -194,7 +204,9 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
     // --- README setup section ---
     const readme = await context.readFile("README.md");
     if (readme) {
-      const hasSetupSection = /##?\s*(setup|getting started|installation|quick start)/i.test(readme);
+      const hasSetupSection = /##?\s*(setup|getting started|installation|quick start)/i.test(
+        readme,
+      );
       if (hasSetupSection) {
         score += 10;
       }
@@ -232,14 +244,23 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         message: "No doctor/health-check command found in package.json scripts",
         remediation: {
           action: "add-script",
-          description: "Add a 'doctor' or 'health-check' script that validates the dev environment (node version, required tools, etc.)",
+          description:
+            "Add a 'doctor' or 'health-check' script that validates the dev environment (node version, required tools, etc.)",
           confidence: "medium",
         },
       });
     }
 
     // --- Seed/fixture data ---
-    const seedFixtureDirs = ["seeds/", "seed/", "fixtures/", "fixture/", "testdata/", "test-data/", "test_data/"];
+    const seedFixtureDirs = [
+      "seeds/",
+      "seed/",
+      "fixtures/",
+      "fixture/",
+      "testdata/",
+      "test-data/",
+      "test_data/",
+    ];
     let hasSeedData = false;
     for (const dir of seedFixtureDirs) {
       if (context.files.some((f) => f.startsWith(dir) || f.includes(`/${dir}`))) {
@@ -297,7 +318,9 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
     const hasRequirementsTxt = await context.fileExists("requirements.txt");
     const hasGoMod = await context.fileExists("go.mod");
     if (!hasPackageJson && !hasMakefile && !hasRequirementsTxt && !hasGoMod) {
-      blockers.push("No install command obvious (no package.json, Makefile, requirements.txt, or go.mod)");
+      blockers.push(
+        "No install command obvious (no package.json, Makefile, requirements.txt, or go.mod)",
+      );
     }
 
     // TypeScript project without tsconfig
@@ -316,7 +339,8 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         message: `Likely first-run blockers: ${blockers.join("; ")}`,
         remediation: {
           action: "create-file",
-          description: "Address the listed blockers to reduce onboarding friction for new developers and AI agents",
+          description:
+            "Address the listed blockers to reduce onboarding friction for new developers and AI agents",
           confidence: "high",
         },
         evidence: {
@@ -336,7 +360,8 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
 
     // --- NEW: ARI-ENV-007 — Environment variable completeness ---
     if (hasEnvExample) {
-      const envExampleContent = await context.readFile(".env.example") ?? await context.readFile(".env.template") ?? "";
+      const envExampleContent =
+        (await context.readFile(".env.example")) ?? (await context.readFile(".env.template")) ?? "";
       const documentedVars = extractEnvExampleVars(envExampleContent);
 
       // Sample source files for process.env references

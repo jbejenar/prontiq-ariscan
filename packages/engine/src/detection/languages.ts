@@ -120,9 +120,7 @@ function getExtension(filePath: string): string {
  * Confidence is based on the proportion of source files using the language
  * plus a boost if marker files are present.
  */
-export async function detectLanguages(
-  context: RepoContext,
-): Promise<DetectedLanguage[]> {
+export async function detectLanguages(context: RepoContext): Promise<DetectedLanguage[]> {
   const { files } = context;
 
   // Count files per language

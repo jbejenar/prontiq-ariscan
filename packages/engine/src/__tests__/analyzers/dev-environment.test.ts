@@ -7,7 +7,7 @@ describe("devEnvironmentAnalyzer (P4)", () => {
     const ctx = createMockContext({});
     const result = await devEnvironmentAnalyzer.analyze(ctx);
     expect(result.pillar).toBe("P4");
-    expect(result.weight).toBe(0.10);
+    expect(result.weight).toBe(0.1);
   });
 
   it("always supports any repo", async () => {
@@ -365,7 +365,11 @@ describe("devEnvironmentAnalyzer (P4)", () => {
         "docker-compose.yml": "version: '3'",
         "scripts/setup.sh": "#!/bin/bash\necho setup",
         "package.json": JSON.stringify({
-          scripts: { setup: "bash scripts/setup.sh", doctor: "node doctor.js", "db:seed": "node seed.js" },
+          scripts: {
+            setup: "bash scripts/setup.sh",
+            doctor: "node doctor.js",
+            "db:seed": "node seed.js",
+          },
           engines: { node: ">=18" },
         }),
         ".nvmrc": "18",

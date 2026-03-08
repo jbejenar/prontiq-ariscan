@@ -207,9 +207,7 @@ async function extractJavaDeps(context: RepoContext): Promise<Set<string>> {
   const buildGradle = await context.readFile("build.gradle");
   if (buildGradle) {
     // Look for group:artifact patterns
-    const matches = buildGradle.matchAll(
-      /['"]([a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+)/g,
-    );
+    const matches = buildGradle.matchAll(/['"]([a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+)/g);
     for (const match of matches) {
       if (match[1]) deps.add(match[1]);
     }
@@ -229,9 +227,7 @@ async function extractDotNetDeps(context: RepoContext): Promise<Set<string>> {
     // Limit to avoid slowness
     const content = await context.readFile(csproj);
     if (content) {
-      const matches = content.matchAll(
-        /Include="([^"]+)"/g,
-      );
+      const matches = content.matchAll(/Include="([^"]+)"/g);
       for (const match of matches) {
         if (match[1]) deps.add(match[1]);
       }
@@ -244,9 +240,7 @@ async function extractDotNetDeps(context: RepoContext): Promise<Set<string>> {
 /**
  * Detect frameworks used in the repository.
  */
-export async function detectFrameworks(
-  context: RepoContext,
-): Promise<DetectedFramework[]> {
+export async function detectFrameworks(context: RepoContext): Promise<DetectedFramework[]> {
   // Gather all dependency sources
   const pkg = await context.readJson<PackageJson>("package.json");
   const npmDeps = pkg ? extractNpmDeps(pkg) : new Set<string>();
@@ -255,13 +249,7 @@ export async function detectFrameworks(
   const javaDeps = await extractJavaDeps(context);
   const dotnetDeps = await extractDotNetDeps(context);
 
-  const allDeps = new Set([
-    ...npmDeps,
-    ...pythonDeps,
-    ...rubyDeps,
-    ...javaDeps,
-    ...dotnetDeps,
-  ]);
+  const allDeps = new Set([...npmDeps, ...pythonDeps, ...rubyDeps, ...javaDeps, ...dotnetDeps]);
 
   const results: DetectedFramework[] = [];
 

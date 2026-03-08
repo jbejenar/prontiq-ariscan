@@ -16,11 +16,36 @@ const TEST_FILE_PATTERNS = [
 ];
 
 const ANTI_PATTERNS = [
-  { pattern: /\b(AWS|azure|gcp|google\.cloud)\b/i, code: "ARI-TST-001", message: "Cloud SDK reference in test file", severity: "high" as const },
-  { pattern: /\bfetch\s*\(|axios\.|requests\.(get|post|put|delete)|http\.Get/i, code: "ARI-TST-002", message: "Direct HTTP call in test — should use mocks/stubs", severity: "high" as const },
-  { pattern: /\b(Date\.now|new Date|time\.Now|datetime\.now)\b/, code: "ARI-TST-003", message: "Non-deterministic time usage in test", severity: "medium" as const },
-  { pattern: /\bMath\.random\b|random\.\w+\(/, code: "ARI-TST-004", message: "Non-deterministic random usage in test", severity: "medium" as const },
-  { pattern: /process\.env\[|os\.environ|os\.Getenv/, code: "ARI-TST-005", message: "Direct environment variable access in test", severity: "medium" as const },
+  {
+    pattern: /\b(AWS|azure|gcp|google\.cloud)\b/i,
+    code: "ARI-TST-001",
+    message: "Cloud SDK reference in test file",
+    severity: "high" as const,
+  },
+  {
+    pattern: /\bfetch\s*\(|axios\.|requests\.(get|post|put|delete)|http\.Get/i,
+    code: "ARI-TST-002",
+    message: "Direct HTTP call in test — should use mocks/stubs",
+    severity: "high" as const,
+  },
+  {
+    pattern: /\b(Date\.now|new Date|time\.Now|datetime\.now)\b/,
+    code: "ARI-TST-003",
+    message: "Non-deterministic time usage in test",
+    severity: "medium" as const,
+  },
+  {
+    pattern: /\bMath\.random\b|random\.\w+\(/,
+    code: "ARI-TST-004",
+    message: "Non-deterministic random usage in test",
+    severity: "medium" as const,
+  },
+  {
+    pattern: /process\.env\[|os\.environ|os\.Getenv/,
+    code: "ARI-TST-005",
+    message: "Direct environment variable access in test",
+    severity: "medium" as const,
+  },
 ];
 
 /** Patterns that detect filesystem dependencies in tests */
@@ -111,9 +136,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
     let score = 0;
 
     // Find test files
-    const testFiles = context.files.filter((f) =>
-      TEST_FILE_PATTERNS.some((p) => p.test(f)),
-    );
+    const testFiles = context.files.filter((f) => TEST_FILE_PATTERNS.some((p) => p.test(f)));
 
     const sourceFiles = context.files.filter(
       (f) =>
@@ -130,7 +153,8 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         message: "No test files found in the repository",
         remediation: {
           action: "create-file",
-          description: "Add test files for your source code. A healthy test-to-source ratio is 0.5-1.0.",
+          description:
+            "Add test files for your source code. A healthy test-to-source ratio is 0.5-1.0.",
           confidence: "high",
         },
         evidence: {
@@ -252,7 +276,8 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               message: "Assertion on unordered collection without sorting — may cause flaky tests",
               remediation: {
                 action: "refactor",
-                description: "Sort the collection before asserting, or use an unordered matcher (e.g. toContain, arrayContaining)",
+                description:
+                  "Sort the collection before asserting, or use an unordered matcher (e.g. toContain, arrayContaining)",
                 confidence: "medium",
               },
               evidence: paperForCategory("unordered-collection"),
@@ -285,7 +310,8 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
           message: `Very low test file count ratio: ${testFileRatio.toFixed(2)} (${testFiles.length} test files / ${sourceFiles.length} source files). Target at least 0.5.`,
           remediation: {
             action: "create-file",
-            description: "Add test files for untested source modules. Aim for at least 1 test file per 2 source files.",
+            description:
+              "Add test files for untested source modules. Aim for at least 1 test file per 2 source files.",
             confidence: "high",
           },
         });
@@ -441,28 +467,24 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
     }
 
     // Check for DI/provider patterns (match filename only, exclude .devcontainer paths)
-    const hasProviderPattern = context.files.some(
-      (f) => {
-        if (/\.devcontainer/i.test(f)) return false;
-        const filename = f.split("/").pop() ?? f;
-        return /provider|factory|container|inject/i.test(filename);
-      },
-    );
+    const hasProviderPattern = context.files.some((f) => {
+      if (/\.devcontainer/i.test(f)) return false;
+      const filename = f.split("/").pop() ?? f;
+      return /provider|factory|container|inject/i.test(filename);
+    });
     if (hasProviderPattern) {
       score += 15;
     }
 
     // Check for mock/stub infrastructure
-    const hasMockInfra = context.files.some(
-      (f) => /__mocks__|\.mock\.|mock\//i.test(f),
-    );
+    const hasMockInfra = context.files.some((f) => /__mocks__|\.mock\.|mock\//i.test(f));
     if (hasMockInfra) {
       score += 10;
     }
 
     // Check for test config (jest.config, vitest.config, etc.)
-    const hasTestConfig = context.files.some(
-      (f) => /jest\.config|vitest\.config|pytest\.ini|conftest\.py|\.mocharc/i.test(f),
+    const hasTestConfig = context.files.some((f) =>
+      /jest\.config|vitest\.config|pytest\.ini|conftest\.py|\.mocharc/i.test(f),
     );
     if (hasTestConfig) {
       score += 5;

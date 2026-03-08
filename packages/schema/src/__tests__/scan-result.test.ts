@@ -25,21 +25,25 @@ describe("Finding", () => {
   });
 
   it("rejects invalid ARI code format", () => {
-    expect(() => Finding.parse({
-      code: "INVALID",
-      severity: "high",
-      pillar: "P1",
-      message: "test",
-    })).toThrow();
+    expect(() =>
+      Finding.parse({
+        code: "INVALID",
+        severity: "high",
+        pillar: "P1",
+        message: "test",
+      }),
+    ).toThrow();
   });
 
   it("rejects invalid severity", () => {
-    expect(() => Finding.parse({
-      code: "ARI-CTX-001",
-      severity: "extreme",
-      pillar: "P1",
-      message: "test",
-    })).toThrow();
+    expect(() =>
+      Finding.parse({
+        code: "ARI-CTX-001",
+        severity: "extreme",
+        pillar: "P1",
+        message: "test",
+      }),
+    ).toThrow();
   });
 
   it("accepts a finding with evidence (research citation)", () => {
@@ -93,15 +97,17 @@ describe("PillarResult", () => {
   });
 
   it("rejects score out of range", () => {
-    expect(() => PillarResult.parse({
-      pillar: "P1",
-      name: "Test",
-      score: 101,
-      weight: 0.15,
-      confidence: "high",
-      findings: [],
-      summary: "test",
-    })).toThrow();
+    expect(() =>
+      PillarResult.parse({
+        pillar: "P1",
+        name: "Test",
+        score: 101,
+        weight: 0.15,
+        confidence: "high",
+        findings: [],
+        summary: "test",
+      }),
+    ).toThrow();
   });
 
   it("accepts an optional status field", () => {

@@ -17,7 +17,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     let score = 50; // Start at midpoint and adjust
 
     const sourceFiles = context.files.filter(
-      (f) => /\.[jt]sx?$|\.py$|\.go$|\.java$|\.cs$|\.rb$|\.rs$/.test(f) &&
+      (f) =>
+        /\.[jt]sx?$|\.py$|\.go$|\.java$|\.cs$|\.rb$|\.rs$/.test(f) &&
         !f.includes("node_modules") &&
         !f.includes("dist/") &&
         !f.includes("build/"),
@@ -116,7 +117,10 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         code: "ARI-NAV-003",
         severity: "low",
         pillar: PILLAR,
-        message: `Inconsistent file naming: ${styles.filter((s) => s.count > 0).map((s) => `${s.name}(${s.count})`).join(", ")}`,
+        message: `Inconsistent file naming: ${styles
+          .filter((s) => s.count > 0)
+          .map((s) => `${s.name}(${s.count})`)
+          .join(", ")}`,
         remediation: {
           action: "refactor",
           description: `Standardize file naming to ${dominant.name}`,
@@ -131,8 +135,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     }
 
     // Index/barrel files (good for navigation)
-    const indexFiles = context.files.filter(
-      (f) => /index\.[jt]sx?$|mod\.rs$|__init__\.py$/.test(f),
+    const indexFiles = context.files.filter((f) =>
+      /index\.[jt]sx?$|mod\.rs$|__init__\.py$/.test(f),
     );
     if (indexFiles.length > 0 && dirs.size > 3) {
       const barrelRatio = indexFiles.length / dirs.size;
@@ -142,9 +146,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     }
 
     // Import analysis — count imports per file, flag files with >20 imports
-    const importableFiles = sourceFiles.filter(
-      (f) => /\.[jt]sx?$|\.py$/.test(f),
-    );
+    const importableFiles = sourceFiles.filter((f) => /\.[jt]sx?$|\.py$/.test(f));
     const sampledForImports = importableFiles.slice(0, 30);
     let heavyImportCount = 0;
 
@@ -152,9 +154,9 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       const content = await context.readFile(file);
       if (!content) continue;
 
-      const importLines = content.split("\n").filter(
-        (line) => /^\s*(import\s|from\s|require\s*\()/.test(line),
-      );
+      const importLines = content
+        .split("\n")
+        .filter((line) => /^\s*(import\s|from\s|require\s*\()/.test(line));
 
       if (importLines.length > 20) {
         heavyImportCount++;
@@ -167,7 +169,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
             message: `File has ${importLines.length} imports — high coupling, consider splitting`,
             remediation: {
               action: "refactor",
-              description: "Reduce imports by splitting the file into smaller focused modules or using barrel imports",
+              description:
+                "Reduce imports by splitting the file into smaller focused modules or using barrel imports",
               confidence: "medium",
             },
           });
@@ -234,7 +237,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
               message: `Potential circular dependency between "${fileA}" and "${fileB}"`,
               remediation: {
                 action: "refactor",
-                description: "Break the circular dependency by extracting shared code into a separate module",
+                description:
+                  "Break the circular dependency by extracting shared code into a separate module",
                 confidence: "low",
               },
             });

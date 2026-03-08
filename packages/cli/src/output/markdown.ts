@@ -10,11 +10,16 @@ const SEVERITY_ORDER: Record<string, number> = {
 
 function severityEmoji(severity: string): string {
   switch (severity) {
-    case "critical": return "🔴";
-    case "high": return "🟠";
-    case "medium": return "🟡";
-    case "low": return "🔵";
-    default: return "⚪";
+    case "critical":
+      return "🔴";
+    case "high":
+      return "🟠";
+    case "medium":
+      return "🟡";
+    case "low":
+      return "🔵";
+    default:
+      return "⚪";
   }
 }
 
@@ -126,7 +131,9 @@ function formatFinding(finding: Finding): string {
     ? ` in \`${finding.file}${finding.line ? `:${finding.line}` : ""}\``
     : "";
 
-  lines.push(`- ${emoji} **${finding.severity.toUpperCase()}** \`${finding.code}\` — ${finding.message}${location}`);
+  lines.push(
+    `- ${emoji} **${finding.severity.toUpperCase()}** \`${finding.code}\` — ${finding.message}${location}`,
+  );
 
   return lines.join("\n");
 }
