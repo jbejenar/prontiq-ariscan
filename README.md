@@ -50,8 +50,32 @@ Security acts as a **gate**: below 40% on Pillar 8 caps the overall level at L2 
 ## Quick Start
 
 ```bash
+# Via npx (once published)
 npx ariscan .
+
+# From source
+node packages/cli/dist/cli.js .
+
+# JSON output for CI
+node packages/cli/dist/cli.js . --json
+
+# With threshold (exit code 1 if score below)
+node packages/cli/dist/cli.js . --threshold 50
 ```
+
+---
+
+## Current Status
+
+The core scanning engine is functional. What's built:
+
+- **@prontiq/schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig)
+- **@prontiq/engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification
+- **ariscan CLI** — Terminal and JSON output, threshold exit codes, error handling
+- **141 tests** across 10 test files
+- **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
+- **Test fixtures** — hostile-repo (L1), capable-repo (L3)
+- **Dogfooding** — AGENTS.md, CLAUDE.md, .agentignore, devcontainer, CONTRIBUTING.md, SECURITY.md, CODEOWNERS
 
 ---
 
@@ -73,8 +97,8 @@ npx ariscan .
 
 | Track | Status | Target |
 |---|---|---|
-| Pre-launch foundation | Next | Mar 2026 |
-| P1 — MVP CLI | Planned | May 2026 |
+| Pre-launch foundation | In Progress | Mar 2026 |
+| P1 — MVP CLI | In Progress | May 2026 |
 | P2 — Context intelligence | Planned | Jul 2026 |
 | P3 — Readiness-as-Code | Planned | Sep 2026 |
 
@@ -94,8 +118,9 @@ npx ariscan .
 
 | Package | Status | Purpose |
 |---|---|---|
-| `ariscan` | Core | CLI scan, scoring, reporting, policy execution |
-| `@prontiq/core` | Planned | Shared rubric models, score contracts, policy schemas |
+| `ariscan` | Built | CLI scan, scoring, reporting, threshold exit codes |
+| `@prontiq/schema` | Built | Zod schemas for scan results, config, findings |
+| `@prontiq/engine` | Built | 8-pillar analyzers, composite scoring, security gate |
 | `@prontiq/sdk` | Planned | Programmatic integration for reporting/workflow automation |
 | `@prontiq/agentignore` | Planned | `.agentignore` parser (MIT, reusable by agent vendors) |
 
