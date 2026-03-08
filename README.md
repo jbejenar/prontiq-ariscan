@@ -65,7 +65,6 @@ npx ariscan .
 | [rfcs/](./rfcs/) | RFC process and architecture/product decisions |
 | [docs/research/](./docs/research/) | Evidence base and calibration references |
 | [docs/architecture/](./docs/architecture/) | System architecture overview |
-| [docs/competitive/](./docs/competitive/) | Competitive context and differentiation |
 | [CHANGELOG.md](./CHANGELOG.md) | Documentation and roadmap revision history |
 
 ---
