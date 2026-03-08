@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { ScanResult } from "@prontiq/schema";
 import { formatJson } from "../output/json.js";
 import { formatTerminal } from "../output/terminal.js";
+import { formatMarkdown } from "../output/markdown.js";
 
 const mockResult: ScanResult = {
   metadata: {
@@ -100,5 +101,106 @@ describe("formatTerminal", () => {
     const gatedResult = { ...mockResult, securityGateTriggered: true };
     const output = formatTerminal(gatedResult);
     expect(output).toContain("Security gate triggered");
+  });
+});
+
+describe("formatMarkdown", () => {
+  it("generates valid markdown with header", () => {
+    const output = formatMarkdown(mockResult);
+    expect(output).toContain("# ARI Score: 62/100");
+    expect(output).toContain("L3");
+    expect(output).toContain("Capable");
+  });
+
+  it("includes all required sections", () => {
+    const output = formatMarkdown(mockResult);
+    expect(output).toContain("# ARI Score:");
+    expect(output).toContain("Routine tasks with moderate supervision");
+    expect(output).toContain("## Pillar Scores");
+    expect(output).toContain("| Pillar | Name | Score | Bar | Weight | Confidence |");
+    expect(output).toContain("Agent Context Quality");
+    expect(output).toContain("Security & Governance");
+    expect(output).toContain("## Top Findings");
+    expect(output).toContain("ARI-CTX-001");
+    expect(output).toContain("No AGENTS.md found");
+    expect(output).toContain("## Suggested Remediations");
+    expect(output).toContain("Create an AGENTS.md file");
+    expect(output).toContain("1234ms");
+    expect(output).toContain("v0.1.0");
+  });
+
+  it("includes pillar score bars", () => {
+    const output = formatMarkdown(mockResult);
+    expect(output).toMatch(/`[█░]+`/);
+  });
+
+  it("handles empty findings gracefully", () => {
+    const emptyResult: ScanResult = {
+      ...mockResult,
+      findings: [],
+    };
+    const output = formatMarkdown(emptyResult);
+    expect(output).not.toContain("## Top Findings");
+    expect(output).not.toContain("## Suggested Remediations");
+    expect(output).toContain("# ARI Score:");
+    expect(output).toContain("## Pillar Scores");
+    expect(output).toContain("Scanned in");
+  });
+
+  it("shows security gate warning when triggered", () => {
+    const gatedResult: ScanResult = { ...mockResult, securityGateTriggered: true };
+    const output = formatMarkdown(gatedResult);
+    expect(output).toContain("Security gate triggered");
+    expect(output).toContain("maturity capped at L2");
+  });
+
+  it("sorts findings by severity", () => {
+    const multiResult: ScanResult = {
+      ...mockResult,
+      findings: [
+        {
+          code: "ARI-CTX-002",
+          severity: "low",
+          pillar: "P1",
+          message: "Low severity finding",
+        },
+        {
+          code: "ARI-CTX-003",
+          severity: "critical",
+          pillar: "P1",
+          message: "Critical severity finding",
+        },
+        {
+          code: "ARI-CTX-001",
+          severity: "high",
+          pillar: "P1",
+          message: "High severity finding",
+        },
+      ],
+    };
+    const output = formatMarkdown(multiResult);
+    const criticalPos = output.indexOf("Critical severity finding");
+    const highPos = output.indexOf("High severity finding");
+    const lowPos = output.indexOf("Low severity finding");
+    expect(criticalPos).toBeLessThan(highPos);
+    expect(highPos).toBeLessThan(lowPos);
+  });
+
+  it("includes file location in findings when present", () => {
+    const resultWithFile: ScanResult = {
+      ...mockResult,
+      findings: [
+        {
+          code: "ARI-CTX-001",
+          severity: "high",
+          pillar: "P1",
+          file: "src/index.ts",
+          line: 42,
+          message: "Issue found",
+        },
+      ],
+    };
+    const output = formatMarkdown(resultWithFile);
+    expect(output).toContain("`src/index.ts:42`");
   });
 });

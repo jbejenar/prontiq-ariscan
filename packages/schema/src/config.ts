@@ -20,3 +20,19 @@ export const ScanConfig = z.object({
   include: z.array(z.string()).optional(),
 });
 export type ScanConfig = z.infer<typeof ScanConfig>;
+
+/**
+ * Schema for `.ariscan.yml` config file.
+ * Maps user-friendly YAML structure to internal ScanConfig.
+ */
+export const FileConfig = z.object({
+  threshold: z.number().min(0).max(100).optional(),
+  format: z.enum(["terminal", "json", "sarif", "markdown"]).optional(),
+  pillars: z
+    .object({
+      exclude: z.array(PillarId).optional(),
+      weights: z.record(PillarId, z.number().min(0).max(1)).optional(),
+    })
+    .optional(),
+});
+export type FileConfig = z.infer<typeof FileConfig>;

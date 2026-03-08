@@ -8,3 +8,9 @@ export {
   aggregateResults,
 } from "./scoring/composite.js";
 export type { PillarAnalyzer, RepoContext } from "./analyzers/analyzer.interface.js";
+export {
+  detect,
+  detectLanguages,
+  detectFrameworks,
+  detectMonorepo,
+} from "./detection/index.js";

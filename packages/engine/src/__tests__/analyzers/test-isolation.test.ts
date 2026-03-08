@@ -217,6 +217,100 @@ describe("testIsolationAnalyzer (P3)", () => {
     });
   });
 
+  describe("filesystem dependency detection", () => {
+    it("emits ARI-TST-008 for fs.readFileSync in tests", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          import fs from 'fs';
+          test('reads config', () => {
+            const data = fs.readFileSync('/etc/config.json', 'utf-8');
+            expect(data).toBeTruthy();
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-008")).toBe(true);
+    });
+
+    it("emits ARI-TST-008 for fs.writeFile in tests", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          import { writeFile } from 'fs';
+          test('writes output', () => {
+            fs.writeFile('/tmp/output.txt', 'data', () => {});
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-008")).toBe(true);
+    });
+
+    it("does not emit ARI-TST-008 for tests without fs access", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('clean', () => { expect(1).toBe(1); });",
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-008")).toBe(false);
+    });
+  });
+
+  describe("order-sensitive assertion detection", () => {
+    it("emits ARI-TST-009 for toEqual on Object.keys", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('checks keys', () => {
+            expect(Object.keys(obj)).toEqual(['a', 'b', 'c']);
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-009")).toBe(true);
+    });
+
+    it("does not emit ARI-TST-009 for plain array assertions", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('checks values', () => {
+            const arr = [1, 2, 3];
+            expect(arr).toEqual([1, 2, 3]);
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-009")).toBe(false);
+    });
+  });
+
+  describe("test file count ratio check", () => {
+    it("emits ARI-TST-010 when test ratio is very low", async () => {
+      const files: Record<string, string> = {};
+      // 20 source files, 1 test file -> ratio 0.05
+      for (let i = 0; i < 20; i++) {
+        files[`src/module${i}.ts`] = `export const m${i} = ${i};`;
+      }
+      files["src/module0.test.ts"] = "test('works', () => {});";
+      const ctx = createMockContext(files);
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-010")).toBe(true);
+    });
+
+    it("does not emit ARI-TST-010 when ratio is adequate", async () => {
+      const files: Record<string, string> = {};
+      for (let i = 0; i < 5; i++) {
+        files[`src/module${i}.ts`] = `export const m${i} = ${i};`;
+        files[`src/module${i}.test.ts`] = "test('works', () => {});";
+      }
+      const ctx = createMockContext(files);
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-010")).toBe(false);
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const files: Record<string, string> = {};

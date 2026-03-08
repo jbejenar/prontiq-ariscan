@@ -2,9 +2,11 @@ import { defineCommand } from "citty";
 import { resolve } from "node:path";
 import { access } from "node:fs/promises";
 import { scan } from "@prontiq/engine";
-import type { ScanResult } from "@prontiq/schema";
+import type { ScanConfig, ScanResult } from "@prontiq/schema";
 import { formatTerminal } from "../output/terminal.js";
 import { formatJson } from "../output/json.js";
+import { formatMarkdown } from "../output/markdown.js";
+import { resolveConfig } from "../config-loader.js";
 
 export interface ScanOptions {
   path: string;
@@ -13,6 +15,7 @@ export interface ScanOptions {
   quiet: boolean;
   json: boolean;
   threshold: number;
+  config?: string;
 }
 
 export async function runScan(options: ScanOptions): Promise<void> {
@@ -26,7 +29,25 @@ export async function runScan(options: ScanOptions): Promise<void> {
     process.exit(2);
   }
 
-  const format = options.json ? "json" : options.format;
+  // Build CLI overrides
+  const cliOverrides: Partial<ScanConfig> = {};
+  if (options.threshold > 0) {
+    cliOverrides.threshold = options.threshold;
+  }
+  if (options.json) {
+    cliOverrides.format = "json";
+  } else if (options.format !== "terminal") {
+    cliOverrides.format = options.format as ScanConfig["format"];
+  }
+
+  // Resolve config: CLI flags > .ariscan.yml > defaults
+  const scanConfig = await resolveConfig({
+    repoPath,
+    configPath: options.config,
+    cliOverrides,
+  });
+
+  const format = options.json ? "json" : (scanConfig.format ?? options.format);
 
   if (!options.quiet && format === "terminal") {
     process.stderr.write(`\nScanning ${repoPath}...\n\n`);
@@ -34,7 +55,7 @@ export async function runScan(options: ScanOptions): Promise<void> {
 
   let result: ScanResult;
   try {
-    result = await scan(repoPath);
+    result = await scan(repoPath, scanConfig);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`Error: Scan failed: ${message}\n`);
@@ -44,12 +65,15 @@ export async function runScan(options: ScanOptions): Promise<void> {
   // Output result
   if (format === "json") {
     process.stdout.write(formatJson(result));
+  } else if (format === "markdown") {
+    process.stdout.write(formatMarkdown(result));
   } else {
     process.stdout.write(formatTerminal(result, { verbose: options.verbose }));
   }
 
   // Exit code based on threshold
-  if (options.threshold > 0 && result.score < options.threshold) {
+  const threshold = scanConfig.threshold ?? options.threshold;
+  if (threshold > 0 && result.score < threshold) {
     process.exit(1);
   }
 }
@@ -68,7 +92,7 @@ export const scanCommand = defineCommand({
     },
     format: {
       type: "string",
-      description: "Output format: terminal, json, sarif, markdown",
+      description: "Output format: terminal, json, markdown",
       default: "terminal",
     },
     json: {
@@ -91,6 +115,11 @@ export const scanCommand = defineCommand({
       description: "Minimum passing score (exit code 1 if below)",
       default: "0",
     },
+    config: {
+      type: "string",
+      description: "Path to .ariscan.yml config file",
+      required: false,
+    },
   },
   async run({ args }) {
     await runScan({
@@ -100,6 +129,7 @@ export const scanCommand = defineCommand({
       quiet: args.quiet,
       json: args.json,
       threshold: parseInt(args.threshold, 10),
+      config: args.config,
     });
   },
 });

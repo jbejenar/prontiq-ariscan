@@ -166,6 +166,50 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
       score += 5;
     }
 
+    // AI-specific review checklist in PR templates
+    const prTemplateContent = await context.readFile(".github/PULL_REQUEST_TEMPLATE.md") ??
+      await context.readFile(".github/pull_request_template.md");
+    if (prTemplateContent && /\b(ai|agent|llm|copilot|gpt|claude|machine.?generated|ai.?generated)\b/i.test(prTemplateContent)) {
+      score += 5;
+    } else {
+      findings.push({
+        code: "ARI-SEC-005",
+        severity: "low",
+        pillar: PILLAR,
+        message: "PR template does not include AI-specific review checklist items",
+        remediation: {
+          action: "modify-config",
+          path: ".github/PULL_REQUEST_TEMPLATE.md",
+          description: "Add an AI/agent review section to your PR template (e.g., 'Was this code AI-generated?', 'Have AI-generated changes been reviewed for security?')",
+          confidence: "medium",
+        },
+      });
+    }
+
+    // .agentignore or agent scope control detection
+    const hasAgentIgnore = await context.fileExists(".agentignore");
+    const hasClaudeIgnore = await context.fileExists(".claudeignore");
+    const hasCopilotIgnore = await context.fileExists(".copilotignore");
+    const hasGitHubCopilotConfig = await context.fileExists(".github/copilot-instructions.md");
+    const hasClaudeMd = await context.fileExists("CLAUDE.md") || await context.fileExists(".claude/settings.json");
+
+    if (hasAgentIgnore || hasClaudeIgnore || hasCopilotIgnore || hasGitHubCopilotConfig || hasClaudeMd) {
+      score += 5;
+    } else {
+      findings.push({
+        code: "ARI-SEC-006",
+        severity: "low",
+        pillar: PILLAR,
+        message: "No agent scope control found (.agentignore, .claudeignore, .copilotignore, or CLAUDE.md)",
+        remediation: {
+          action: "create-file",
+          path: ".agentignore",
+          description: "Add an .agentignore or similar file to restrict which files AI agents can access or modify",
+          confidence: "medium",
+        },
+      });
+    }
+
     score = Math.min(100, Math.max(0, score));
 
     return {

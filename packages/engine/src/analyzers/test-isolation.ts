@@ -23,6 +23,24 @@ const ANTI_PATTERNS = [
   { pattern: /process\.env\[|os\.environ|os\.Getenv/, code: "ARI-TST-005", message: "Direct environment variable access in test", severity: "medium" as const },
 ];
 
+/** Patterns that detect filesystem dependencies in tests */
+const FS_DEPENDENCY_PATTERNS = [
+  /\bfs\.(readFileSync|writeFileSync|readFile|writeFile|mkdirSync|mkdir|readdirSync|readdir|existsSync|exists|unlinkSync|unlink)\b/,
+  /\bopen\s*\(.*['"rwa]/,
+  /\bos\.(path\.|remove|makedirs|listdir)\b/,
+  /\bioutil\.(ReadFile|WriteFile|TempDir)\b/,
+  /\bFile\.(open|read|write|delete)\b/i,
+];
+
+/** Patterns that detect order-sensitive assertions on unordered collections */
+const ORDER_SENSITIVE_PATTERNS = [
+  /\b(toEqual|toBe|to_equal|assert_eq|assertEqual)\b.*\b(Object\.keys|Object\.values|Object\.entries)\b/,
+  /\b(Object\.keys|Object\.values|Object\.entries)\b.*\b(toEqual|toBe|to_equal|assert_eq|assertEqual)\b/,
+  /\b(toEqual|toBe|to_equal|assert_eq|assertEqual)\b.*\b(new Set|new Map|Set\(|Map\()\b/,
+  /\b(new Set|new Map|Set\(|Map\()\b.*\b(toEqual|toBe|to_equal|assert_eq|assertEqual)\b/,
+  /\.keys\(\)\s*\)\s*\.\s*(toEqual|toBe)/,
+];
+
 export const testIsolationAnalyzer: PillarAnalyzer = {
   pillar: PILLAR,
   name: PILLAR_NAMES[PILLAR],
@@ -131,13 +149,93 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       }
     }
 
-    // Anti-pattern scoring
-    if (antiPatternCount === 0) {
+    // Filesystem dependency detection in tests
+    let fsDependencyCount = 0;
+    for (const testFile of sampled) {
+      const content = await context.readFile(testFile);
+      if (!content) continue;
+
+      for (const fsPattern of FS_DEPENDENCY_PATTERNS) {
+        if (fsPattern.test(content)) {
+          fsDependencyCount++;
+          findings.push({
+            code: "ARI-TST-008",
+            severity: "medium",
+            pillar: PILLAR,
+            file: testFile,
+            message: "Test file accesses the real filesystem — should use mocks or in-memory FS",
+            remediation: {
+              action: "refactor",
+              description: "Replace real filesystem calls with mock/stub/in-memory implementations",
+              confidence: "medium",
+            },
+          });
+          break; // one finding per file
+        }
+      }
+    }
+
+    // Order-sensitive assertion detection
+    let orderSensitiveCount = 0;
+    for (const testFile of sampled) {
+      const content = await context.readFile(testFile);
+      if (!content) continue;
+
+      const lines = content.split("\n");
+      for (const line of lines) {
+        for (const osPattern of ORDER_SENSITIVE_PATTERNS) {
+          if (osPattern.test(line)) {
+            orderSensitiveCount++;
+            findings.push({
+              code: "ARI-TST-009",
+              severity: "medium",
+              pillar: PILLAR,
+              file: testFile,
+              message: "Assertion on unordered collection without sorting — may cause flaky tests",
+              remediation: {
+                action: "refactor",
+                description: "Sort the collection before asserting, or use an unordered matcher (e.g. toContain, arrayContaining)",
+                confidence: "medium",
+              },
+              evidence: {
+                paper: "Berndt et al., 2026",
+                finding: "63% of LLM-generated flaky tests from unordered collection assumptions",
+                confidence: "high",
+              },
+            });
+            break; // one finding per file for this pattern
+          }
+        }
+        if (orderSensitiveCount > 0) break; // limit to one per file
+      }
+    }
+
+    // Anti-pattern scoring (includes fs deps and order-sensitive assertions)
+    const totalAntiPatterns = antiPatternCount + fsDependencyCount + orderSensitiveCount;
+    if (totalAntiPatterns === 0) {
       score += 30;
-    } else if (antiPatternCount <= 3) {
+    } else if (totalAntiPatterns <= 3) {
       score += 20;
-    } else if (antiPatternCount <= 10) {
+    } else if (totalAntiPatterns <= 10) {
       score += 10;
+    }
+
+    // Test file count ratio check
+    if (sourceFiles.length > 0) {
+      const testFileRatio = testFiles.length / sourceFiles.length;
+      if (testFileRatio < 0.1) {
+        findings.push({
+          code: "ARI-TST-010",
+          severity: "high",
+          pillar: PILLAR,
+          message: `Very low test file count ratio: ${testFileRatio.toFixed(2)} (${testFiles.length} test files / ${sourceFiles.length} source files). Target at least 0.5.`,
+          remediation: {
+            action: "create-file",
+            description: "Add test files for untested source modules. Aim for at least 1 test file per 2 source files.",
+            confidence: "high",
+          },
+        });
+      }
     }
 
     // Check for DI/provider patterns (match filename only, exclude .devcontainer paths)
@@ -177,7 +275,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       weight: PILLAR_WEIGHTS[PILLAR],
       confidence: sampled.length >= 10 ? "high" : "medium",
       findings,
-      summary: `${testFiles.length} test files found, ratio ${ratio.toFixed(2)}, ${antiPatternCount} anti-patterns detected`,
+      summary: `${testFiles.length} test files found, ratio ${ratio.toFixed(2)}, ${totalAntiPatterns} anti-patterns detected`,
     };
   },
 };

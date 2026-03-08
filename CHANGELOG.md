@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.1.0] — 2026-03-08
+
+### Added
+- **Language/Framework/Monorepo detection** (P1.02): 9 languages, 14 frameworks, 6 monorepo tools detected automatically before analysis. Results included in ScanResult.
+- **Markdown report output** (P1.15): `--format markdown` generates shareable reports with badge header, pillar table, severity-sorted findings, and remediations.
+- **Config file loading** (P1.01): `.ariscan.yml` config with directory walk-up discovery, `--config` flag, CLI > config > defaults precedence. FileConfig Zod schema.
+- **Analyzer enhancements** across 6 pillars:
+  - Test Isolation: filesystem dependency detection (ARI-TST-008), order-sensitive assertion detection (ARI-TST-009), test file ratio check (ARI-TST-010)
+  - Feedback Loop: execution time categories (ARI-FBK-005), changeset scope controls (ARI-FBK-006)
+  - Dev Environment: doctor/health-check command detection (ARI-ENV-004), seed/fixture data detection
+  - Security Governance: AI-specific review checklist detection (ARI-SEC-005), agent scope controls (ARI-SEC-006)
+  - Build Determinism: TypeScript projectReferences check, Go `interface{}` abuse (ARI-BLD-004), Rust `unwrap()` abuse (ARI-BLD-005)
+  - Navigability: import count analysis (ARI-NAV-004), circular dependency detection (ARI-NAV-005)
+- **28 new detection tests** (languages, frameworks, monorepo)
+- **New analyzer tests**: navigability (9), dev-environment (13), plus 28 new tests across existing analyzer test files
+- **CLI help examples**: 3 usage examples in `--help` output
+
+### Changed
+- Test suite expanded from 141 to 242 tests across 16 test files
+- Self-scan score improved from 64 (L3) to 66 (L4 Productive)
+
+### Fixed
+- CLAUDE.md: corrected `pillars.ts` → `pillar.ts` filename reference
+- CONTRIBUTING.md: corrected clone URL and `pillars.ts` → `pillar.ts` filename reference
+
 ## [2.0.0] — 2026-03-08
 
 ### Added

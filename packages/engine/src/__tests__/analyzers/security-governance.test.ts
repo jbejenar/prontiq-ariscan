@@ -235,6 +235,74 @@ describe("securityGovernanceAnalyzer (P8)", () => {
     });
   });
 
+  describe("AI-specific review checklist in PR templates", () => {
+    it("adds points when PR template mentions AI review", async () => {
+      const with_ = createMockContext({
+        ".github/PULL_REQUEST_TEMPLATE.md": "## Description\n## AI Review\n- [ ] Was this code AI-generated?\n- [ ] Have AI changes been reviewed for security?",
+      });
+      const without_ = createMockContext({
+        ".github/PULL_REQUEST_TEMPLATE.md": "## Description\n## Checklist\n- [ ] Tests pass",
+      });
+      const r1 = await securityGovernanceAnalyzer.analyze(with_);
+      const r2 = await securityGovernanceAnalyzer.analyze(without_);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+
+    it("detects LLM/agent/copilot keywords in PR template", async () => {
+      const ctx = createMockContext({
+        ".github/PULL_REQUEST_TEMPLATE.md": "## Checklist\n- [ ] If LLM-generated, verify no hardcoded credentials",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-005")).toBe(false);
+    });
+
+    it("emits ARI-SEC-005 when PR template has no AI mentions", async () => {
+      const ctx = createMockContext({
+        ".github/PULL_REQUEST_TEMPLATE.md": "## Description\n## Testing",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-005")).toBe(true);
+    });
+
+    it("emits ARI-SEC-005 when no PR template exists", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-005")).toBe(true);
+    });
+  });
+
+  describe("agent scope control detection", () => {
+    it("adds points for .agentignore", async () => {
+      const with_ = createMockContext({ ".agentignore": "secrets/\n.env" });
+      const without_ = createMockContext({});
+      const r1 = await securityGovernanceAnalyzer.analyze(with_);
+      const r2 = await securityGovernanceAnalyzer.analyze(without_);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+
+    it("adds points for CLAUDE.md", async () => {
+      const with_ = createMockContext({ "CLAUDE.md": "# Agent instructions" });
+      const without_ = createMockContext({});
+      const r1 = await securityGovernanceAnalyzer.analyze(with_);
+      const r2 = await securityGovernanceAnalyzer.analyze(without_);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+
+    it("adds points for .copilotignore", async () => {
+      const with_ = createMockContext({ ".copilotignore": "secrets/" });
+      const without_ = createMockContext({});
+      const r1 = await securityGovernanceAnalyzer.analyze(with_);
+      const r2 = await securityGovernanceAnalyzer.analyze(without_);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+
+    it("emits ARI-SEC-006 when no agent scope control exists", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-006")).toBe(true);
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

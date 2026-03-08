@@ -141,6 +141,114 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       }
     }
 
+    // Import analysis — count imports per file, flag files with >20 imports
+    const importableFiles = sourceFiles.filter(
+      (f) => /\.[jt]sx?$|\.py$/.test(f),
+    );
+    const sampledForImports = importableFiles.slice(0, 30);
+    let heavyImportCount = 0;
+
+    for (const file of sampledForImports) {
+      const content = await context.readFile(file);
+      if (!content) continue;
+
+      const importLines = content.split("\n").filter(
+        (line) => /^\s*(import\s|from\s|require\s*\()/.test(line),
+      );
+
+      if (importLines.length > 20) {
+        heavyImportCount++;
+        if (heavyImportCount <= 3) {
+          findings.push({
+            code: "ARI-NAV-004",
+            severity: "medium",
+            pillar: PILLAR,
+            file,
+            message: `File has ${importLines.length} imports — high coupling, consider splitting`,
+            remediation: {
+              action: "refactor",
+              description: "Reduce imports by splitting the file into smaller focused modules or using barrel imports",
+              confidence: "medium",
+            },
+          });
+        }
+      }
+    }
+
+    if (heavyImportCount === 0 && sampledForImports.length > 0) {
+      score += 5;
+    } else if (heavyImportCount > 3) {
+      score -= 10;
+    } else if (heavyImportCount > 0) {
+      score -= 5;
+    }
+
+    // Basic circular dependency heuristic (files that import each other)
+    const importMap = new Map<string, Set<string>>();
+    const tsJsFiles = sourceFiles.filter((f) => /\.[jt]sx?$/.test(f));
+    const sampledForCircular = tsJsFiles.slice(0, 30);
+
+    for (const file of sampledForCircular) {
+      const content = await context.readFile(file);
+      if (!content) continue;
+
+      const imports = new Set<string>();
+      const importRegex = /(?:import\s.*?from\s+['"](.+?)['"]|require\s*\(\s*['"](.+?)['"]\s*\))/g;
+      let match: RegExpExecArray | null;
+      while ((match = importRegex.exec(content)) !== null) {
+        const importPath = match[1] ?? match[2];
+        if (importPath && importPath.startsWith(".")) {
+          // Resolve relative import to approximate file path
+          const fileDir = file.split("/").slice(0, -1).join("/");
+          const segments = importPath.replace(/\.[jt]sx?$/, "").split("/");
+          const resolved: string[] = fileDir ? fileDir.split("/") : [];
+          for (const seg of segments) {
+            if (seg === "..") {
+              resolved.pop();
+            } else if (seg !== ".") {
+              resolved.push(seg);
+            }
+          }
+          imports.add(resolved.join("/"));
+        }
+      }
+      importMap.set(file, imports);
+    }
+
+    // Detect mutual imports
+    let circularCount = 0;
+    for (const [fileA, importsA] of importMap) {
+      const fileABase = fileA.replace(/\.[jt]sx?$/, "");
+      for (const [fileB, importsB] of importMap) {
+        if (fileA >= fileB) continue; // avoid double-counting
+        const fileBBase = fileB.replace(/\.[jt]sx?$/, "");
+        const aImportsB = [...importsA].some((imp) => imp === fileBBase || imp === fileB);
+        const bImportsA = [...importsB].some((imp) => imp === fileABase || imp === fileA);
+        if (aImportsB && bImportsA) {
+          circularCount++;
+          if (circularCount <= 2) {
+            findings.push({
+              code: "ARI-NAV-005",
+              severity: "high",
+              pillar: PILLAR,
+              message: `Potential circular dependency between "${fileA}" and "${fileB}"`,
+              remediation: {
+                action: "refactor",
+                description: "Break the circular dependency by extracting shared code into a separate module",
+                confidence: "low",
+              },
+            });
+          }
+        }
+      }
+    }
+
+    if (circularCount === 0 && sampledForCircular.length > 5) {
+      score += 5;
+    } else if (circularCount > 0) {
+      score -= Math.min(15, circularCount * 5);
+    }
+
     score = Math.min(100, Math.max(0, score));
 
     return {

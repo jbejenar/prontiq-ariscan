@@ -2,6 +2,7 @@ import type { ScanResult, ScanConfig } from "@prontiq/schema";
 import { ANALYZERS } from "./analyzers/registry.js";
 import { createRepoContext } from "./context/repo-context.js";
 import { aggregateResults } from "./scoring/composite.js";
+import { detect } from "./detection/index.js";
 
 const VERSION = "0.1.0";
 
@@ -16,6 +17,9 @@ export async function scan(
   const startTime = performance.now();
 
   const context = await createRepoContext(repoPath);
+
+  // Run detection BEFORE analyzers so results are available
+  const detection = await detect(context);
 
   // Filter analyzers by pillar config (only run enabled pillars)
   let activeAnalyzers = ANALYZERS;
@@ -45,9 +49,11 @@ export async function scan(
 
   const duration = Math.round(performance.now() - startTime);
 
-  return aggregateResults(pillarResults, {
+  const result = aggregateResults(pillarResults, {
     version: VERSION,
     repoPath,
     duration,
   });
+
+  return { ...result, detection };
 }

@@ -1,0 +1,218 @@
+import type { DetectedLanguage } from "@prontiq/schema";
+import type { RepoContext } from "../analyzers/analyzer.interface.js";
+
+interface LanguageSpec {
+  name: string;
+  extensions: string[];
+  /** Marker files that strongly indicate the language is in use */
+  markers: string[];
+  /** Bonus confidence when a marker is found (added to extension-based confidence) */
+  markerBoost: number;
+}
+
+const LANGUAGE_SPECS: LanguageSpec[] = [
+  {
+    name: "TypeScript",
+    extensions: [".ts", ".tsx", ".mts", ".cts"],
+    markers: ["tsconfig.json", "tsconfig.base.json"],
+    markerBoost: 0.2,
+  },
+  {
+    name: "JavaScript",
+    extensions: [".js", ".jsx", ".mjs", ".cjs"],
+    markers: ["jsconfig.json", ".babelrc", "babel.config.js", "babel.config.json"],
+    markerBoost: 0.1,
+  },
+  {
+    name: "Python",
+    extensions: [".py", ".pyi"],
+    markers: [
+      "pyproject.toml",
+      "setup.py",
+      "setup.cfg",
+      "Pipfile",
+      "requirements.txt",
+      "poetry.lock",
+    ],
+    markerBoost: 0.2,
+  },
+  {
+    name: "Go",
+    extensions: [".go"],
+    markers: ["go.mod", "go.sum"],
+    markerBoost: 0.2,
+  },
+  {
+    name: "Rust",
+    extensions: [".rs"],
+    markers: ["Cargo.toml", "Cargo.lock"],
+    markerBoost: 0.2,
+  },
+  {
+    name: "Java",
+    extensions: [".java"],
+    markers: ["pom.xml", "build.gradle", "build.gradle.kts", "gradlew"],
+    markerBoost: 0.2,
+  },
+  {
+    name: "C#",
+    extensions: [".cs"],
+    markers: ["*.csproj", "*.sln", "Directory.Build.props"],
+    markerBoost: 0.2,
+  },
+  {
+    name: "Ruby",
+    extensions: [".rb", ".rake"],
+    markers: ["Gemfile", "Gemfile.lock", "Rakefile"],
+    markerBoost: 0.2,
+  },
+  {
+    name: "PHP",
+    extensions: [".php"],
+    markers: ["composer.json", "composer.lock"],
+    markerBoost: 0.2,
+  },
+];
+
+/** Non-source extensions to ignore when computing file ratios */
+const IGNORED_EXTENSIONS = new Set([
+  ".md",
+  ".txt",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".xml",
+  ".csv",
+  ".lock",
+  ".gitignore",
+  ".env",
+  ".svg",
+  ".png",
+  ".jpg",
+  ".gif",
+  ".ico",
+  ".woff",
+  ".woff2",
+  ".eot",
+  ".ttf",
+  ".map",
+  ".min.js",
+  ".min.css",
+  ".css",
+  ".scss",
+  ".less",
+  ".html",
+  ".hbs",
+  ".ejs",
+  ".liquid",
+]);
+
+function getExtension(filePath: string): string {
+  const lastDot = filePath.lastIndexOf(".");
+  if (lastDot === -1) return "";
+  return filePath.slice(lastDot).toLowerCase();
+}
+
+/**
+ * Detect programming languages in the repository.
+ *
+ * Confidence is based on the proportion of source files using the language
+ * plus a boost if marker files are present.
+ */
+export async function detectLanguages(
+  context: RepoContext,
+): Promise<DetectedLanguage[]> {
+  const { files } = context;
+
+  // Count files per language
+  const counts = new Map<string, number>();
+  let totalSourceFiles = 0;
+
+  for (const file of files) {
+    const ext = getExtension(file);
+    if (!ext || IGNORED_EXTENSIONS.has(ext)) continue;
+
+    for (const spec of LANGUAGE_SPECS) {
+      if (spec.extensions.includes(ext)) {
+        counts.set(spec.name, (counts.get(spec.name) ?? 0) + 1);
+        totalSourceFiles++;
+        break; // Each file counts once
+      }
+    }
+  }
+
+  // Check markers and compute confidence
+  const results: DetectedLanguage[] = [];
+  let maxCount = 0;
+
+  for (const spec of LANGUAGE_SPECS) {
+    const count = counts.get(spec.name) ?? 0;
+    if (count === 0) {
+      // Still check markers — a repo might have config but no source yet
+      let hasMarker = false;
+      for (const marker of spec.markers) {
+        if (!marker.includes("*")) {
+          if (await context.fileExists(marker)) {
+            hasMarker = true;
+            break;
+          }
+        } else {
+          // Glob-style markers: check if any file matches the pattern
+          const pattern = marker.replace("*", "");
+          if (files.some((f) => f.endsWith(pattern))) {
+            hasMarker = true;
+            break;
+          }
+        }
+      }
+      if (hasMarker) {
+        results.push({
+          language: spec.name,
+          confidence: Math.min(1, spec.markerBoost),
+          primary: false,
+        });
+      }
+      continue;
+    }
+
+    if (count > maxCount) maxCount = count;
+
+    // Base confidence from file ratio (capped at 0.8 from files alone)
+    let confidence = Math.min(0.8, count / totalSourceFiles);
+
+    // Marker boost
+    for (const marker of spec.markers) {
+      if (!marker.includes("*")) {
+        if (await context.fileExists(marker)) {
+          confidence = Math.min(1, confidence + spec.markerBoost);
+          break;
+        }
+      } else {
+        const pattern = marker.replace("*", "");
+        if (files.some((f) => f.endsWith(pattern))) {
+          confidence = Math.min(1, confidence + spec.markerBoost);
+          break;
+        }
+      }
+    }
+
+    // Round to 2 decimal places
+    confidence = Math.round(confidence * 100) / 100;
+
+    results.push({
+      language: spec.name,
+      confidence,
+      primary: false, // Will be set below
+    });
+  }
+
+  // Sort by confidence descending, then mark primary
+  results.sort((a, b) => b.confidence - a.confidence);
+  const first = results[0];
+  if (first) {
+    first.primary = true;
+  }
+
+  return results;
+}
