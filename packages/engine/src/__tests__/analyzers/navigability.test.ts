@@ -145,8 +145,9 @@ describe("navigabilityAnalyzer (P7)", () => {
 
   describe("summary includes top issues", () => {
     it("includes problem areas in summary when issues exist", async () => {
-      const imports = Array.from({ length: 25 }, (_, i) =>
-        `import { mod${i} } from './mod${i}';`,
+      const imports = Array.from(
+        { length: 25 },
+        (_, i) => `import { mod${i} } from './mod${i}';`,
       ).join("\n");
       const ctx = createMockContext({
         "src/heavy.ts": imports + "\nexport const x = 1;",

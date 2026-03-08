@@ -126,16 +126,18 @@ describe("PillarResult", () => {
   });
 
   it("rejects invalid status value", () => {
-    expect(() => PillarResult.parse({
-      pillar: "P1",
-      name: "Test",
-      score: 50,
-      weight: 0.15,
-      confidence: "high",
-      findings: [],
-      summary: "test",
-      status: "amazing",
-    })).toThrow();
+    expect(() =>
+      PillarResult.parse({
+        pillar: "P1",
+        name: "Test",
+        score: 50,
+        weight: 0.15,
+        confidence: "high",
+        findings: [],
+        summary: "test",
+        status: "amazing",
+      }),
+    ).toThrow();
   });
 });
 
@@ -180,10 +182,12 @@ describe("ContextFileInfo", () => {
   });
 
   it("rejects unknown context file type", () => {
-    expect(() => ContextFileInfo.parse({
-      path: "foo.txt",
-      type: "unknown-type",
-    })).toThrow();
+    expect(() =>
+      ContextFileInfo.parse({
+        path: "foo.txt",
+        type: "unknown-type",
+      }),
+    ).toThrow();
   });
 
   it("accepts the other type for unclassified files", () => {

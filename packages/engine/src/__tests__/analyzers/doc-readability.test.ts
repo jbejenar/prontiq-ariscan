@@ -73,7 +73,8 @@ describe("docReadabilityAnalyzer (P5)", () => {
       const files: Record<string, string> = {};
       for (let i = 0; i < 10; i++) {
         if (i < 4) {
-          files[`src/mod${i}.ts`] = `/** Does something */\nexport function fn${i}() { return ${i}; }`;
+          files[`src/mod${i}.ts`] =
+            `/** Does something */\nexport function fn${i}() { return ${i}; }`;
         } else {
           files[`src/mod${i}.ts`] = `export const x${i} = ${i};`;
         }
@@ -199,7 +200,8 @@ describe("docReadabilityAnalyzer (P5)", () => {
 
     it("detects Zod schema usage in source files", async () => {
       const withZod = createMockContext({
-        "src/schema.ts": "import { z } from 'zod';\nexport const schema = z.object({ name: z.string() });",
+        "src/schema.ts":
+          "import { z } from 'zod';\nexport const schema = z.object({ name: z.string() });",
       });
       const without = createMockContext({});
       const r1 = await docReadabilityAnalyzer.analyze(withZod);

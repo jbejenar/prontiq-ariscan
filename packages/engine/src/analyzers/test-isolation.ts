@@ -68,26 +68,74 @@ const ORDER_SENSITIVE_PATTERNS = [
 
 /** Mutable global environment patterns (ARI-TST-011) */
 const GLOBAL_MUTATION_PATTERNS = [
-  { pattern: /process\.env\.\w+\s*=/, category: "resource-leak" as const, description: "process.env property assignment" },
-  { pattern: /process\.env\s*=/, category: "resource-leak" as const, description: "process.env wholesale replacement" },
-  { pattern: /\bglobal\.\w+\s*=/, category: "resource-leak" as const, description: "global property mutation" },
-  { pattern: /\bglobalThis\.\w+\s*=/, category: "resource-leak" as const, description: "globalThis property mutation" },
-  { pattern: /\bwindow\.\w+\s*=/, category: "resource-leak" as const, description: "window property mutation" },
+  {
+    pattern: /process\.env\.\w+\s*=/,
+    category: "resource-leak" as const,
+    description: "process.env property assignment",
+  },
+  {
+    pattern: /process\.env\s*=/,
+    category: "resource-leak" as const,
+    description: "process.env wholesale replacement",
+  },
+  {
+    pattern: /\bglobal\.\w+\s*=/,
+    category: "resource-leak" as const,
+    description: "global property mutation",
+  },
+  {
+    pattern: /\bglobalThis\.\w+\s*=/,
+    category: "resource-leak" as const,
+    description: "globalThis property mutation",
+  },
+  {
+    pattern: /\bwindow\.\w+\s*=/,
+    category: "resource-leak" as const,
+    description: "window property mutation",
+  },
 ];
 
 /** Test order dependency patterns (ARI-TST-012) */
 const ORDER_DEPENDENCY_PATTERNS = [
-  { pattern: /\b(beforeAll|before)\s*\(/, category: "test-order-dependency" as const, description: "beforeAll/before block" },
-  { pattern: /\b(afterAll|after)\s*\(/, category: "test-order-dependency" as const, description: "afterAll/after block" },
-  { pattern: /\bdescribe\.only\s*\(/, category: "test-order-dependency" as const, description: "describe.only usage" },
-  { pattern: /\bit\.only\s*\(|\btest\.only\s*\(/, category: "test-order-dependency" as const, description: "it.only/test.only usage" },
+  {
+    pattern: /\b(beforeAll|before)\s*\(/,
+    category: "test-order-dependency" as const,
+    description: "beforeAll/before block",
+  },
+  {
+    pattern: /\b(afterAll|after)\s*\(/,
+    category: "test-order-dependency" as const,
+    description: "afterAll/after block",
+  },
+  {
+    pattern: /\bdescribe\.only\s*\(/,
+    category: "test-order-dependency" as const,
+    description: "describe.only usage",
+  },
+  {
+    pattern: /\bit\.only\s*\(|\btest\.only\s*\(/,
+    category: "test-order-dependency" as const,
+    description: "it.only/test.only usage",
+  },
 ];
 
 /** Concurrency / race condition patterns (ARI-TST-013) */
 const CONCURRENCY_PATTERNS = [
-  { pattern: /\bsetTimeout\s*\(/, category: "async-wait" as const, description: "setTimeout in test" },
-  { pattern: /\b(sleep|delay|waitFor)\s*\(\s*\d+/, category: "async-wait" as const, description: "sleep/delay/waitFor with literal time" },
-  { pattern: /new Promise\s*\([^)]*setTimeout/, category: "async-wait" as const, description: "new Promise wrapping setTimeout" },
+  {
+    pattern: /\bsetTimeout\s*\(/,
+    category: "async-wait" as const,
+    description: "setTimeout in test",
+  },
+  {
+    pattern: /\b(sleep|delay|waitFor)\s*\(\s*\d+/,
+    category: "async-wait" as const,
+    description: "sleep/delay/waitFor with literal time",
+  },
+  {
+    pattern: /new Promise\s*\([^)]*setTimeout/,
+    category: "async-wait" as const,
+    description: "new Promise wrapping setTimeout",
+  },
 ];
 
 /** Hardcoded credential patterns (critical severity) */
@@ -96,7 +144,11 @@ const CREDENTIAL_PATTERNS = [
 ];
 
 /** Map a category string to its paper reference */
-function paperForCategory(category: string): { paper: string; finding: string; confidence: "high" | "medium" | "low" } {
+function paperForCategory(category: string): {
+  paper: string;
+  finding: string;
+  confidence: "high" | "medium" | "low";
+} {
   switch (category) {
     case "unordered-collection":
       return {
@@ -200,7 +252,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
     // Scan test files for anti-patterns (sample up to 20 files)
     const sampled = testFiles.slice(0, 20);
     // Skip our own test file to avoid false positives from fixture strings
-    const filtered = sampled.filter(f => !f.includes("test-isolation.test"));
+    const filtered = sampled.filter((f) => !f.includes("test-isolation.test"));
     let antiPatternCount = 0;
 
     for (const testFile of filtered) {
@@ -338,7 +390,8 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               message: `Mutable global environment detected: ${gm.description}`,
               remediation: {
                 action: "refactor",
-                description: "Avoid mutating global state in tests. Use dependency injection or per-test setup/teardown to isolate environment.",
+                description:
+                  "Avoid mutating global state in tests. Use dependency injection or per-test setup/teardown to isolate environment.",
                 confidence: "high",
               },
               evidence: paperForCategory(gm.category),
@@ -356,12 +409,16 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
 
       let fileHasOrderDep = false;
       // Check if file has variable assignments outside of test blocks (shared state indicator)
-      const hasSharedStateAssignment = /^\s*(let|var)\s+\w+/.test(content) && /\w+\s*=\s*/.test(content);
+      const hasSharedStateAssignment =
+        /^\s*(let|var)\s+\w+/.test(content) && /\w+\s*=\s*/.test(content);
 
       for (const od of ORDER_DEPENDENCY_PATTERNS) {
         if (od.pattern.test(content)) {
           // For beforeAll/afterAll, only flag if file has shared state patterns
-          if (od.description === "beforeAll/before block" || od.description === "afterAll/after block") {
+          if (
+            od.description === "beforeAll/before block" ||
+            od.description === "afterAll/after block"
+          ) {
             if (hasSharedStateAssignment) {
               if (!fileHasOrderDep) {
                 orderDependencyCount++;
@@ -374,7 +431,8 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
                   message: `Test order dependency: ${od.description} modifies shared state`,
                   remediation: {
                     action: "refactor",
-                    description: "Move shared state setup into beforeEach/afterEach for proper test isolation",
+                    description:
+                      "Move shared state setup into beforeEach/afterEach for proper test isolation",
                     confidence: "medium",
                   },
                   evidence: paperForCategory(od.category),
@@ -394,7 +452,8 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
                 message: `Test order dependency: ${od.description}`,
                 remediation: {
                   action: "refactor",
-                  description: "Remove .only modifiers before committing — they skip other tests and mask failures",
+                  description:
+                    "Remove .only modifiers before committing — they skip other tests and mask failures",
                   confidence: "high",
                 },
                 evidence: paperForCategory(od.category),
@@ -425,7 +484,8 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               message: `Concurrency/race condition pattern: ${cp.description}`,
               remediation: {
                 action: "refactor",
-                description: "Replace timing-based waits with event-driven assertions (e.g., waitFor with condition, flush timers with fake timers)",
+                description:
+                  "Replace timing-based waits with event-driven assertions (e.g., waitFor with condition, flush timers with fake timers)",
                 confidence: "medium",
               },
               evidence: paperForCategory(cp.category),
@@ -450,7 +510,8 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             message: "Hardcoded credential detected in test file",
             remediation: {
               action: "refactor",
-              description: "Replace hardcoded credentials with environment variables or test-specific secrets management",
+              description:
+                "Replace hardcoded credentials with environment variables or test-specific secrets management",
               confidence: "high",
             },
             evidence: paperForCategory("resource-leak"),

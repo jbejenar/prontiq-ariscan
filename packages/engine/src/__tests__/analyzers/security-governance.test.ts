@@ -196,7 +196,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
   describe("branch protection / PR requirements", () => {
     it("gives points when pull_request + enforcement pattern exist", async () => {
       const withEnforcement = createMockContext({
-        ".github/workflows/ci.yml": "name: CI\non:\n  pull_request:\n    branches: [main]\njobs:\n  check:\n    steps:\n      - name: required status check",
+        ".github/workflows/ci.yml":
+          "name: CI\non:\n  pull_request:\n    branches: [main]\njobs:\n  check:\n    steps:\n      - name: required status check",
       });
       const without = createMockContext({
         ".github/workflows/ci.yml": "name: CI\non:\n  push:\n    branches: [main]",
@@ -209,7 +210,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
 
     it("does not give points for bare pull_request trigger without enforcement patterns", async () => {
       const barepr = createMockContext({
-        ".github/workflows/ci.yml": "name: CI\non:\n  pull_request:\n    branches: [main]\njobs:\n  build:\n    steps:\n      - run: echo hello",
+        ".github/workflows/ci.yml":
+          "name: CI\non:\n  pull_request:\n    branches: [main]\njobs:\n  build:\n    steps:\n      - run: echo hello",
       });
       const noPr = createMockContext({
         ".github/workflows/ci.yml": "name: CI\non:\n  push:\n    branches: [main]",
@@ -332,7 +334,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
 
     it("does not emit ARI-SEC-007 when license-checker found in CI", async () => {
       const ctx = createMockContext({
-        ".github/workflows/ci.yml": "name: CI\njobs:\n  license:\n    steps:\n      - run: npx license-checker",
+        ".github/workflows/ci.yml":
+          "name: CI\njobs:\n  license:\n    steps:\n      - run: npx license-checker",
       });
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-SEC-007")).toBe(false);
@@ -340,7 +343,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
 
     it("does not emit ARI-SEC-007 when fossa found in CI", async () => {
       const ctx = createMockContext({
-        ".github/workflows/ci.yml": "name: CI\njobs:\n  license:\n    steps:\n      - uses: fossa-contrib/fossa-action@v1",
+        ".github/workflows/ci.yml":
+          "name: CI\njobs:\n  license:\n    steps:\n      - uses: fossa-contrib/fossa-action@v1",
       });
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-SEC-007")).toBe(false);

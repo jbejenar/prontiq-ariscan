@@ -191,8 +191,8 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
       const pkgCheck = await context.readJson<Record<string, unknown>>("package.json");
       if (pkgCheck) {
         const scripts = (pkgCheck["scripts"] ?? {}) as Record<string, string>;
-        hasLicenseCompliance = Object.values(scripts).some(
-          (cmd) => /license-checker|fossa|license-finder|licensee/i.test(cmd),
+        hasLicenseCompliance = Object.values(scripts).some((cmd) =>
+          /license-checker|fossa|license-finder|licensee/i.test(cmd),
         );
       }
     }
@@ -206,7 +206,8 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         message: "No license compliance tooling found in CI workflows",
         remediation: {
           action: "configure-tool",
-          description: "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks",
+          description:
+            "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks",
           confidence: "medium",
         },
       });

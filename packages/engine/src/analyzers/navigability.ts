@@ -288,7 +288,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     }
 
     const deadCodeCandidates: string[] = [];
-    const entryPatterns = /index\.[jt]sx?$|main\.[jt]sx?$|app\.[jt]sx?$|mod\.rs$|__init__\.py$|server\.[jt]sx?$/;
+    const entryPatterns =
+      /index\.[jt]sx?$|main\.[jt]sx?$|app\.[jt]sx?$|mod\.rs$|__init__\.py$|server\.[jt]sx?$/;
     const sampledForDead = tsJsFiles.slice(0, 30);
     for (const file of sampledForDead) {
       const fileName = file.split("/").pop() ?? "";
@@ -315,7 +316,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         message: `Found ${deadCodeCandidates.length} source file(s) that appear unused (never imported): ${deadCodeCandidates.slice(0, 3).join(", ")}${deadCodeCandidates.length > 3 ? ` and ${deadCodeCandidates.length - 3} more` : ""}`,
         remediation: {
           action: "refactor",
-          description: "Review potentially dead code files and remove them or ensure they are properly imported",
+          description:
+            "Review potentially dead code files and remove them or ensure they are properly imported",
           confidence: "low",
         },
       });
@@ -336,7 +338,10 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       let currentNesting = 0;
       for (const line of lines) {
         const trimmed = line.trim();
-        if (/^(if|else if|else|switch|for|while|try|catch)\b/.test(trimmed) || /\{\s*$/.test(trimmed)) {
+        if (
+          /^(if|else if|else|switch|for|while|try|catch)\b/.test(trimmed) ||
+          /\{\s*$/.test(trimmed)
+        ) {
           currentNesting++;
           if (currentNesting > maxNestingDepth) {
             maxNestingDepth = currentNesting;
@@ -355,7 +360,11 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         const line = lines[i];
         if (line === undefined) continue;
         const trimmed = line.trim();
-        if (/^(export\s+)?(async\s+)?function\b|^(export\s+)?(const|let|var)\s+\w+\s*=\s*(async\s+)?\(/.test(trimmed)) {
+        if (
+          /^(export\s+)?(async\s+)?function\b|^(export\s+)?(const|let|var)\s+\w+\s*=\s*(async\s+)?\(/.test(
+            trimmed,
+          )
+        ) {
           inFunction = true;
           functionStartLine = i;
         }
@@ -406,9 +415,10 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       problemAreas.push(`${complexFiles.length} high-complexity file(s)`);
     }
 
-    const costlyPaths = problemAreas.length > 0
-      ? ` | Top issues: ${problemAreas.join(", ")}`
-      : " | No major navigation issues";
+    const costlyPaths =
+      problemAreas.length > 0
+        ? ` | Top issues: ${problemAreas.join(", ")}`
+        : " | No major navigation issues";
 
     score = Math.min(100, Math.max(0, score));
 
