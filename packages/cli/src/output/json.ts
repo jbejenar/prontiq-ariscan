@@ -151,6 +151,11 @@ export function formatJsonSchema(): string {
             },
             size: { type: "number" },
             lineCount: { type: "number" },
+            lastModified: { type: "string", format: "date-time" },
+            parseStatus: {
+              type: "string",
+              enum: ["valid", "warning", "error"],
+            },
           },
         },
       },

@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.3.0] — 2026-03-09
+
+### Added
+- **CLI:** `--jsonSchema` flag — outputs the JSON Schema for scan output and exits without scanning (P1.14)
+- **Schema:** `ParseStatus` enum (valid/warning/error), `lastModified` and `parseStatus` fields on `ContextFileInfo` (P1.03)
+- **Test Isolation (P3):** Code example fix hints and agent impact explanations on all 14 findings (ARI-TST-001 through ARI-TST-014)
+- **Dogfooding:** `.env.example` file for dev environment onboarding
+
+### Changed
+- Context file discovery now populates `lastModified` (from `fs.stat`) and `parseStatus` (content validation) for each discovered file
+- JSON Schema output (`formatJsonSchema()`) includes the new `lastModified` and `parseStatus` fields
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — up from 62 (L3 Capable)
+- **Tests:** 375 passing across 15 test files
+- **Roadmap progress:** 151/273 deliverables complete (55%)
+
 ## [2.2.0] — 2026-03-09
 
 ### Added

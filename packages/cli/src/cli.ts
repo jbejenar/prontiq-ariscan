@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { access } from "node:fs/promises";
 import { scan } from "@prontiq/engine";
 import { formatTerminal } from "./output/terminal.js";
-import { formatJson } from "./output/json.js";
+import { formatJson, formatJsonSchema } from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
 import { resolveConfig } from "./config-loader.js";
 import type { ScanResult } from "@prontiq/schema";
@@ -56,8 +56,18 @@ Examples:
       description: "Path to .ariscan.yml config file",
       required: false,
     },
+    jsonSchema: {
+      type: "boolean",
+      description: "Print the JSON Schema for scan output and exit",
+      default: false,
+    },
   },
   async run({ args }) {
+    if (args.jsonSchema) {
+      process.stdout.write(formatJsonSchema());
+      return;
+    }
+
     const repoPath = resolve(args.path);
 
     try {
