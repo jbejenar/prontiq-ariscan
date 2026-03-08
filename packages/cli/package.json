@@ -36,7 +36,7 @@
   "dependencies": {
     "@prontiq/engine": "workspace:*",
     "@prontiq/schema": "workspace:*",
-    "citty": "^0.1.6",
+    "citty": "^0.2.1",
     "consola": "^3.4.0",
     "picocolors": "^1.1.0",
     "yaml": "^2.6.0"
