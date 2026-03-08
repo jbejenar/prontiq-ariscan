@@ -6,6 +6,7 @@ import type { ScanConfig, ScanResult } from "@prontiq/schema";
 import { formatTerminal } from "../output/terminal.js";
 import { formatJson, formatJsonSchema } from "../output/json.js";
 import { formatMarkdown } from "../output/markdown.js";
+import { formatSarif } from "../output/sarif.js";
 import { resolveConfig } from "../config-loader.js";
 
 export interface ScanOptions {
@@ -71,10 +72,14 @@ export async function runScan(options: ScanOptions): Promise<void> {
   // Output result
   if (format === "json") {
     process.stdout.write(formatJson(result));
+  } else if (format === "sarif") {
+    process.stdout.write(formatSarif(result));
   } else if (format === "markdown") {
     process.stdout.write(formatMarkdown(result));
   } else {
-    process.stdout.write(formatTerminal(result, { verbose: options.verbose }));
+    process.stdout.write(
+      formatTerminal(result, { verbose: options.verbose, quiet: options.quiet }),
+    );
   }
 
   // Exit code based on threshold
@@ -98,7 +103,7 @@ export const scanCommand = defineCommand({
     },
     format: {
       type: "string",
-      description: "Output format: terminal, json, markdown",
+      description: "Output format: terminal, json, sarif, markdown",
       default: "terminal",
     },
     json: {

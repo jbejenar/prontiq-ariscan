@@ -429,6 +429,86 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     });
   });
 
+  describe("Java nullability annotations (ARI-BLD-008)", () => {
+    it("emits ARI-BLD-008 when Java files lack nullability annotations", async () => {
+      const ctx = createMockContext({
+        "src/Main.java": "public class Main { public static void main(String[] args) {} }",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-008")).toBe(true);
+    });
+
+    it("does not emit ARI-BLD-008 when @NonNull annotations are present", async () => {
+      const ctx = createMockContext({
+        "src/Main.java":
+          'import javax.annotation.NonNull;\npublic class Main { public @NonNull String getName() { return ""; } }',
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-008")).toBe(false);
+    });
+
+    it("does not emit ARI-BLD-008 when NullAway is in build.gradle", async () => {
+      const ctx = createMockContext({
+        "src/Main.java": "public class Main {}",
+        "build.gradle":
+          'plugins { id "net.ltgt.errorprone" }\ndependencies { errorprone("com.uber.nullaway:nullaway:0.10.0") }',
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-008")).toBe(false);
+    });
+
+    it("scores +15 for Java projects with nullability annotations", async () => {
+      const ctx = createMockContext({
+        "src/Main.java":
+          "import org.jetbrains.annotations.Nullable;\npublic class Main { public @Nullable String getName() { return null; } }",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.score).toBeGreaterThanOrEqual(15);
+    });
+  });
+
+  describe("C# nullable reference types (ARI-BLD-009)", () => {
+    it("emits ARI-BLD-009 when C# projects lack nullable reference types", async () => {
+      const ctx = createMockContext({
+        "src/Program.cs": "class Program { static void Main() {} }",
+        "MyApp.csproj":
+          "<Project><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-009")).toBe(true);
+    });
+
+    it("does not emit ARI-BLD-009 when Nullable is enabled in .csproj", async () => {
+      const ctx = createMockContext({
+        "src/Program.cs": "class Program { static void Main() {} }",
+        "MyApp.csproj":
+          "<Project><PropertyGroup><TargetFramework>net8.0</TargetFramework><Nullable>enable</Nullable></PropertyGroup></Project>",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-009")).toBe(false);
+    });
+
+    it("does not emit ARI-BLD-009 when #nullable enable directive is in source", async () => {
+      const ctx = createMockContext({
+        "src/Program.cs": "#nullable enable\nclass Program { static void Main() {} }",
+        "MyApp.csproj":
+          "<Project><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-009")).toBe(false);
+    });
+
+    it("scores +20 for C# projects with nullable reference types", async () => {
+      const ctx = createMockContext({
+        "src/Program.cs": "class Program { static void Main() {} }",
+        "MyApp.csproj":
+          "<Project><PropertyGroup><Nullable>enable</Nullable></PropertyGroup></Project>",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.score).toBeGreaterThanOrEqual(20);
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

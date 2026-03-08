@@ -274,6 +274,113 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       }
     }
 
+    // Java nullability annotations check
+    const javaFiles = context.files.filter(
+      (f) => f.endsWith(".java") && !f.includes("build/") && !f.includes("target/"),
+    );
+    if (javaFiles.length > 0) {
+      let hasNullabilityAnnotations = false;
+      const javaSampled = javaFiles.slice(0, 20);
+      for (const javaFile of javaSampled) {
+        const content = await context.readFile(javaFile);
+        if (!content) continue;
+        if (
+          /@(NonNull|Nullable|NotNull|Nonnull)\b/.test(content) ||
+          /import\s+.*\b(CheckForNull|ParametersAreNonnullByDefault)\b/.test(content)
+        ) {
+          hasNullabilityAnnotations = true;
+          break;
+        }
+      }
+
+      // Check for NullAway, Checker Framework, or ErrorProne in build config
+      let hasNullSafety = false;
+      const pomXml = await context.readFile("pom.xml");
+      const buildGradle =
+        (await context.readFile("build.gradle")) ?? (await context.readFile("build.gradle.kts"));
+      if (pomXml && /nullaway|checker-framework|error.prone/i.test(pomXml)) {
+        hasNullSafety = true;
+      }
+      if (buildGradle && /nullaway|checkerFramework|errorprone/i.test(buildGradle)) {
+        hasNullSafety = true;
+      }
+
+      if (hasNullabilityAnnotations || hasNullSafety) {
+        score += 15;
+      } else {
+        findings.push({
+          code: "ARI-BLD-008",
+          severity: "medium",
+          pillar: PILLAR,
+          message:
+            "Java project lacks nullability annotations — agents produce NullPointerException-prone code without null-safety constraints",
+          remediation: {
+            action: "add-dependency",
+            description:
+              "Add @NonNull/@Nullable annotations (JSR 305, JetBrains, or Jakarta) and consider NullAway or Checker Framework for compile-time enforcement",
+            confidence: "high",
+          },
+          evidence: {
+            paper: "GitHub Octoverse, 2025",
+            finding: "94% of LLM compilation errors are type-check failures",
+            confidence: "high",
+          },
+        });
+      }
+    }
+
+    // C# nullable reference types check
+    const csharpFiles = context.files.filter(
+      (f) => f.endsWith(".cs") && !f.includes("bin/") && !f.includes("obj/"),
+    );
+    if (csharpFiles.length > 0) {
+      let hasNullable = false;
+
+      // Check .csproj files for <Nullable>enable</Nullable>
+      const csprojFiles = context.files.filter((f) => f.endsWith(".csproj"));
+      for (const csproj of csprojFiles.slice(0, 5)) {
+        const content = await context.readFile(csproj);
+        if (content && /<Nullable>\s*enable\s*<\/Nullable>/i.test(content)) {
+          hasNullable = true;
+          break;
+        }
+      }
+
+      // Also check for #nullable enable directives in source files
+      if (!hasNullable) {
+        for (const csFile of csharpFiles.slice(0, 10)) {
+          const content = await context.readFile(csFile);
+          if (content && /#nullable\s+enable/.test(content)) {
+            hasNullable = true;
+            break;
+          }
+        }
+      }
+
+      if (hasNullable) {
+        score += 20;
+      } else {
+        findings.push({
+          code: "ARI-BLD-009",
+          severity: "medium",
+          pillar: PILLAR,
+          message:
+            "C# project has nullable reference types disabled — agents lack compile-time null safety guidance",
+          remediation: {
+            action: "modify-config",
+            description:
+              "Add <Nullable>enable</Nullable> to your .csproj PropertyGroup to enable nullable reference types",
+            confidence: "high",
+          },
+          evidence: {
+            paper: "TyFlow, Huang et al., 2025",
+            finding: "33.6% of failed LM-generated programs fail due to type errors",
+            confidence: "high",
+          },
+        });
+      }
+    }
+
     // Go interface{} / any abuse detection
     const goFiles = context.files.filter((f) => f.endsWith(".go") && !f.includes("vendor/"));
     if (goFiles.length > 0) {

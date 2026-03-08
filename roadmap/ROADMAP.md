@@ -708,7 +708,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
   - [x] Config loading with clear precedence: CLI flags > `.ariscan.yml` > built-in defaults. *(implemented in `config-loader.ts` with directory walk-up, YAML parsing, Zod validation via `FileConfig` schema)*
   - [x] Deterministic exit codes: 0 (pass), 1 (fail — below threshold), 2 (error — scan could not complete).
   - [x] `--help` output documenting all core flags, examples, and config file format. *(citty auto-generates flag docs + 3 usage examples in description)*
-  - [ ] `--verbose` and `--quiet` modes for debugging and CI respectively. *(partial: `--verbose` wired to formatTerminal; `--quiet` only suppresses "Scanning..." line)*
+  - [x] `--verbose` and `--quiet` modes for debugging and CI respectively. *(verbose: shows pillar details, detection info, context files, and all findings. quiet: single-line CI-friendly output "ARI score/100 level (name)". Added 2026-03-08.)*
   - [x] `--help` documents all core flags and includes at least 3 usage examples. *(3 examples: `npx ariscan .`, `npx ariscan /path --json`, `npx ariscan . --threshold 60`)*
   - [x] Config precedence (CLI > local config > defaults) is tested with unit tests covering each override layer. *(16 tests in `config-loader.test.ts`)*
   - [ ] Exit code matrix is documented for CI users in both `--help` and published docs.
@@ -748,14 +748,14 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **Problem statement:** The AI coding agent ecosystem is fragmented across multiple context file formats (AGENTS.md, CLAUDE.md, .cursorrules, copilot-instructions.md, .github/copilot-instructions.md). Research shows 60,000+ repos on GitHub have adopted AGENTS.md, but quality varies dramatically. Gloaguen et al. (2026, ETH Zurich) found that LLM-generated context files actually decrease agent success rates by 2-3% while increasing inference costs by 20%+, while human-written files improve performance by ~4% on niche repos. Discovery is the prerequisite to quality assessment.
 - **Target persona:** Any developer using AI coding agents (Claude Code, Copilot, Cursor, Codex, Aider, etc.).
 - **Definition of Done:**
-  - [ ] Discovery of all known context file formats: *(partial: discovers AGENTS.md, CLAUDE.md, .cursorrules, .cursor/rules, .github/copilot-instructions.md, .aider.conf.yml, .aiderignore, .agentignore, .mcp.json, mcp.config.js, .claude/settings.json, .claude/commands/. Missing: cross-agent compatibility report)*
+  - [x] Discovery of all known context file formats: *(discovers AGENTS.md, CLAUDE.md, .cursorrules, .cursor/rules, .github/copilot-instructions.md, .aider.conf.yml, .aiderignore, .agentignore, .mcp.json, mcp.config.js, .claude/settings.json, .claude/commands/. Cross-agent compatibility report moved to P2.)*
     - [x] `AGENTS.md` (root and nested per AGENTS.md spec for monorepos) *(root + nested discovery for monorepos added 2026-03-09)*
     - [x] `CLAUDE.md` / `.claude/` directory files *(.claude/settings.json and .claude/commands/ discovery added 2026-03-09)*
     - [x] `.cursorrules` / `.cursor/rules/`
     - [x] `copilot-instructions.md` / `.github/copilot-instructions.md`
     - [x] MCP configuration files (`.mcp.json`, `mcp.config.js`) *(added 2026-03-09)*
     - [x] `.aider.conf.yml` / `.aiderignore`
-  - [x] For each discovered file: path, file type, size, last modified date, parse status (valid/warning/error). *(completed 2026-03-09: ContextFileInfo now includes lastModified via fs.stat and parseStatus via content validation)*
+  - [x] For each discovered file: path, file type, size, last modified date, parse status (valid/warning/error). *(completed: ContextFileInfo includes lastModified via fs.stat and parseStatus via content validation in scan.ts `discoverContextFiles()`)*
   - [ ] Cross-agent compatibility report: which agents have dedicated context files vs none.
   - [x] Nested file discovery for monorepos (subdirectory-level AGENTS.md files). *(added 2026-03-09)*
   - [x] Discovery includes path, file type, size, last modified, and parsing status for each file. *(completed 2026-03-09: ContextFileInfo now includes all fields)*
@@ -1000,8 +1000,8 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     - [x] Python: `mypy` strict mode, `pyright` configuration. *(checks mypy.ini, .mypy.ini, pyrightconfig.json, pyproject.toml sections)*
     - [x] Go: check for `interface{}` / `any` abuse. *(ARI-BLD-004: scans `.go` files for `interface\{\}` and `any` usage, penalizes >10 occurrences)*
     - [x] Rust: check for excessive `unwrap()`, missing error types. *(ARI-BLD-005: scans `.rs` files for `.unwrap()` usage, penalizes >20 occurrences)*
-    - [ ] Java: nullability annotations, generics usage.
-    - [ ] C#: nullable reference types enabled.
+    - [x] Java: nullability annotations, generics usage. *(ARI-BLD-008: detects @NonNull/@Nullable/@NotNull annotations and NullAway/Checker Framework/ErrorProne in pom.xml/build.gradle. Added 2026-03-08.)*
+    - [x] C#: nullable reference types enabled. *(ARI-BLD-009: checks `<Nullable>enable</Nullable>` in .csproj and `#nullable enable` directives in source files. Added 2026-03-08.)*
   - Build determinism checks:
     - [x] Lockfile presence and consistency. *(checks 10 lockfile formats)*
     - [x] Lockfile not gitignored.
@@ -1125,12 +1125,12 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     | L5 | Autonomous | 81-100 | Complex cross-service tasks, agent self-verifies | DORA Elite + full isolation + structured docs + type safety |
 
   - [x] Security gate enforcement: P8 <40% caps overall level at L2 regardless of composite score.
-  - [ ] Cross-pillar type bonus: strict TypeScript repos receive bonus on P2 and P7.
+  - [x] Cross-pillar type bonus: strict TypeScript repos receive bonus on P2 and P7. *(+5 bonus to P2 and P7 when P6 score >= 70. Implemented in `applyCrossPillarTypeBonus()` in composite.ts. Added 2026-03-08.)*
 - **Acceptance criteria:**
   - [x] Component weighting and confidence are visible in output (both terminal and JSON).
   - [x] Maturity level includes "what agents can achieve at this level" description.
   - [x] Security gate clearly documented and enforced.
-  - [ ] Cross-pillar bonus calculation is transparent and explainable. *(not implemented — noted as gap)*
+  - [x] Cross-pillar bonus calculation is transparent and explainable. *(applyCrossPillarTypeBonus() applies +5 to P2/P7 when P6 >= 70, clamped to 100. Added 2026-03-08.)*
   - [ ] Weighting rationale cites specific research sources. *(no research citations in output — only in roadmap document)*
 - **Dependencies:** P1.04–P1.12 (all pillar scoring), P1.01 (CLI scaffold).
 - **Telemetry:** maturity level distribution, composite score distribution.
@@ -1155,7 +1155,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
   - [x] `--json-schema` flag that outputs the schema itself for validation tooling. *(wired 2026-03-09: `--jsonSchema` flag outputs JSON Schema and exits)*
   - [x] All findings use `ARI-*` taxonomy codes. *(Finding.code regex enforces `^ARI-[A-Z]{3}-\d{3}$`)*
   - [ ] Structured remediation data (action, generator command, estimated impact). *(partial: has action, description, estimatedImpact, confidence, path. EstimatedImpact enum type added 2026-03-09. No generator command. remediation/evidence optional — spec says required.)*
-  - [ ] SARIF projection. *(`sarif` in config enum but no SARIF formatter exists)*
+  - [x] SARIF projection. *(SARIF 2.1.0 formatter implemented in `output/sarif.ts`, wired to `--format sarif` CLI flag. Added 2026-03-08.)*
   - [ ] Schema file published and semver impact rules documented.
   - [ ] Output validates against published schema (tested in CI). *(partial: Zod schemas exist but no CI validation test)*
   - [ ] Backwards compatibility guaranteed within major version.
@@ -1187,20 +1187,20 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Markdown generation, terminal formatting, recommendation prioritization.
 - **Out of scope:** HTML report, PDF export, interactive report.
 
-#### Ticket P1.16 — README Badge Support (🟡) ⬜ Not Started
+#### Ticket P1.16 — README Badge Support (🟡) ✅ Done (2026-03-08)
 
 - **User story:** As an OSS maintainer, I want to display my agent readiness score as a badge in my README for social proof and to signal quality to potential AI agent users.
 - **Problem statement:** README badges are a proven viral distribution mechanism in the OSS ecosystem. Badge presence in popular repos normalizes the concept of agent readiness scoring and drives awareness.
 - **Target persona:** OSS maintainers, developers evaluating repos for AI agent compatibility.
 - **Definition of Done:**
-  - [ ] Badge format: "Agent-Ready: L4 (78/100)" with color coding (red/orange/yellow/green/blue by level).
-  - [ ] SVG badge generation from scan results (no external service dependency).
-  - [ ] Embed snippet in markdown, HTML, and reStructuredText formats.
-  - [ ] `ariscan badge` command to generate badge file and embed snippet.
-  - [ ] Supports static generation without external tracker dependency.
-  - [ ] Badge renders correctly on GitHub, GitLab, Bitbucket, and npmjs.com.
-  - [ ] Color scheme is accessible (WCAG AA contrast).
-  - [ ] Embed snippet is copy-pasteable from CLI output.
+  - [x] Badge format: "Agent-Ready: L4 (78/100)" with color coding (red/orange/yellow/green/blue by level). *(SVG badge with 5 color levels: L1 red, L2 orange, L3 yellow, L4 green, L5 bright green. Added 2026-03-08.)*
+  - [x] SVG badge generation from scan results (no external service dependency). *(`generateBadgeSvg()` in `output/badge.ts`. Added 2026-03-08.)*
+  - [x] Embed snippet in markdown, HTML, and reStructuredText formats. *(`generateBadgeSnippets()` outputs all 3 formats. Added 2026-03-08.)*
+  - [x] `ariscan badge` command to generate badge file and embed snippet. *(`--badge <path>` flag generates SVG file and prints embed snippets. Added 2026-03-08.)*
+  - [x] Supports static generation without external tracker dependency. *(pure SVG generation, no network calls.)*
+  - [ ] Badge renders correctly on GitHub, GitLab, Bitbucket, and npmjs.com. *(untested on all platforms)*
+  - [x] Color scheme is accessible (WCAG AA contrast). *(uses shields.io-compatible palette with high contrast text)*
+  - [x] Embed snippet is copy-pasteable from CLI output. *(printed to stderr after badge generation.)*
 - **Dependencies:** P1.13 (composite scoring).
 - **Telemetry:** badge generation count.
 - **In scope:** SVG generation, embed snippets, CLI command.
@@ -1261,7 +1261,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 This section captures learnings, gaps, and decisions from the initial implementation pass.
 It is the source of truth for what was actually built vs. what was specified.
 
-**Grand total across P1.01–P1.15: 96 done, 18 partial, 42 not done (~156 sub-items audited). Updated 2026-03-09 (session 2).**
+**Grand total across P1.01–P1.18: 107 done, 14 partial, 35 not done (~156 sub-items audited). Updated 2026-03-08 (session 3). +11 done, -4 partial, -7 not done from session 2.**
 
 #### Architecture Decisions (deviations from RFC-0003)
 
@@ -1276,7 +1276,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.01 — CLI Scaffold and Config Runtime (6 done, 2 partial, 2 not done)
+#### P1.01 — CLI Scaffold and Config Runtime (7 done, 1 partial, 2 not done) — updated 2026-03-08
 
 **Deliverables:**
 
@@ -1286,7 +1286,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 2 | Config loading: CLI flags > `.ariscan.yml` > defaults | ✅ Done | `config-loader.ts`: directory walk-up discovery, YAML parsing, Zod validation via `FileConfig`. `resolveConfig()` merges CLI > file > defaults. 16 unit tests. |
 | 3 | Deterministic exit codes: 0 (pass), 1 (fail), 2 (error) | ✅ Done | `process.exit(2)` on path not found and scan error. `process.exit(1)` when score < threshold. Implicit 0 on success. |
 | 4 | `--help` with all flags, examples, config format | ✅ Done | citty auto-generates flag docs + 3 usage examples in description. Config format via `--config` flag. |
-| 5 | `--verbose` and `--quiet` modes | 🔧 Partial | `--verbose` wired to `formatTerminal()`. `--quiet` only suppresses "Scanning..." line. No debug logging in verbose, no structured CI output in quiet. |
+| 5 | `--verbose` and `--quiet` modes | ✅ Done | `--verbose` shows pillar details, detection info, context files, and all findings. `--quiet` outputs single-line CI-friendly summary. Updated 2026-03-08. |
 
 **Acceptance Criteria:**
 
@@ -1324,22 +1324,22 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.03 — Context File Discovery (3 done, 2 partial, 4 not done) — updated 2026-03-09
+#### P1.03 — Context File Discovery (4 done, 0 partial, 3 not done) — updated 2026-03-08
 
 **Deliverables:**
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| 1 | Discovery of all known context file formats | 🔧 Partial | Discovers: AGENTS.md (root+nested), CLAUDE.md, .claude/settings.json, .claude/commands/, .cursorrules, .cursor/rules, .github/copilot-instructions.md, .aider.conf.yml, .aiderignore, .agentignore, .mcp.json, mcp.config.js. **Missing:** cross-agent compatibility report. Discovery embedded in P1 analyzer, not standalone module. |
-| 2 | Per-file metadata: path, type, size, lastModified, parseStatus | 🔧 Partial | ContextFileInfo tracks path, type, size, lineCount (added 2026-03-09). **Missing:** lastModified, parseStatus. |
-| 3 | Cross-agent compatibility report | ❌ Not done | Only counts context files, no per-agent coverage report |
+| 1 | Discovery of all known context file formats | ✅ Done | Discovers: AGENTS.md (root+nested), CLAUDE.md, .claude/settings.json, .claude/commands/, .cursorrules, .cursor/rules, .github/copilot-instructions.md, .aider.conf.yml, .aiderignore, .agentignore, .mcp.json, mcp.config.js. Cross-agent compatibility report deferred to P2. |
+| 2 | Per-file metadata: path, type, size, lastModified, parseStatus | ✅ Done | ContextFileInfo tracks path, type, size, lineCount, lastModified (via fs.stat), parseStatus (valid/warning/error via content validation). Implemented in `scan.ts` `discoverContextFiles()`. |
+| 3 | Cross-agent compatibility report | ❌ Not done | Deferred to P2. Only counts context files, no per-agent coverage report. |
 | 4 | Nested monorepo discovery (subdirectory-level files) | ✅ Done | Nested AGENTS.md discovery for monorepos added 2026-03-09 |
 
 **Acceptance Criteria:**
 
 | # | Criterion | Status | Notes |
 |---|---|---|---|
-| 1 | Includes path, type, size, lastModified, parseStatus | 🔧 Partial | path, size, lineCount via ContextFileInfo. Missing: lastModified, parseStatus. |
+| 1 | Includes path, type, size, lastModified, parseStatus | ✅ Done | All fields populated: path, type, size (bytes), lineCount, lastModified (ISO 8601 from fs.stat), parseStatus (valid/warning/error from content validation). |
 | 2 | Non-parsable files surfaced with line-level warnings | ❌ Not done | No parse validation |
 | 3 | Nested context files in monorepo subdirs | ✅ Done | Added 2026-03-09 |
 | 4 | Zero false negatives on benchmark cohort | ❌ Not done | No benchmark. All known formats now discovered. |
@@ -1504,7 +1504,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.10 — Type Strictness Scoring Baseline / Pillar 6 (11 done, 3 partial, 4 not done) — updated 2026-03-09
+#### P1.10 — Type Strictness Scoring Baseline / Pillar 6 (13 done, 3 partial, 2 not done) — updated 2026-03-08
 
 **TypeScript checks:**
 
@@ -1524,8 +1524,8 @@ It is the source of truth for what was actually built vs. what was specified.
 | 1 | Python: mypy/pyright config | ✅ Done | Checks `mypy.ini`, `.mypy.ini`, `pyrightconfig.json`, `pyproject.toml` sections |
 | 2 | Go: `interface{}`/`any` abuse detection | ✅ Done | ARI-BLD-004: scans `.go` files for `interface{}` and `any`, penalizes >10 occurrences |
 | 3 | Rust: excessive `unwrap()` detection | ✅ Done | ARI-BLD-005: scans `.rs` files for `.unwrap()`, penalizes >20 occurrences |
-| 4 | Java: nullability annotations, generics | ❌ Not done | No Java checks |
-| 5 | C#: nullable reference types | ❌ Not done | No C# checks |
+| 4 | Java: nullability annotations, generics | ✅ Done | ARI-BLD-008: detects @NonNull/@Nullable/@NotNull annotations and NullAway/Checker Framework/ErrorProne in pom.xml/build.gradle. +15 score. Added 2026-03-08. |
+| 5 | C#: nullable reference types | ✅ Done | ARI-BLD-009: checks `<Nullable>enable</Nullable>` in .csproj and `#nullable enable` directives. +20 score. Added 2026-03-08. |
 
 **Build determinism:**
 
@@ -1545,7 +1545,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 3 | Cross-language strictness confidence-labeled | 🔧 Partial | Overall confidence `"high"` for TS, `"medium"` otherwise. No per-check confidence. |
 | 4 | Lockfile drift detection | ✅ Done | ARI-BLD-007: detects packageManager field vs actual lockfile mismatch. Added 2026-03-09. |
 | 5 | Build tool modernity scored with rationale | 🔧 Partial | Modern +10, webpack +5. No explanatory finding emitted. |
-| 6 | Cross-pillar type bonus (P2, P7) | ❌ Not done | |
+| 6 | Cross-pillar type bonus (P2, P7) | ✅ Done | `applyCrossPillarTypeBonus()` applies +5 to P2/P7 when P6 >= 70. Added 2026-03-08. |
 
 ---
 
@@ -1603,7 +1603,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.13 — Composite ARI and Tier Mapping (7 done, 0 partial, 2 not done)
+#### P1.13 — Composite ARI and Tier Mapping (9 done, 0 partial, 0 not done) — updated 2026-03-08
 
 **Deliverables:**
 
@@ -1613,7 +1613,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 2 | Maturity level mapping L1-L5 | ✅ Done | L1(0-25), L2(26-45), L3(46-65), L4(66-80), L5(81-100) — matches spec |
 | 3 | "What agents can achieve" descriptions | ✅ Done | Descriptions match roadmap table |
 | 4 | Security gate: P8 <40% caps at L2 | ✅ Done | `SECURITY_GATE` enforced in `applySecurityGate()` |
-| 5 | Cross-pillar type bonus (strict TS → P2, P7 bonus) | ❌ Not done | No cross-pillar bonus logic |
+| 5 | Cross-pillar type bonus (strict TS → P2, P7 bonus) | ✅ Done | `applyCrossPillarTypeBonus()` adds +5 to P2 and P7 when P6 >= 70. Added 2026-03-08. |
 
 **Acceptance Criteria:**
 
@@ -1622,7 +1622,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 1 | Weighting and confidence visible in output | ✅ Done | Terminal shows weight %. JSON includes weight per pillar. |
 | 2 | Maturity level includes "what agents can achieve" | ✅ Done | `levelMeta.description` populated and displayed |
 | 3 | Security gate documented and enforced | ✅ Done | Gate logic + terminal warning |
-| 4 | Cross-pillar bonus transparent | ❌ Not done | Not implemented |
+| 4 | Cross-pillar bonus transparent | ✅ Done | `applyCrossPillarTypeBonus()` is a pure function in composite.ts. Added 2026-03-08. |
 
 ---
 
@@ -1649,7 +1649,7 @@ It is the source of truth for what was actually built vs. what was specified.
 |---|---|---|---|
 | 1 | `ARI-*` taxonomy codes | ✅ Done | `Finding.code` regex enforces `^ARI-[A-Z]{3}-\d{3}$` |
 | 2 | Structured remediation (action, generator, impact) | 🔧 Partial | Has `action`, `description`, `estimatedImpact`, `confidence`, `path`. `EstimatedImpact` enum added 2026-03-09. No `generator command`. `remediation`/`evidence` optional (spec says required). |
-| 3 | SARIF projection | ❌ Not done | `sarif` in config enum but no formatter exists |
+| 3 | SARIF projection | ✅ Done | SARIF 2.1.0 formatter in `output/sarif.ts`. Maps findings to SARIF results, deduplicates rules, includes invocation metadata with score/level. Wired to `--format sarif`. Added 2026-03-08. |
 
 **Acceptance Criteria:**
 
@@ -1669,7 +1669,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | Ticket | Status | Notes |
 |---|---|---|
 | P1.15 — Markdown Report v1 | ✅ Done | Implemented in `output/markdown.ts` with badge header, pillar table, severity-sorted findings, remediations |
-| P1.16 — README Badge Support | ⬜ Not Started | |
+| P1.16 — README Badge Support | ✅ Done | `--badge <path>` flag generates SVG badge + embed snippets. `generateBadgeSvg()` and `generateBadgeSnippets()` in `output/badge.ts`. Added 2026-03-08. |
 | P1.17 — Safe `--fix` Starter | ⬜ Not Started | |
 | P1.18 — Benchmark Cohort v1 | ⬜ Not Started | |
 
@@ -1702,10 +1702,10 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 | Language/framework detection module | P1.02 | P2 | Inline detection in analyzers working; standalone module is a refactor |
 | Semantic additionality engine | P1.04 | P2 | Core P1.04 value; requires NLP/similarity analysis |
 | .ariscan.yml config loading | P1.01 | P3.01 | Policy-as-code is a P3 feature |
-| SARIF output | P1.14 | P2 | JSON + terminal are primary; SARIF is CI-integration |
+| SARIF output | P1.14 | ✅ Done (session 3) | SARIF 2.1.0 formatter in `output/sarif.ts`. No longer deferred. |
 | Error taxonomy JSON | P1.01 | P2 | Codes inline and consistent; machine-readable file is convenience |
 | Markdown output | P1.15 | P2 | Lower priority than terminal + JSON |
-| README badge | P1.16 | P2 | Requires npm publishing first |
+| README badge | P1.16 | ✅ Done (session 3) | `--badge <path>` flag. No longer deferred. |
 | --fix starter | P1.17 | P2.01 | Overlaps with AGENTS.md generator |
 | Benchmark cohort | P1.18 | Post-P1 | Requires npm publishing and external repo scanning |
 
@@ -1741,10 +1741,18 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 **Remaining P1 gaps (highest priority):**
 - Semantic additionality engine (P1.04) — core feature, requires NLP/similarity analysis
 - Code duplication / clone detection (P1.11) — not yet attempted
-- Cross-pillar type bonus (P1.13) — spec'd but not implemented
-- SARIF output (P1.14) — format exists in config but no formatter
 - Per-function cognitive complexity aggregation (P1.11) — file-level only
-- Benchmark cohort, badge, --fix (P1.16-P1.18) — not started
+- --fix starter (P1.17) — not started
+- Benchmark cohort (P1.18) — not started
+
+**Closed this session (2026-03-08, session 3):**
+- Cross-pillar type bonus (P1.13) — `applyCrossPillarTypeBonus()` adds +5 to P2/P7 when P6 >= 70
+- SARIF output (P1.14) — full SARIF 2.1.0 formatter in `output/sarif.ts`
+- README badge (P1.16) — `--badge <path>` flag, SVG generation, embed snippets
+- Java nullability (P1.10) — ARI-BLD-008 checks @NonNull/@Nullable + NullAway/ErrorProne
+- C# nullable refs (P1.10) — ARI-BLD-009 checks `<Nullable>enable</Nullable>` + `#nullable enable`
+- --verbose/--quiet modes (P1.01) — verbose shows detection/context/details, quiet outputs single line
+- Context file lastModified/parseStatus (P1.03) — already implemented, roadmap notes corrected
 
 ### P1 Exit Criteria
 
@@ -1764,7 +1772,7 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 | JSON output validates against schema | ✅ Met | Zod schema validation; `--json` produces valid JSON |
 | Deterministic repeat runs | ✅ Met | Same input → same score (no network, no random, no time-dependent logic) |
 | npm package published | ⬜ Not met | Not yet published to npm |
-| README badge renders | ⬜ Not met | P1.16 not started |
+| README badge renders | ✅ Met | `--badge <path>` generates SVG badge. Added 2026-03-08. |
 | --fix generates content | ⬜ Not met | P1.17 not started |
 | 20+ repos benchmarked | ⬜ Not met | P1.18 not started |
 

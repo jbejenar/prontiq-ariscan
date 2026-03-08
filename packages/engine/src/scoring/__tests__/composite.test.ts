@@ -4,6 +4,7 @@ import {
   calculateCompositeScore,
   classifyMaturityLevel,
   applySecurityGate,
+  applyCrossPillarTypeBonus,
   aggregateResults,
 } from "../composite.js";
 
@@ -100,6 +101,54 @@ describe("applySecurityGate", () => {
     const { level, gateTriggered } = applySecurityGate([], "L4");
     expect(level).toBe("L4");
     expect(gateTriggered).toBe(false);
+  });
+});
+
+describe("applyCrossPillarTypeBonus", () => {
+  it("adds +5 to P2 and P7 when P6 >= 70", () => {
+    const pillars = [
+      makePillarResult("P2", 60),
+      makePillarResult("P6", 80),
+      makePillarResult("P7", 50),
+    ];
+    const adjusted = applyCrossPillarTypeBonus(pillars);
+    const p2 = adjusted.find((p) => p.pillar === "P2");
+    const p7 = adjusted.find((p) => p.pillar === "P7");
+    expect(p2?.score).toBe(65);
+    expect(p7?.score).toBe(55);
+  });
+
+  it("does not apply bonus when P6 < 70", () => {
+    const pillars = [
+      makePillarResult("P2", 60),
+      makePillarResult("P6", 50),
+      makePillarResult("P7", 50),
+    ];
+    const adjusted = applyCrossPillarTypeBonus(pillars);
+    const p2 = adjusted.find((p) => p.pillar === "P2");
+    const p7 = adjusted.find((p) => p.pillar === "P7");
+    expect(p2?.score).toBe(60);
+    expect(p7?.score).toBe(50);
+  });
+
+  it("clamps P2/P7 at 100", () => {
+    const pillars = [
+      makePillarResult("P2", 98),
+      makePillarResult("P6", 90),
+      makePillarResult("P7", 100),
+    ];
+    const adjusted = applyCrossPillarTypeBonus(pillars);
+    const p2 = adjusted.find((p) => p.pillar === "P2");
+    const p7 = adjusted.find((p) => p.pillar === "P7");
+    expect(p2?.score).toBe(100);
+    expect(p7?.score).toBe(100);
+  });
+
+  it("does not modify other pillars", () => {
+    const pillars = [makePillarResult("P1", 60), makePillarResult("P6", 80)];
+    const adjusted = applyCrossPillarTypeBonus(pillars);
+    expect(adjusted.find((p) => p.pillar === "P1")?.score).toBe(60);
+    expect(adjusted.find((p) => p.pillar === "P6")?.score).toBe(80);
   });
 });
 

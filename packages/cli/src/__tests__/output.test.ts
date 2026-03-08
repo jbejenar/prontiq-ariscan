@@ -3,6 +3,8 @@ import type { ScanResult } from "@prontiq/schema";
 import { formatJson, formatJsonSchema } from "../output/json.js";
 import { formatTerminal } from "../output/terminal.js";
 import { formatMarkdown } from "../output/markdown.js";
+import { formatSarif } from "../output/sarif.js";
+import { generateBadgeSvg, generateBadgeSnippets } from "../output/badge.js";
 
 const mockResult: ScanResult = {
   metadata: {
@@ -177,6 +179,50 @@ describe("formatTerminal", () => {
     const output = formatTerminal(gatedResult);
     expect(output).toContain("Security gate triggered");
   });
+
+  it("quiet mode outputs single-line summary", () => {
+    const output = formatTerminal(mockResult, { quiet: true });
+    expect(output).toBe("ARI 62/100 L3 (Capable)\n");
+  });
+
+  it("quiet mode includes security gate flag when triggered", () => {
+    const gatedResult = { ...mockResult, securityGateTriggered: true };
+    const output = formatTerminal(gatedResult, { quiet: true });
+    expect(output).toContain("[SECURITY GATE]");
+  });
+
+  it("verbose mode shows pillar details section", () => {
+    const output = formatTerminal(mockResult, { verbose: true });
+    expect(output).toContain("Pillar Details");
+    expect(output).toContain("confidence:");
+    expect(output).toContain("summary:");
+  });
+
+  it("verbose mode shows detection info when present", () => {
+    const resultWithDetection: ScanResult = {
+      ...mockResult,
+      detection: {
+        languages: [{ language: "TypeScript", confidence: 0.95, primary: true }],
+        frameworks: [{ framework: "React", confidence: 0.8 }],
+        monorepo: null,
+      },
+    };
+    const output = formatTerminal(resultWithDetection, { verbose: true });
+    expect(output).toContain("Detection");
+    expect(output).toContain("TypeScript");
+    expect(output).toContain("React");
+  });
+
+  it("verbose mode shows context files when present", () => {
+    const resultWithCtx: ScanResult = {
+      ...mockResult,
+      contextFiles: [{ path: "AGENTS.md", type: "agents-md", size: 512, parseStatus: "valid" }],
+    };
+    const output = formatTerminal(resultWithCtx, { verbose: true });
+    expect(output).toContain("Context Files");
+    expect(output).toContain("AGENTS.md");
+    expect(output).toContain("[valid]");
+  });
 });
 
 describe("formatMarkdown", () => {
@@ -277,5 +323,135 @@ describe("formatMarkdown", () => {
     };
     const output = formatMarkdown(resultWithFile);
     expect(output).toContain("`src/index.ts:42`");
+  });
+});
+
+describe("formatSarif", () => {
+  it("produces valid JSON", () => {
+    const output = formatSarif(mockResult);
+    expect(() => JSON.parse(output)).not.toThrow();
+  });
+
+  it("follows SARIF 2.1.0 structure", () => {
+    const parsed = JSON.parse(formatSarif(mockResult));
+    expect(parsed.version).toBe("2.1.0");
+    expect(parsed.$schema).toContain("sarif-schema-2.1.0");
+    expect(parsed.runs).toHaveLength(1);
+  });
+
+  it("includes tool driver info", () => {
+    const parsed = JSON.parse(formatSarif(mockResult));
+    const driver = parsed.runs[0].tool.driver;
+    expect(driver.name).toBe("ariscan");
+    expect(driver.version).toBe("0.1.0");
+  });
+
+  it("maps findings to SARIF results", () => {
+    const parsed = JSON.parse(formatSarif(mockResult));
+    expect(parsed.runs[0].results).toHaveLength(1);
+    expect(parsed.runs[0].results[0].ruleId).toBe("ARI-CTX-001");
+    expect(parsed.runs[0].results[0].level).toBe("error");
+  });
+
+  it("deduplicates rules", () => {
+    const resultWithDupes: ScanResult = {
+      ...mockResult,
+      findings: [
+        { code: "ARI-CTX-001", severity: "high", pillar: "P1", message: "Finding 1" },
+        { code: "ARI-CTX-001", severity: "high", pillar: "P1", message: "Finding 2" },
+      ],
+    };
+    const parsed = JSON.parse(formatSarif(resultWithDupes));
+    expect(parsed.runs[0].results).toHaveLength(2);
+    expect(parsed.runs[0].tool.driver.rules).toHaveLength(1);
+  });
+
+  it("includes file locations when present", () => {
+    const resultWithFile: ScanResult = {
+      ...mockResult,
+      findings: [
+        {
+          code: "ARI-CTX-001",
+          severity: "high",
+          pillar: "P1",
+          file: "src/index.ts",
+          line: 42,
+          message: "Issue found",
+        },
+      ],
+    };
+    const parsed = JSON.parse(formatSarif(resultWithFile));
+    const location = parsed.runs[0].results[0].locations[0].physicalLocation;
+    expect(location.artifactLocation.uri).toBe("src/index.ts");
+    expect(location.region.startLine).toBe(42);
+  });
+
+  it("includes invocation with score metadata", () => {
+    const parsed = JSON.parse(formatSarif(mockResult));
+    const invocation = parsed.runs[0].invocations[0];
+    expect(invocation.executionSuccessful).toBe(true);
+    expect(invocation.properties.score).toBe(62);
+    expect(invocation.properties.level).toBe("L3");
+  });
+
+  it("maps severity to correct SARIF levels", () => {
+    const multiSev: ScanResult = {
+      ...mockResult,
+      findings: [
+        { code: "ARI-CTX-001", severity: "critical", pillar: "P1", message: "crit" },
+        { code: "ARI-CTX-002", severity: "medium", pillar: "P1", message: "med" },
+        { code: "ARI-CTX-003", severity: "info", pillar: "P1", message: "info" },
+      ],
+    };
+    const parsed = JSON.parse(formatSarif(multiSev));
+    expect(parsed.runs[0].results[0].level).toBe("error");
+    expect(parsed.runs[0].results[1].level).toBe("warning");
+    expect(parsed.runs[0].results[2].level).toBe("note");
+  });
+});
+
+describe("generateBadgeSvg", () => {
+  it("produces valid SVG", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).toContain("<svg");
+    expect(svg).toContain("</svg>");
+  });
+
+  it("includes score and level", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).toContain("Agent-Ready");
+    expect(svg).toContain("L3 (62/100)");
+  });
+
+  it("uses correct color for level", () => {
+    const l1Result = { ...mockResult, level: "L1" as const };
+    const l5Result = { ...mockResult, level: "L5" as const };
+    const l1Svg = generateBadgeSvg(l1Result);
+    const l5Svg = generateBadgeSvg(l5Result);
+    expect(l1Svg).toContain("#e05d44"); // red
+    expect(l5Svg).toContain("#44cc11"); // bright green
+  });
+
+  it("has accessible attributes", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).toContain('role="img"');
+    expect(svg).toContain("aria-label");
+  });
+});
+
+describe("generateBadgeSnippets", () => {
+  it("includes markdown snippet", () => {
+    const snippets = generateBadgeSnippets("badge.svg");
+    expect(snippets).toContain("![Agent-Ready](badge.svg)");
+  });
+
+  it("includes HTML snippet", () => {
+    const snippets = generateBadgeSnippets("badge.svg");
+    expect(snippets).toContain('<img src="badge.svg"');
+  });
+
+  it("includes reStructuredText snippet", () => {
+    const snippets = generateBadgeSnippets("badge.svg");
+    expect(snippets).toContain(".. image:: badge.svg");
   });
 });

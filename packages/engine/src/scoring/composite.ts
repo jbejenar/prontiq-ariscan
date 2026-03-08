@@ -87,16 +87,40 @@ export function buildLevelMeta(level: MaturityLevel): LevelMeta {
 }
 
 /**
+ * Apply cross-pillar type bonus: strict TypeScript repos receive a bonus on
+ * P2 (Feedback Loop) and P7 (Navigability). Types catch errors (P6), provide
+ * faster feedback (P2), and improve navigability through explicit contracts (P7).
+ *
+ * Returns a new array of pillar results with adjusted scores.
+ */
+export function applyCrossPillarTypeBonus(pillars: PillarResult[]): PillarResult[] {
+  const p6 = pillars.find((p) => p.pillar === "P6");
+  if (!p6 || p6.score < 70) return pillars;
+
+  const TYPE_BONUS = 5;
+
+  return pillars.map((p) => {
+    if (p.pillar === "P2" || p.pillar === "P7") {
+      const boosted = Math.min(100, p.score + TYPE_BONUS);
+      if (boosted === p.score) return p;
+      return { ...p, score: boosted };
+    }
+    return p;
+  });
+}
+
+/**
  * Aggregate all pillar results into a final ScanResult.
  */
 export function aggregateResults(
   pillars: PillarResult[],
   metadata: { version: string; repoPath: string; duration: number },
 ): ScanResult {
-  const score = calculateCompositeScore(pillars);
+  const adjustedPillars = applyCrossPillarTypeBonus(pillars);
+  const score = calculateCompositeScore(adjustedPillars);
   const rawLevel = classifyMaturityLevel(score);
-  const { level, gateTriggered } = applySecurityGate(pillars, rawLevel);
-  const allFindings = pillars.flatMap((p) => p.findings);
+  const { level, gateTriggered } = applySecurityGate(adjustedPillars, rawLevel);
+  const allFindings = adjustedPillars.flatMap((p) => p.findings);
 
   return {
     metadata: {
@@ -110,7 +134,7 @@ export function aggregateResults(
     level,
     levelMeta: buildLevelMeta(level),
     securityGateTriggered: gateTriggered,
-    pillars,
+    pillars: adjustedPillars,
     findings: allFindings,
   };
 }
