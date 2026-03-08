@@ -311,6 +311,282 @@ describe("testIsolationAnalyzer (P3)", () => {
     });
   });
 
+  describe("mutable global environment detection (ARI-TST-011)", () => {
+    it("detects process.env.X = assignment", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('sets env', () => {
+            process.env.NODE_ENV = 'test';
+            expect(true).toBe(true);
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-011")).toBe(true);
+    });
+
+    it("detects process.env = wholesale replacement", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('replaces env', () => {
+            process.env = { NODE_ENV: 'test' };
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-011")).toBe(true);
+    });
+
+    it("detects global.X = mutation", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('global mutation', () => {
+            global.myVar = 42;
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-011")).toBe(true);
+    });
+
+    it("detects globalThis.X = mutation", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('globalThis mutation', () => {
+            globalThis.config = {};
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-011")).toBe(true);
+    });
+
+    it("detects window.X = mutation", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('window mutation', () => {
+            window.location = 'http://test.com';
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-011")).toBe(true);
+    });
+
+    it("does not emit ARI-TST-011 for clean tests", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('clean', () => { expect(1).toBe(1); });",
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-011")).toBe(false);
+    });
+
+    it("includes Luo 2014 evidence", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `test('env', () => { process.env.FOO = 'bar'; });`,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-TST-011");
+      expect(finding?.evidence?.paper).toContain("Luo");
+    });
+  });
+
+  describe("test order dependency detection (ARI-TST-012)", () => {
+    it("detects describe.only", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          describe.only('focused', () => {
+            it('runs only this', () => {});
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-012")).toBe(true);
+    });
+
+    it("detects it.only", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          describe('suite', () => {
+            it.only('focused test', () => {});
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-012")).toBe(true);
+    });
+
+    it("detects test.only", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test.only('focused test', () => { expect(1).toBe(1); });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-012")).toBe(true);
+    });
+
+    it("detects beforeAll with shared state assignment", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          let sharedData;
+          beforeAll(() => {
+            sharedData = setupDatabase();
+          });
+          test('uses shared', () => { expect(sharedData).toBeTruthy(); });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-012")).toBe(true);
+    });
+
+    it("does not emit ARI-TST-012 for clean tests", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          describe('suite', () => {
+            it('works', () => { expect(1).toBe(1); });
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-012")).toBe(false);
+    });
+
+    it("includes Luo 2014 evidence for order dependency", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `describe.only('x', () => { it('y', () => {}); });`,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-TST-012");
+      expect(finding?.evidence?.paper).toContain("Luo");
+    });
+  });
+
+  describe("concurrency/race condition detection (ARI-TST-013)", () => {
+    it("detects setTimeout in tests", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('waits', () => {
+            setTimeout(() => {}, 1000);
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-013")).toBe(true);
+    });
+
+    it("detects sleep with literal time", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('sleeps', async () => {
+            await sleep(500);
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-013")).toBe(true);
+    });
+
+    it("detects waitFor with literal time", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('waits for', async () => {
+            await waitFor(3000);
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-013")).toBe(true);
+    });
+
+    it("detects new Promise with setTimeout", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('promise timeout', async () => {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-013")).toBe(true);
+    });
+
+    it("does not emit ARI-TST-013 for clean tests", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('clean', () => { expect(1).toBe(1); });",
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-013")).toBe(false);
+    });
+
+    it("includes async-wait evidence category", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `test('t', () => { setTimeout(() => {}, 100); });`,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-TST-013");
+      expect(finding?.evidence?.paper).toContain("Luo");
+      expect(finding?.evidence?.finding).toContain("async-wait");
+    });
+  });
+
+  describe("hardcoded credentials (ARI-TST-014)", () => {
+    it("detects hardcoded password in test", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('login', () => {
+            const password = 'supersecretpassword123';
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-014")).toBe(true);
+    });
+
+    it("detects hardcoded api_key in test", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('api', () => {
+            const api_key = 'sk-1234567890abcdef';
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-014")).toBe(true);
+    });
+
+    it("has critical severity", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `test('x', () => { const secret = 'mysupersecretvalue12'; });`,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-TST-014");
+      expect(finding?.severity).toBe("critical");
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const files: Record<string, string> = {};
@@ -325,6 +601,23 @@ describe("testIsolationAnalyzer (P3)", () => {
       const ctx = createMockContext(files);
       const result = await testIsolationAnalyzer.analyze(ctx);
       expect(result.score).toBeLessThanOrEqual(100);
+      expect(result.score).toBeGreaterThanOrEqual(0);
+    });
+
+    it("never goes below 0 even with many anti-patterns", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('bad', () => {
+            process.env.NODE_ENV = 'test';
+            global.myVar = 1;
+            window.loc = 'x';
+            setTimeout(() => {}, 100);
+            const password = 'supersecret123456';
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
       expect(result.score).toBeGreaterThanOrEqual(0);
     });
   });

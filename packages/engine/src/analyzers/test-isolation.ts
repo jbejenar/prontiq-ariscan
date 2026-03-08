@@ -41,10 +41,66 @@ const ORDER_SENSITIVE_PATTERNS = [
   /\.keys\(\)\s*\)\s*\.\s*(toEqual|toBe)/,
 ];
 
+/** Mutable global environment patterns (ARI-TST-011) */
+const GLOBAL_MUTATION_PATTERNS = [
+  { pattern: /process\.env\.\w+\s*=/, category: "resource-leak" as const, description: "process.env property assignment" },
+  { pattern: /process\.env\s*=/, category: "resource-leak" as const, description: "process.env wholesale replacement" },
+  { pattern: /\bglobal\.\w+\s*=/, category: "resource-leak" as const, description: "global property mutation" },
+  { pattern: /\bglobalThis\.\w+\s*=/, category: "resource-leak" as const, description: "globalThis property mutation" },
+  { pattern: /\bwindow\.\w+\s*=/, category: "resource-leak" as const, description: "window property mutation" },
+];
+
+/** Test order dependency patterns (ARI-TST-012) */
+const ORDER_DEPENDENCY_PATTERNS = [
+  { pattern: /\b(beforeAll|before)\s*\(/, category: "test-order-dependency" as const, description: "beforeAll/before block" },
+  { pattern: /\b(afterAll|after)\s*\(/, category: "test-order-dependency" as const, description: "afterAll/after block" },
+  { pattern: /\bdescribe\.only\s*\(/, category: "test-order-dependency" as const, description: "describe.only usage" },
+  { pattern: /\bit\.only\s*\(|\btest\.only\s*\(/, category: "test-order-dependency" as const, description: "it.only/test.only usage" },
+];
+
+/** Concurrency / race condition patterns (ARI-TST-013) */
+const CONCURRENCY_PATTERNS = [
+  { pattern: /\bsetTimeout\s*\(/, category: "async-wait" as const, description: "setTimeout in test" },
+  { pattern: /\b(sleep|delay|waitFor)\s*\(\s*\d+/, category: "async-wait" as const, description: "sleep/delay/waitFor with literal time" },
+  { pattern: /new Promise\s*\([^)]*setTimeout/, category: "async-wait" as const, description: "new Promise wrapping setTimeout" },
+];
+
+/** Hardcoded credential patterns (critical severity) */
+const CREDENTIAL_PATTERNS = [
+  /(?:password|passwd|secret|api_?key|access_?key|token)\s*[:=]\s*['"][^'"]{8,}['"]/i,
+];
+
+/** Map a category string to its paper reference */
+function paperForCategory(category: string): { paper: string; finding: string; confidence: "high" | "medium" | "low" } {
+  switch (category) {
+    case "unordered-collection":
+      return {
+        paper: "Berndt et al., 2026",
+        finding: "63% of LLM-generated flaky tests from unordered collection assumptions",
+        confidence: "high",
+      };
+    case "async-wait":
+    case "concurrency":
+    case "test-order-dependency":
+    case "resource-leak":
+      return {
+        paper: "Luo et al., 2014",
+        finding: `Root cause category: ${category}`,
+        confidence: "high",
+      };
+    default:
+      return {
+        paper: "Luo et al., 2014",
+        finding: `Root cause category: ${category}`,
+        confidence: "medium",
+      };
+  }
+}
+
 export const testIsolationAnalyzer: PillarAnalyzer = {
   pillar: PILLAR,
   name: PILLAR_NAMES[PILLAR],
-  version: "0.1.0",
+  version: "0.2.0",
 
   async supports(): Promise<boolean> {
     return true;
@@ -119,9 +175,11 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
 
     // Scan test files for anti-patterns (sample up to 20 files)
     const sampled = testFiles.slice(0, 20);
+    // Skip our own test file to avoid false positives from fixture strings
+    const filtered = sampled.filter(f => !f.includes("test-isolation.test"));
     let antiPatternCount = 0;
 
-    for (const testFile of sampled) {
+    for (const testFile of filtered) {
       const content = await context.readFile(testFile);
       if (!content) continue;
 
@@ -151,7 +209,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
 
     // Filesystem dependency detection in tests
     let fsDependencyCount = 0;
-    for (const testFile of sampled) {
+    for (const testFile of filtered) {
       const content = await context.readFile(testFile);
       if (!content) continue;
 
@@ -177,7 +235,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
 
     // Order-sensitive assertion detection
     let orderSensitiveCount = 0;
-    for (const testFile of sampled) {
+    for (const testFile of filtered) {
       const content = await context.readFile(testFile);
       if (!content) continue;
 
@@ -197,11 +255,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
                 description: "Sort the collection before asserting, or use an unordered matcher (e.g. toContain, arrayContaining)",
                 confidence: "medium",
               },
-              evidence: {
-                paper: "Berndt et al., 2026",
-                finding: "63% of LLM-generated flaky tests from unordered collection assumptions",
-                confidence: "high",
-              },
+              evidence: paperForCategory("unordered-collection"),
             });
             break; // one finding per file for this pattern
           }
@@ -236,6 +290,154 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
           },
         });
       }
+    }
+
+    // --- NEW: Mutable global environment detection (ARI-TST-011) ---
+    let globalMutationCount = 0;
+    for (const testFile of filtered) {
+      const content = await context.readFile(testFile);
+      if (!content) continue;
+
+      let fileHasMutation = false;
+      for (const gm of GLOBAL_MUTATION_PATTERNS) {
+        if (gm.pattern.test(content)) {
+          if (!fileHasMutation) {
+            globalMutationCount++;
+            fileHasMutation = true;
+            findings.push({
+              code: "ARI-TST-011",
+              severity: "high",
+              pillar: PILLAR,
+              file: testFile,
+              message: `Mutable global environment detected: ${gm.description}`,
+              remediation: {
+                action: "refactor",
+                description: "Avoid mutating global state in tests. Use dependency injection or per-test setup/teardown to isolate environment.",
+                confidence: "high",
+              },
+              evidence: paperForCategory(gm.category),
+            });
+          }
+        }
+      }
+    }
+
+    // --- NEW: Test order dependency detection (ARI-TST-012) ---
+    let orderDependencyCount = 0;
+    for (const testFile of filtered) {
+      const content = await context.readFile(testFile);
+      if (!content) continue;
+
+      let fileHasOrderDep = false;
+      // Check if file has variable assignments outside of test blocks (shared state indicator)
+      const hasSharedStateAssignment = /^\s*(let|var)\s+\w+/.test(content) && /\w+\s*=\s*/.test(content);
+
+      for (const od of ORDER_DEPENDENCY_PATTERNS) {
+        if (od.pattern.test(content)) {
+          // For beforeAll/afterAll, only flag if file has shared state patterns
+          if (od.description === "beforeAll/before block" || od.description === "afterAll/after block") {
+            if (hasSharedStateAssignment) {
+              if (!fileHasOrderDep) {
+                orderDependencyCount++;
+                fileHasOrderDep = true;
+                findings.push({
+                  code: "ARI-TST-012",
+                  severity: "medium",
+                  pillar: PILLAR,
+                  file: testFile,
+                  message: `Test order dependency: ${od.description} modifies shared state`,
+                  remediation: {
+                    action: "refactor",
+                    description: "Move shared state setup into beforeEach/afterEach for proper test isolation",
+                    confidence: "medium",
+                  },
+                  evidence: paperForCategory(od.category),
+                });
+              }
+            }
+          } else {
+            // describe.only, it.only — always flag
+            if (!fileHasOrderDep) {
+              orderDependencyCount++;
+              fileHasOrderDep = true;
+              findings.push({
+                code: "ARI-TST-012",
+                severity: "medium",
+                pillar: PILLAR,
+                file: testFile,
+                message: `Test order dependency: ${od.description}`,
+                remediation: {
+                  action: "refactor",
+                  description: "Remove .only modifiers before committing — they skip other tests and mask failures",
+                  confidence: "high",
+                },
+                evidence: paperForCategory(od.category),
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // --- NEW: Concurrency/race condition patterns (ARI-TST-013) ---
+    let concurrencyCount = 0;
+    for (const testFile of filtered) {
+      const content = await context.readFile(testFile);
+      if (!content) continue;
+
+      let fileHasConcurrency = false;
+      for (const cp of CONCURRENCY_PATTERNS) {
+        if (cp.pattern.test(content)) {
+          if (!fileHasConcurrency) {
+            concurrencyCount++;
+            fileHasConcurrency = true;
+            findings.push({
+              code: "ARI-TST-013",
+              severity: "medium",
+              pillar: PILLAR,
+              file: testFile,
+              message: `Concurrency/race condition pattern: ${cp.description}`,
+              remediation: {
+                action: "refactor",
+                description: "Replace timing-based waits with event-driven assertions (e.g., waitFor with condition, flush timers with fake timers)",
+                confidence: "medium",
+              },
+              evidence: paperForCategory(cp.category),
+            });
+          }
+        }
+      }
+    }
+
+    // --- NEW: Hardcoded credentials detection (critical) ---
+    for (const testFile of filtered) {
+      const content = await context.readFile(testFile);
+      if (!content) continue;
+
+      for (const credPattern of CREDENTIAL_PATTERNS) {
+        if (credPattern.test(content)) {
+          findings.push({
+            code: "ARI-TST-014",
+            severity: "critical",
+            pillar: PILLAR,
+            file: testFile,
+            message: "Hardcoded credential detected in test file",
+            remediation: {
+              action: "refactor",
+              description: "Replace hardcoded credentials with environment variables or test-specific secrets management",
+              confidence: "high",
+            },
+            evidence: paperForCategory("resource-leak"),
+          });
+          break; // one per file
+        }
+      }
+    }
+
+    // Deduct for new anti-patterns
+    const newAntiPatternCount = globalMutationCount + orderDependencyCount + concurrencyCount;
+    if (newAntiPatternCount > 0) {
+      score -= Math.min(15, newAntiPatternCount * 3);
     }
 
     // Check for DI/provider patterns (match filename only, exclude .devcontainer paths)
@@ -275,7 +477,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       weight: PILLAR_WEIGHTS[PILLAR],
       confidence: sampled.length >= 10 ? "high" : "medium",
       findings,
-      summary: `${testFiles.length} test files found, ratio ${ratio.toFixed(2)}, ${totalAntiPatterns} anti-patterns detected`,
+      summary: `${testFiles.length} test files found, ratio ${ratio.toFixed(2)}, ${totalAntiPatterns + newAntiPatternCount} anti-patterns detected`,
     };
   },
 };

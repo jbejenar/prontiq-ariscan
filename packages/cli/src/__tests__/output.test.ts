@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ScanResult } from "@prontiq/schema";
-import { formatJson } from "../output/json.js";
+import { formatJson, formatJsonSchema } from "../output/json.js";
 import { formatTerminal } from "../output/terminal.js";
 import { formatMarkdown } from "../output/markdown.js";
 
@@ -70,6 +70,91 @@ describe("formatJson", () => {
     expect(parsed.metadata.version).toBe("0.1.0");
     expect(parsed.pillars).toHaveLength(2);
     expect(parsed.findings).toHaveLength(1);
+  });
+
+  it("includes $schema and $id fields", () => {
+    const output = formatJson(mockResult);
+    const parsed = JSON.parse(output);
+    expect(parsed.$schema).toBe(
+      "https://prontiq.dev/schemas/ari-scan-result/v1.json",
+    );
+    expect(parsed.$id).toContain("ari-scan-");
+    expect(parsed.$id).toContain(mockResult.metadata.timestamp);
+  });
+
+  it("includes contextFiles when present", () => {
+    const resultWithCtx: ScanResult = {
+      ...mockResult,
+      contextFiles: [
+        { path: "AGENTS.md", type: "agents-md", size: 512, lineCount: 20 },
+        { path: ".cursorrules", type: "cursorrules" },
+      ],
+    };
+    const output = formatJson(resultWithCtx);
+    const parsed = JSON.parse(output);
+    expect(parsed.contextFiles).toHaveLength(2);
+    expect(parsed.contextFiles[0].type).toBe("agents-md");
+  });
+
+  it("includes pillar status when present", () => {
+    const resultWithStatus: ScanResult = {
+      ...mockResult,
+      pillars: mockResult.pillars.map((p, i) =>
+        i === 0 ? { ...p, status: "good" as const } : p,
+      ),
+    };
+    const output = formatJson(resultWithStatus);
+    const parsed = JSON.parse(output);
+    expect(parsed.pillars[0].status).toBe("good");
+  });
+});
+
+describe("formatJsonSchema", () => {
+  it("produces valid JSON", () => {
+    const output = formatJsonSchema();
+    expect(() => JSON.parse(output)).not.toThrow();
+  });
+
+  it("has correct $schema and $id", () => {
+    const parsed = JSON.parse(formatJsonSchema());
+    expect(parsed.$schema).toBe(
+      "https://json-schema.org/draft/2020-12/schema",
+    );
+    expect(parsed.$id).toBe(
+      "https://prontiq.dev/schemas/ari-scan-result/v1.json",
+    );
+  });
+
+  it("describes required top-level properties", () => {
+    const parsed = JSON.parse(formatJsonSchema());
+    expect(parsed.required).toContain("metadata");
+    expect(parsed.required).toContain("score");
+    expect(parsed.required).toContain("pillars");
+    expect(parsed.required).toContain("findings");
+    expect(parsed.properties.score).toBeDefined();
+    expect(parsed.properties.pillars).toBeDefined();
+  });
+
+  it("defines finding in $defs", () => {
+    const parsed = JSON.parse(formatJsonSchema());
+    expect(parsed.$defs.finding).toBeDefined();
+    expect(parsed.$defs.finding.properties.code.pattern).toBe(
+      "^ARI-[A-Z]{3}-\\d{3}$",
+    );
+  });
+
+  it("includes contextFiles in properties", () => {
+    const parsed = JSON.parse(formatJsonSchema());
+    expect(parsed.properties.contextFiles).toBeDefined();
+    expect(parsed.properties.contextFiles.type).toBe("array");
+  });
+
+  it("includes pillar status enum in pillar items", () => {
+    const parsed = JSON.parse(formatJsonSchema());
+    const pillarProps = parsed.properties.pillars.items.properties;
+    expect(pillarProps.status).toBeDefined();
+    expect(pillarProps.status.enum).toContain("excellent");
+    expect(pillarProps.status.enum).toContain("poor");
   });
 });
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.2.0] — 2026-03-09
+
+### Added
+- **Schema enhancements:** `ContextFileInfo` type (path, type, size, lineCount), `PillarStatus` enum with `scoreToStatus()` helper, `EstimatedImpact` enum type, `$schema`/`$id` fields on JSON output, `formatJsonSchema()` function
+- **Context Quality (P1):** 4 new findings — front-loading analysis (ARI-CTX-005), staleness detection (ARI-CTX-006), boilerplate/auto-generation detection (ARI-CTX-007), conciseness check (ARI-CTX-008). MCP config discovery (`.mcp.json`, `mcp.config.js`), `.claude/settings.json` and `.claude/commands/` discovery, nested AGENTS.md discovery for monorepos, file metadata tracking (size, lineCount)
+- **Feedback Loop (P2):** 3 new findings — watch mode (ARI-FBK-007), incremental build (ARI-FBK-008), estimated feedback latency with confidence labels (ARI-FBK-009). Restructured scoring with local signals 2x weight, CI signals 1x weight
+- **Test Isolation (P3):** 4 new findings — mutable global environment (ARI-TST-011), test order dependency (ARI-TST-012), concurrency/race conditions (ARI-TST-013), hardcoded credentials (ARI-TST-014). Luo 2014 root cause taxonomy evidence fields on all findings. Critical severity level added
+- **Dev Environment (P4):** 8 new findings — devcontainer validation (ARI-ENV-005), first-run blockers (ARI-ENV-006), env var completeness (ARI-ENV-007), per-criterion status labels (ARI-ENV-008 through ARI-ENV-012)
+- **Doc Readability (P5):** 3 new findings — machine-readable runbook detection (ARI-DOC-002), JSDoc coverage (ARI-DOC-003), documentation-code drift detection (ARI-DOC-004)
+- **Build Determinism (P6):** 2 new findings — monorepo project references (ARI-BLD-006), lockfile drift detection (ARI-BLD-007)
+- **Navigability (P7):** 2 new findings — dead code detection heuristic (ARI-NAV-006), cognitive complexity estimate (ARI-NAV-007). "Most costly navigation paths" summary added
+- **Security (P8):** 1 new finding — license compliance tooling check (ARI-SEC-007). Configuration status labels (configured/partial/missing) in summary
+- **New test file:** `doc-readability.test.ts` (14 tests)
+
+### Changed
+- Test suite expanded from 242 to 370 tests across 19 test files
+- Self-scan score changed from 66 (L4) to 62 (L3) — expected: new rigorous checks reveal previously invisible gaps
+- Security: tightened branch protection heuristic (pull_request trigger alone no longer counts)
+- Security: summary shows configuration status labels instead of binary present/absent
+
 ## [2.1.0] — 2026-03-08
 
 ### Added

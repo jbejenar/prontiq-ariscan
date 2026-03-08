@@ -119,11 +119,15 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     const hasBranchProtection = context.files.some(
       (f) => f.includes(".github/") && /branch.protection|ruleset/i.test(f),
     );
-    // Can also infer from PR requirements in workflows
+    // Tightened: only count pull_request trigger if the workflow also
+    // includes required/check/review patterns alongside it
     let hasPRRequirements = false;
     for (const wf of workflows) {
       const content = await context.readFile(wf);
-      if (content && /pull_request|required.*check|status.*check/i.test(content)) {
+      if (!content) continue;
+      const hasPullRequestTrigger = /pull_request/i.test(content);
+      const hasEnforcementPattern = /required|status.*check|review|branch.*protect/i.test(content);
+      if (hasPullRequestTrigger && hasEnforcementPattern) {
         hasPRRequirements = true;
         break;
       }
@@ -162,8 +166,44 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
 
     // .gitignore with sensitive patterns
     const gitignore = await context.readFile(".gitignore");
-    if (gitignore && /\.env|credentials|secret/i.test(gitignore)) {
+    const hasGitignoreSensitive = !!(gitignore && /\.env|credentials|secret/i.test(gitignore));
+    if (hasGitignoreSensitive) {
       score += 5;
+    }
+
+    // --- ARI-SEC-007: License compliance tooling ---
+    let hasLicenseCompliance = false;
+    for (const wf of workflows) {
+      const content = await context.readFile(wf);
+      if (content && /license-checker|fossa|license-finder|licensee/i.test(content)) {
+        hasLicenseCompliance = true;
+        break;
+      }
+    }
+    // Also check package.json scripts for license checking
+    if (!hasLicenseCompliance) {
+      const pkgCheck = await context.readJson<Record<string, unknown>>("package.json");
+      if (pkgCheck) {
+        const scripts = (pkgCheck["scripts"] ?? {}) as Record<string, string>;
+        hasLicenseCompliance = Object.values(scripts).some(
+          (cmd) => /license-checker|fossa|license-finder|licensee/i.test(cmd),
+        );
+      }
+    }
+    if (hasLicenseCompliance) {
+      score += 5;
+    } else {
+      findings.push({
+        code: "ARI-SEC-007",
+        severity: "low",
+        pillar: PILLAR,
+        message: "No license compliance tooling found in CI workflows",
+        remediation: {
+          action: "configure-tool",
+          description: "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks",
+          confidence: "medium",
+        },
+      });
     }
 
     // AI-specific review checklist in PR templates
@@ -212,6 +252,27 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
 
     score = Math.min(100, Math.max(0, score));
 
+    // Build configuration status labels
+    const statusLabel = (configured: boolean, partial?: boolean): string => {
+      if (configured) return "configured";
+      if (partial) return "partial";
+      return "missing";
+    };
+
+    const codeownersStatus = statusLabel(hasCodeowners);
+    const secretsScanningStatus = statusLabel(
+      hasSecretsScanning || hasSecretsScanningCI,
+      hasSecretsScanning !== hasSecretsScanningCI,
+    );
+    const depAuditStatus = statusLabel(hasDependabot || hasRenovate);
+    const sastStatus = statusLabel(hasSAST);
+    const branchProtectionStatus = statusLabel(
+      hasBranchProtection || hasPRRequirements,
+      hasBranchProtection !== hasPRRequirements,
+    );
+    const licenseComplianceStatus = statusLabel(hasLicenseCompliance);
+    const gitignoreStatus = statusLabel(hasGitignoreSensitive);
+
     return {
       pillar: PILLAR,
       name: PILLAR_NAMES[PILLAR],
@@ -219,7 +280,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
       weight: PILLAR_WEIGHTS[PILLAR],
       confidence: "medium",
       findings,
-      summary: `CODEOWNERS: ${hasCodeowners}, Secrets scanning: ${hasSecretsScanning || hasSecretsScanningCI}, Dep audit: ${hasDependabot || hasRenovate}, SAST: ${hasSAST}`,
+      summary: `CODEOWNERS: ${codeownersStatus}, Secrets scanning: ${secretsScanningStatus}, Dep audit: ${depAuditStatus}, SAST: ${sastStatus}, Branch protection: ${branchProtectionStatus}, License compliance: ${licenseComplianceStatus}, .gitignore: ${gitignoreStatus}`,
     };
   },
 };

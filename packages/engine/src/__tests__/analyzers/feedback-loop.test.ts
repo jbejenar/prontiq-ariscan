@@ -39,8 +39,7 @@ describe("feedbackLoopAnalyzer (P2)", () => {
     it("gets partial test score from Makefile", async () => {
       const ctx = createMockContext({ Makefile: "test:\n\tpytest" });
       const result = await feedbackLoopAnalyzer.analyze(ctx);
-      // Makefile gives 10 points for test
-      expect(result.score).toBeGreaterThanOrEqual(10);
+      expect(result.score).toBeGreaterThanOrEqual(1);
     });
 
     it("does not emit ARI-FBK-001", async () => {
@@ -69,8 +68,8 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       const analysisResult = await feedbackLoopAnalyzer.analyze(
         createMockContext({ "package.json": fullPkg }),
       );
-      // test: 20, test:watch: 5, lint: 15, typecheck: 15, build: 10 = 65
-      expect(analysisResult.score).toBeGreaterThanOrEqual(65);
+      // Local signals contribute heavily with 2x weighting
+      expect(analysisResult.score).toBeGreaterThanOrEqual(50);
     });
 
     it("has high confidence with package.json present", async () => {
@@ -103,8 +102,6 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       const withoutCI = await feedbackLoopAnalyzer.analyze(ctxWithoutCI);
 
       expect(withCI.score).toBeGreaterThan(withoutCI.score);
-      // CI adds 15 points
-      expect(withCI.score - withoutCI.score).toBe(15);
     });
 
     it("emits ARI-FBK-004 when no CI config found", async () => {
@@ -139,6 +136,18 @@ describe("feedbackLoopAnalyzer (P2)", () => {
 
       expect(withTurbo.score).toBeGreaterThan(withoutTurbo.score);
     });
+
+    it("emits ARI-FBK-008 info for turbo.json", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+        "turbo.json": JSON.stringify({ pipeline: {} }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk008 = result.findings.find((f) => f.code === "ARI-FBK-008");
+      expect(fbk008).toBeDefined();
+      expect(fbk008?.severity).toBe("info");
+      expect(fbk008?.message).toContain("turbo");
+    });
   });
 
   describe("pre-commit hooks detection", () => {
@@ -154,8 +163,6 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       const withoutHusky = await feedbackLoopAnalyzer.analyze(ctxWithout);
 
       expect(withHusky.score).toBeGreaterThan(withoutHusky.score);
-      // Hooks add 10 points
-      expect(withHusky.score - withoutHusky.score).toBe(10);
     });
 
     it("adds points for .pre-commit-config.yaml", async () => {
@@ -180,7 +187,6 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       const modern = await feedbackLoopAnalyzer.analyze(createMockContext({ "package.json": modernPkg }));
       const legacy = await feedbackLoopAnalyzer.analyze(createMockContext({ "package.json": legacyPkg }));
 
-      // Modern gets build (10) + modern bonus (5), legacy gets build (10) only
       expect(modern.score).toBeGreaterThan(legacy.score);
     });
   });
@@ -228,6 +234,50 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       const result = await feedbackLoopAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-FBK-005")).toBe(false);
     });
+
+    it("emits ARI-FBK-009 with latency estimate", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "vitest run" } }),
+        "vitest.config.ts": "export default { test: { timeout: 5000 } }",
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk009 = result.findings.find((f) => f.code === "ARI-FBK-009");
+      expect(fbk009).toBeDefined();
+      expect(fbk009?.severity).toBe("info");
+      expect(fbk009?.message).toContain("measured");
+    });
+
+    it("emits ARI-FBK-009 with inferred label for vitest without explicit timeout", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "vitest run" } }),
+        "vitest.config.ts": "export default { test: {} }",
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk009 = result.findings.find((f) => f.code === "ARI-FBK-009");
+      expect(fbk009).toBeDefined();
+      expect(fbk009?.message).toContain("inferred");
+    });
+
+    it("emits ARI-FBK-009 with unknown label when no config", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk009 = result.findings.find((f) => f.code === "ARI-FBK-009");
+      expect(fbk009).toBeDefined();
+      expect(fbk009?.message).toContain("unknown");
+    });
+
+    it("infers latency from test command when no config file", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "jest --coverage" } }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk009 = result.findings.find((f) => f.code === "ARI-FBK-009");
+      expect(fbk009).toBeDefined();
+      expect(fbk009?.message).toContain("inferred");
+      expect(fbk009?.message).toContain("jest");
+    });
   });
 
   describe("changeset scope controls", () => {
@@ -273,6 +323,85 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       });
       const result = await feedbackLoopAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-FBK-006")).toBe(true);
+    });
+  });
+
+  describe("watch mode finding (ARI-FBK-007)", () => {
+    it("emits info when watch mode detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "vitest run", "test:watch": "vitest" } }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk007 = result.findings.find((f) => f.code === "ARI-FBK-007");
+      expect(fbk007).toBeDefined();
+      expect(fbk007?.severity).toBe("info");
+      expect(fbk007?.message).toContain("Watch mode detected");
+    });
+
+    it("emits low severity when no watch mode", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "vitest run" } }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk007 = result.findings.find((f) => f.code === "ARI-FBK-007");
+      expect(fbk007).toBeDefined();
+      expect(fbk007?.severity).toBe("low");
+      expect(fbk007?.message).toContain("No watch mode");
+    });
+  });
+
+  describe("incremental build finding (ARI-FBK-008)", () => {
+    it("emits info when turbo detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+        "turbo.json": "{}",
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk008 = result.findings.find((f) => f.code === "ARI-FBK-008");
+      expect(fbk008).toBeDefined();
+      expect(fbk008?.severity).toBe("info");
+      expect(fbk008?.message).toContain("turbo");
+    });
+
+    it("emits info when nx detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+        "nx.json": "{}",
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk008 = result.findings.find((f) => f.code === "ARI-FBK-008");
+      expect(fbk008).toBeDefined();
+      expect(fbk008?.severity).toBe("info");
+      expect(fbk008?.message).toContain("nx");
+    });
+
+    it("emits low severity when no incremental build", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk008 = result.findings.find((f) => f.code === "ARI-FBK-008");
+      expect(fbk008).toBeDefined();
+      expect(fbk008?.severity).toBe("low");
+      expect(fbk008?.message).toContain("No incremental");
+    });
+  });
+
+  describe("local vs CI weight differentiation", () => {
+    it("local feedback contributes more than CI feedback to score", async () => {
+      // Repo with only CI config (no local scripts)
+      const ciOnly = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+        ".github/workflows/ci.yml": "name: CI",
+      });
+      // Repo with only local test script (no CI)
+      const localOnly = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "vitest run" } }),
+      });
+      const ciResult = await feedbackLoopAnalyzer.analyze(ciOnly);
+      const localResult = await feedbackLoopAnalyzer.analyze(localOnly);
+      // Local feedback has 2x weight, so local-only should score higher than CI-only
+      expect(localResult.score).toBeGreaterThan(ciResult.score);
     });
   });
 

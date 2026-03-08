@@ -193,4 +193,308 @@ describe("contextQualityAnalyzer (P1)", () => {
       expect(result.score).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe("additional context file discovery", () => {
+    it("discovers .mcp.json", async () => {
+      const ctx = createMockContext({
+        ".mcp.json": '{"servers":{}}',
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain(".mcp.json");
+      expect(result.findings.some((f) => f.code === "ARI-CTX-001")).toBe(false);
+    });
+
+    it("discovers mcp.config.js", async () => {
+      const ctx = createMockContext({
+        "mcp.config.js": "export default {};",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("mcp.config.js");
+    });
+
+    it("discovers .claude/settings.json", async () => {
+      const ctx = createMockContext({
+        ".claude/settings.json": '{"key":"value"}',
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain(".claude/settings.json");
+    });
+
+    it("discovers .claude/commands/ directory", async () => {
+      const ctx = createMockContext({
+        ".claude/commands/review.md": "# Review command",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain(".claude/commands/");
+    });
+  });
+
+  describe("nested AGENTS.md discovery (monorepo)", () => {
+    it("discovers nested AGENTS.md files", async () => {
+      const ctx = createMockContext({
+        "AGENTS.md": "# Root agents\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11",
+        "packages/foo/AGENTS.md": "# Foo agents\nSpecific to foo package.",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("packages/foo/AGENTS.md");
+    });
+
+    it("counts nested AGENTS.md toward context file total", async () => {
+      const ctx = createMockContext({
+        "packages/bar/AGENTS.md": "# Bar agents\nBar specific.",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Should not emit ARI-CTX-001 since we found a context file
+      expect(result.findings.some((f) => f.code === "ARI-CTX-001")).toBe(false);
+    });
+  });
+
+  describe("file metadata in summary", () => {
+    it("includes line count and size in summary", async () => {
+      const content = "# AGENTS.md\nLine 2\nLine 3";
+      const ctx = createMockContext({ "AGENTS.md": content });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("3 lines");
+      expect(result.summary).toContain("bytes");
+    });
+
+    it("shows directory label for directory patterns", async () => {
+      const ctx = createMockContext({
+        ".claude/commands/test.md": "# Test",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("directory");
+    });
+  });
+
+  describe("front-loading analysis (ARI-CTX-005)", () => {
+    it("emits ARI-CTX-005 when build commands are buried in AGENTS.md", async () => {
+      // Create a file where critical info is only in the bottom 80%
+      const topLines = Array.from({ length: 40 }, (_, i) => `General description line ${i}`);
+      topLines[0] = "# AGENTS.md";
+      const bottomLines = [
+        "## Build",
+        "```bash",
+        "pnpm install",
+        "pnpm build",
+        "pnpm test",
+        "```",
+        "## Architecture overview",
+        "This is the architecture.",
+        "More lines.",
+        "Even more.",
+      ];
+      const content = [...topLines, ...bottomLines].join("\n");
+      const ctx = createMockContext({ "AGENTS.md": content });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-005")).toBe(true);
+    });
+
+    it("does not emit ARI-CTX-005 when build commands are front-loaded", async () => {
+      const content = [
+        "# AGENTS.md",
+        "## Build",
+        "```bash",
+        "pnpm install",
+        "pnpm build",
+        "```",
+        "## Architecture overview",
+        "The project structure.",
+        "More content.",
+        "And more.",
+        "Line 11",
+        "Line 12",
+      ].join("\n");
+      const ctx = createMockContext({ "AGENTS.md": content });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-005")).toBe(false);
+    });
+
+    it("emits ARI-CTX-005 for CLAUDE.md with buried critical info", async () => {
+      const topLines = Array.from({ length: 40 }, (_, i) => `General line ${i}`);
+      topLines[0] = "# CLAUDE.md";
+      const bottomLines = [
+        "## Build",
+        "```bash",
+        "npm run build",
+        "npm test",
+        "```",
+        "More lines.",
+        "Even more.",
+      ];
+      const content = [...topLines, ...bottomLines].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": "# Agents\nShort.",
+        "CLAUDE.md": content,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const claude005 = result.findings.filter(
+        (f) => f.code === "ARI-CTX-005" && f.message.includes("CLAUDE.md"),
+      );
+      expect(claude005.length).toBeGreaterThan(0);
+    });
+
+    it("does not emit ARI-CTX-005 for short files (< 10 lines)", async () => {
+      const content = [
+        "# AGENTS.md",
+        "Short file.",
+        "```bash",
+        "pnpm test",
+        "```",
+      ].join("\n");
+      const ctx = createMockContext({ "AGENTS.md": content });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-005")).toBe(false);
+    });
+  });
+
+  describe("staleness detection (ARI-CTX-006)", () => {
+    it("emits ARI-CTX-006 when AGENTS.md references non-existent paths", async () => {
+      const content = [
+        "# AGENTS.md",
+        "## Architecture",
+        "The main source is in src/components/",
+        "Config is at config/settings.json",
+        "Never modify old/legacy/code.ts",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": content,
+        "src/index.ts": "export {};",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-006")).toBe(true);
+    });
+
+    it("does not emit ARI-CTX-006 when all referenced paths exist", async () => {
+      const content = [
+        "# AGENTS.md",
+        "## Architecture",
+        "The main source is in src/components/",
+        "Tests are in src/tests/",
+        "Line 5",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": content,
+        "src/components/App.tsx": "export {};",
+        "src/tests/app.test.ts": "test('works', () => {});",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-006")).toBe(false);
+    });
+  });
+
+  describe("boilerplate detection (ARI-CTX-007)", () => {
+    it("emits ARI-CTX-007 for generic auto-generated content", async () => {
+      const content = [
+        "# AGENTS.md",
+        "",
+        "This project is a web application.",
+        "",
+        "## Getting Started",
+        "Follow the instructions below.",
+        "",
+        "## Contributing",
+        "Please read our guidelines.",
+        "",
+        "Generated by create-project-tool.",
+        "Line 12",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": content,
+        "src/index.ts": "export {};",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-007")).toBe(true);
+    });
+
+    it("does not emit ARI-CTX-007 for project-specific content", async () => {
+      const content = [
+        "# AGENTS.md",
+        "",
+        "## Architecture",
+        "This monorepo uses src/components for React components.",
+        "The analyzer engine lives in src/engine with tests in src/tests.",
+        "",
+        "## Build",
+        "```bash",
+        "pnpm install",
+        "pnpm build",
+        "```",
+        "Don't skip tests.",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": content,
+        "src/components/App.tsx": "<div/>",
+        "src/engine/run.ts": "run();",
+        "src/tests/run.test.ts": "test('ok', () => {});",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-007")).toBe(false);
+    });
+  });
+
+  describe("conciseness check (ARI-CTX-008)", () => {
+    it("emits ARI-CTX-008 for very long AGENTS.md without proportional code blocks", async () => {
+      // 600 lines of prose, only 1 code block
+      const lines = ["# AGENTS.md", "```ts", "code", "```"];
+      for (let i = 4; i <= 600; i++) {
+        lines.push(`This is a long descriptive line number ${i} with lots of text.`);
+      }
+      const content = lines.join("\n");
+      const ctx = createMockContext({ "AGENTS.md": content });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-008")).toBe(true);
+    });
+
+    it("does not emit ARI-CTX-008 for long AGENTS.md with many code blocks", async () => {
+      // 600 lines but lots of code blocks
+      const lines = ["# AGENTS.md"];
+      for (let i = 1; i <= 60; i++) {
+        lines.push(`## Section ${i}`);
+        lines.push("Description.");
+        lines.push("```ts");
+        lines.push(`const x${i} = ${i};`);
+        lines.push("```");
+        // Pad to ~10 lines per section
+        for (let j = 0; j < 5; j++) {
+          lines.push(`More details for section ${i}.`);
+        }
+      }
+      const content = lines.join("\n");
+      const ctx = createMockContext({ "AGENTS.md": content });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-008")).toBe(false);
+    });
+
+    it("does not emit ARI-CTX-008 for short AGENTS.md", async () => {
+      const content = [
+        "# AGENTS.md",
+        "## Architecture",
+        "Simple project.",
+        "Line 4",
+        "Line 5",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({ "AGENTS.md": content });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-008")).toBe(false);
+    });
+  });
 });

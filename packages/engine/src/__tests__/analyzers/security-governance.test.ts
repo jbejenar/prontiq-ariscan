@@ -189,17 +189,30 @@ describe("securityGovernanceAnalyzer (P8)", () => {
   });
 
   describe("branch protection / PR requirements", () => {
-    it("detects pull_request trigger in workflows", async () => {
-      const withPR = createMockContext({
-        ".github/workflows/ci.yml": "name: CI\non:\n  pull_request:\n    branches: [main]",
+    it("gives points when pull_request + enforcement pattern exist", async () => {
+      const withEnforcement = createMockContext({
+        ".github/workflows/ci.yml": "name: CI\non:\n  pull_request:\n    branches: [main]\njobs:\n  check:\n    steps:\n      - name: required status check",
       });
       const without = createMockContext({
         ".github/workflows/ci.yml": "name: CI\non:\n  push:\n    branches: [main]",
       });
 
-      const prResult = await securityGovernanceAnalyzer.analyze(withPR);
+      const enforcedResult = await securityGovernanceAnalyzer.analyze(withEnforcement);
       const noPrResult = await securityGovernanceAnalyzer.analyze(without);
-      expect(prResult.score).toBeGreaterThan(noPrResult.score);
+      expect(enforcedResult.score).toBeGreaterThan(noPrResult.score);
+    });
+
+    it("does not give points for bare pull_request trigger without enforcement patterns", async () => {
+      const barepr = createMockContext({
+        ".github/workflows/ci.yml": "name: CI\non:\n  pull_request:\n    branches: [main]\njobs:\n  build:\n    steps:\n      - run: echo hello",
+      });
+      const noPr = createMockContext({
+        ".github/workflows/ci.yml": "name: CI\non:\n  push:\n    branches: [main]",
+      });
+
+      const bareResult = await securityGovernanceAnalyzer.analyze(barepr);
+      const noPrResult = await securityGovernanceAnalyzer.analyze(noPr);
+      expect(bareResult.score).toBe(noPrResult.score);
     });
   });
 
@@ -300,6 +313,61 @@ describe("securityGovernanceAnalyzer (P8)", () => {
       const ctx = createMockContext({});
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-SEC-006")).toBe(true);
+    });
+  });
+
+  describe("ARI-SEC-007: License compliance tooling", () => {
+    it("emits ARI-SEC-007 when no license compliance tooling found", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-007")).toBe(true);
+    });
+
+    it("does not emit ARI-SEC-007 when license-checker found in CI", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/ci.yml": "name: CI\njobs:\n  license:\n    steps:\n      - run: npx license-checker",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-007")).toBe(false);
+    });
+
+    it("does not emit ARI-SEC-007 when fossa found in CI", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/ci.yml": "name: CI\njobs:\n  license:\n    steps:\n      - uses: fossa-contrib/fossa-action@v1",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-007")).toBe(false);
+    });
+
+    it("does not emit ARI-SEC-007 when license-checker is in package.json scripts", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          scripts: { "license:check": "license-checker --onlyAllow 'MIT;ISC'" },
+        }),
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-007")).toBe(false);
+    });
+  });
+
+  describe("summary shows configuration status labels", () => {
+    it("shows 'configured' for present controls", async () => {
+      const ctx = createMockContext({
+        ".github/CODEOWNERS": "* @owner",
+        ".gitleaks.toml": "[allowlist]",
+        ".github/dependabot.yml": "version: 2",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("CODEOWNERS: configured");
+      expect(result.summary).toContain("Secrets scanning: configured");
+      expect(result.summary).toContain("Dep audit: configured");
+    });
+
+    it("shows 'missing' for absent controls", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("CODEOWNERS: missing");
+      expect(result.summary).toContain("SAST: missing");
     });
   });
 
