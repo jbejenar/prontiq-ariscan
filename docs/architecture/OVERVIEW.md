@@ -3,7 +3,7 @@
 ## System Diagram
 
 ```
-prontiq/ariscan (CLI — MIT)
+prontiq/ariscan (CLI — ELv2)
   | npx ariscan .
   | consumes @prontiq/engine
   |
@@ -73,7 +73,7 @@ prontiq/ariscan (CLI — MIT)
 
 ## Repository Boundaries and Responsibilities
 
-### prontiq/ariscan (MIT)
+### prontiq/ariscan (ELv2)
 
 The open-source CLI and the public face of the project. Runs entirely locally with no network calls required.
 

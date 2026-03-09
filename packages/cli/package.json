@@ -32,7 +32,7 @@
     "lint",
     "scan"
   ],
-  "license": "MIT",
+  "license": "Elastic-2.0",
   "dependencies": {
     "@prontiq/engine": "workspace:*",
     "@prontiq/schema": "workspace:*",

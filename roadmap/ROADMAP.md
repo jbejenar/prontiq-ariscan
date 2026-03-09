@@ -233,7 +233,7 @@ prontiq/ariscan/
 ├── package.json                           # Root package.json
 ├── README.md
 ├── CONTRIBUTING.md
-├── LICENSE                                # MIT
+├── LICENSE                                # Elastic License 2.0 (ELv2)
 └── CHANGELOG.md
 ```
 

@@ -134,4 +134,7 @@ See [roadmap/ROADMAP.md](./roadmap/ROADMAP.md) for the full feature plan. RFCs a
 
 ## License
 
-MIT
+Elastic License 2.0 (ELv2) — see [LICENSE](./LICENSE).
+
+Free to use, modify, and redistribute. Cannot be offered as a managed/hosted service or resold.
+The planned `@prontiq/agentignore` parser will be MIT-licensed for ecosystem reuse.
