@@ -1038,7 +1038,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     - [x] **Module boundary clarity:** Clear separation between domains/features/layers. *(checks `src/` or `packages/`)*
     - [x] **Import graph complexity:** Fan-in/fan-out metrics, circular dependency detection. *(ARI-NAV-004: flags files with >20 imports. ARI-NAV-005: builds import map and detects mutual imports.)*
     - [x] **Dead code percentage:** Unreachable/unused exports, files with no imports. *(ARI-NAV-006 dead code detection heuristic added 2026-03-09)*
-    - [ ] **Code duplication:** Clone detection, DRY violations.
+    - [x] **Code duplication:** Clone detection, DRY violations. *(ARI-NAV-008 normalized line-chunk hashing added 2026-03-09)*
     - [x] **Cognitive complexity score:** Nested conditionals, excessive boolean operators, large methods. *(ARI-NAV-007 cognitive complexity estimate added 2026-03-09)*
   - [x] "Most costly navigation paths" summary: the top 5 areas where agents will struggle most. *(added 2026-03-09)*
   - [ ] Structural clarity for retrieval: evaluation of call hierarchies and predictable patterns.
@@ -1324,7 +1324,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.03 — Context File Discovery (4 done, 0 partial, 2 not done) — updated 2026-03-09
+#### P1.03 — Context File Discovery (6 done, 0 partial, 3 not done) — updated 2026-03-09
 
 **Deliverables:**
 
@@ -1549,7 +1549,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.11 — Navigability Baseline / Pillar 7 (8 done, 1 partial, 3 not done) — updated 2026-03-09
+#### P1.11 — Navigability Baseline / Pillar 7 (10 done, 1 partial, 2 not done) — updated 2026-03-09
 
 **Deliverables:**
 
@@ -1752,6 +1752,8 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 - C# nullable refs (P1.10) — ARI-BLD-009 checks `<Nullable>enable</Nullable>` + `#nullable enable`
 - --verbose/--quiet modes (P1.01) — verbose shows detection/context/details, quiet outputs single line
 - Context file lastModified/parseStatus (P1.03) — already implemented, roadmap notes corrected
+- Code duplication / clone detection (P1.11) — ARI-NAV-008 normalized line-chunk hashing across source files
+- Non-parsable context file warnings (P1.03) — ARI-CTX-009 validates JSON/YAML/empty context files
 
 ### P1 Exit Criteria
 

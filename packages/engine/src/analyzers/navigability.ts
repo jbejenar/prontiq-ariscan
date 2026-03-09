@@ -401,7 +401,6 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     // Use normalized line-chunk hashing to detect near-duplicate code blocks
     const CHUNK_SIZE = 6; // consecutive normalized lines per chunk
     const chunkMap = new Map<string, string[]>(); // hash -> list of file paths
-    const filesWithContent = new Map<string, string[]>(); // file -> normalized lines
     const sampledForDuplication = sourceFiles.slice(0, 40);
 
     for (const file of sampledForDuplication) {
@@ -423,8 +422,6 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
             l !== "}" &&
             l !== "};",
         );
-
-      filesWithContent.set(file, normalized);
 
       // Create overlapping chunks
       for (let i = 0; i <= normalized.length - CHUNK_SIZE; i++) {
