@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.6.0] — 2026-03-09
+
+### Added
+- **Context Quality (P1):** Cross-agent compatibility report (ARI-CTX-010) — maps discovered context files to 5 agent categories (Claude Code, Cursor, GitHub Copilot, Aider, Generic/all agents). Reports which agents have dedicated context files vs none, with actionable remediation. (P1.03 deliverable #3)
+
+### Metrics
+- **Self-scan score:** 75/100 (L4 Productive) — no regression
+- **Tests:** 339 passing across 13 test files (+5 new cross-agent compatibility tests)
+- **Roadmap progress:** 155/273 deliverables complete (57%)
+
 ## [2.5.0] — 2026-03-09
 
 ### Added
