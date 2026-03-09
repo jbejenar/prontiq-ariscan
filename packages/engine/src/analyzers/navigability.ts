@@ -3,6 +3,215 @@ import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
 
 const PILLAR: PillarId = "P7";
 
+/** Extracted function with name and body text */
+interface ExtractedFunction {
+  name: string;
+  body: string;
+}
+
+/**
+ * Extract top-level function definitions from source code using brace-matching.
+ * Handles: function declarations, arrow functions assigned to const/let/var,
+ * class methods, and exported variants.
+ */
+function extractFunctions(content: string): ExtractedFunction[] {
+  const lines = content.split("\n");
+  // Cap at 50 functions per file and only scan first 2000 lines
+  const MAX_FUNCTIONS = 50;
+  const MAX_SCAN_LINES = 2000;
+  const functions: ExtractedFunction[] = [];
+  let i = 0;
+
+  while (i < lines.length && i < MAX_SCAN_LINES && functions.length < MAX_FUNCTIONS) {
+    const line = lines[i];
+    if (line === undefined) {
+      i++;
+      continue;
+    }
+    const trimmed = line.trim();
+
+    // Match function declarations, arrow functions, and class methods.
+    // Order matters: most specific first.
+    const fnDeclMatch = trimmed.match(/^(?:export\s+)?(?:async\s+)?function\s+(\w+)/);
+    // Arrow with => on same line: const foo = (args) => {
+    const arrowMatch = trimmed.match(
+      /^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*(?::\s*[^=]+)?\s*=>\s*\{/,
+    );
+    // Class method: methodName(args) {
+    const methodMatch = trimmed.match(/^(?:async\s+)?(\w+)\s*\([^)]*\)\s*(?::\s*\S+\s*)?\{/);
+
+    const name = fnDeclMatch?.[1] ?? arrowMatch?.[1] ?? methodMatch?.[1];
+
+    if (
+      name &&
+      name !== "if" &&
+      name !== "for" &&
+      name !== "while" &&
+      name !== "switch" &&
+      name !== "catch" &&
+      name !== "else"
+    ) {
+      // Find the opening brace on this line or subsequent lines
+      let braceStart = i;
+      let foundBrace = false;
+      let searchLine = trimmed;
+
+      // Look up to 3 lines ahead for the opening brace
+      for (let look = 0; look < 3 && i + look < lines.length; look++) {
+        const lookLine = lines[i + look];
+        if (lookLine === undefined) continue;
+        if (lookLine.includes("{")) {
+          braceStart = i + look;
+          searchLine = lookLine;
+          foundBrace = true;
+          break;
+        }
+      }
+
+      if (foundBrace) {
+        // Count braces to find the end of the function (max 500 lines to avoid runaway)
+        const MAX_BODY_LINES = 200;
+        const bodyLines: string[] = [];
+        let j = braceStart;
+
+        // Count braces on a line, skipping those inside string literals and comments
+        const countBraces = (ln: string): { open: number; close: number } => {
+          let open = 0;
+          let close = 0;
+          let inSingle = false;
+          let inDouble = false;
+          let inTemplate = false;
+          for (let c = 0; c < ln.length; c++) {
+            const ch = ln[c];
+            const prev = c > 0 ? ln[c - 1] : "";
+            if (prev === "\\") continue;
+            if (ch === "'" && !inDouble && !inTemplate) {
+              inSingle = !inSingle;
+              continue;
+            }
+            if (ch === '"' && !inSingle && !inTemplate) {
+              inDouble = !inDouble;
+              continue;
+            }
+            if (ch === "`" && !inSingle && !inDouble) {
+              inTemplate = !inTemplate;
+              continue;
+            }
+            if (inSingle || inDouble || inTemplate) continue;
+            // Skip line comments
+            if (ch === "/" && c + 1 < ln.length && ln[c + 1] === "/") break;
+            if (ch === "{") open++;
+            if (ch === "}") close++;
+          }
+          return { open, close };
+        };
+
+        const initial = countBraces(searchLine);
+        let braceDepth = initial.open - initial.close;
+        bodyLines.push(searchLine);
+
+        if (braceDepth > 0) {
+          j++;
+          while (j < lines.length && braceDepth > 0 && bodyLines.length < MAX_BODY_LINES) {
+            const bodyLine = lines[j];
+            if (bodyLine !== undefined) {
+              bodyLines.push(bodyLine);
+              const b = countBraces(bodyLine);
+              braceDepth += b.open - b.close;
+            }
+            j++;
+          }
+        }
+
+        // Only record if we found the closing brace (braceDepth == 0)
+        if (braceDepth === 0) {
+          functions.push({ name, body: bodyLines.join("\n") });
+        }
+        i = j;
+        continue;
+      }
+    }
+    i++;
+  }
+
+  return functions;
+}
+
+/**
+ * Compute cognitive complexity for a function body.
+ * Based on SonarSource cognitive complexity metric:
+ * - +1 for each control flow break (if, else if, else, switch, for, while, catch, ternary)
+ * - +1 nesting increment per level of nesting for nested control flow
+ * - +1 for each boolean operator sequence (&&, ||)
+ */
+function computeCognitiveComplexity(body: string): number {
+  const lines = body.split("\n");
+  let complexity = 0;
+  let nestingLevel = 0;
+
+  // Track brace depth to approximate nesting of control structures
+  const controlFlowPattern = /^\s*(if|else\s+if|else|switch|for|while|do|catch)\b/;
+  const ternaryPattern = /\?[^:?]*:/;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) continue;
+
+    // Check for control flow structures
+    const cfMatch = trimmed.match(controlFlowPattern);
+    if (cfMatch) {
+      const keyword = cfMatch[1];
+      // "else" and "else if" get +1 but no nesting penalty
+      if (keyword === "else") {
+        complexity += 1;
+      } else if (keyword === "else if") {
+        complexity += 1;
+      } else {
+        // if, switch, for, while, do, catch: +1 base + nesting penalty
+        complexity += 1 + nestingLevel;
+      }
+
+      // If this line opens a brace, it increases nesting for subsequent lines
+      if (trimmed.includes("{")) {
+        nestingLevel++;
+      }
+    } else {
+      // Track brace-based nesting for non-control-flow lines
+      if (trimmed.includes("{") && !trimmed.startsWith("//") && !trimmed.startsWith("*")) {
+        nestingLevel++;
+      }
+    }
+
+    if (trimmed.includes("}")) {
+      // Count closing braces to handle multiple on same line
+      const closingCount = (trimmed.match(/\}/g) ?? []).length;
+      const openingCount = (trimmed.match(/\{/g) ?? []).length;
+      // Only decrease for net closings, and only if we didn't already count the opening above
+      const netClose = closingCount - openingCount;
+      if (netClose > 0 && !cfMatch) {
+        nestingLevel = Math.max(0, nestingLevel - netClose);
+      } else if (netClose > 0 && cfMatch) {
+        // Control flow line with net close: the open was counted above, close excess
+        nestingLevel = Math.max(0, nestingLevel - netClose);
+      }
+    }
+
+    // Boolean operator sequences: +1 per chain
+    const boolOps = trimmed.match(/&&|\|\|/g);
+    if (boolOps) {
+      complexity += boolOps.length;
+    }
+
+    // Ternary operator: +1 per occurrence
+    const ternaries = trimmed.match(ternaryPattern);
+    if (ternaries) {
+      complexity += 1;
+    }
+  }
+
+  return complexity;
+}
+
 export const navigabilityAnalyzer: PillarAnalyzer = {
   pillar: PILLAR,
   name: PILLAR_NAMES[PILLAR],
@@ -323,75 +532,74 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       });
     }
 
-    // --- ARI-NAV-007: Cognitive complexity estimate ---
-    const complexFiles: Array<{ file: string; reason: string }> = [];
+    // --- ARI-NAV-007: Per-function cognitive complexity with aggregation ---
+    interface FunctionComplexity {
+      file: string;
+      name: string;
+      complexity: number;
+      lineCount: number;
+      label: "good" | "moderate" | "poor";
+    }
+
+    const allFunctionComplexities: FunctionComplexity[] = [];
     const sampledForComplexity = importableFiles.slice(0, 20);
 
     for (const file of sampledForComplexity) {
       const content = await context.readFile(file);
       if (!content) continue;
 
-      const lines = content.split("\n");
-
-      // Count nested conditionals depth
-      let maxNestingDepth = 0;
-      let currentNesting = 0;
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (
-          /^(if|else if|else|switch|for|while|try|catch)\b/.test(trimmed) ||
-          /\{\s*$/.test(trimmed)
-        ) {
-          currentNesting++;
-          if (currentNesting > maxNestingDepth) {
-            maxNestingDepth = currentNesting;
-          }
-        }
-        if (/^\}/.test(trimmed)) {
-          currentNesting = Math.max(0, currentNesting - 1);
-        }
-      }
-
-      // Check for long functions (>50 lines between function boundaries)
-      let inFunction = false;
-      let functionStartLine = 0;
-      let hasLongFunction = false;
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line === undefined) continue;
-        const trimmed = line.trim();
-        if (
-          /^(export\s+)?(async\s+)?function\b|^(export\s+)?(const|let|var)\s+\w+\s*=\s*(async\s+)?\(/.test(
-            trimmed,
-          )
-        ) {
-          inFunction = true;
-          functionStartLine = i;
-        }
-        if (inFunction && /^\};\s*$|^\}\s*$/.test(trimmed) && i - functionStartLine > 50) {
-          hasLongFunction = true;
-          inFunction = false;
-        }
-      }
-
-      if (maxNestingDepth >= 5) {
-        complexFiles.push({ file, reason: `nesting depth ${maxNestingDepth}` });
-      } else if (hasLongFunction) {
-        complexFiles.push({ file, reason: "long function (>50 lines)" });
+      const functions = extractFunctions(content);
+      for (const fn of functions) {
+        const complexity = computeCognitiveComplexity(fn.body);
+        const label = complexity <= 8 ? "good" : complexity <= 15 ? "moderate" : "poor";
+        allFunctionComplexities.push({
+          file,
+          name: fn.name,
+          complexity,
+          lineCount: fn.body.split("\n").length,
+          label,
+        });
       }
     }
 
-    if (complexFiles.length > 0) {
-      score -= Math.min(10, complexFiles.length * 3);
-      const topComplex = complexFiles.slice(0, 3);
+    // Aggregate: sort by complexity descending, report top offenders
+    allFunctionComplexities.sort((a, b) => b.complexity - a.complexity);
+    const poorFunctions = allFunctionComplexities.filter((f) => f.label === "poor");
+    const moderateFunctions = allFunctionComplexities.filter((f) => f.label === "moderate");
+
+    if (poorFunctions.length > 0) {
+      score -= Math.min(10, poorFunctions.length * 3);
+      const topPoor = poorFunctions.slice(0, 5);
+      findings.push({
+        code: "ARI-NAV-007",
+        severity: "high",
+        pillar: PILLAR,
+        message: `${poorFunctions.length} function(s) with poor cognitive complexity (>15): ${topPoor.map((c) => `${c.file}:${c.name} (${c.complexity})`).join(", ")}`,
+        remediation: {
+          action: "refactor",
+          description:
+            "Break high-complexity functions into smaller, focused units. Reduce nesting depth and extract conditional logic into helper functions.",
+          confidence: "high",
+        },
+        evidence: {
+          paper: "Shippey et al., 2022",
+          finding:
+            "Cognitive complexity >15 correlates with 3x higher defect density and significantly slower agent comprehension",
+          confidence: "medium",
+        },
+      });
+    } else if (moderateFunctions.length > 3) {
+      score -= Math.min(5, moderateFunctions.length);
+      const topMod = moderateFunctions.slice(0, 3);
       findings.push({
         code: "ARI-NAV-007",
         severity: "medium",
         pillar: PILLAR,
-        message: `Found ${complexFiles.length} file(s) with high cognitive complexity: ${topComplex.map((c) => `${c.file} (${c.reason})`).join(", ")}`,
+        message: `${moderateFunctions.length} function(s) with moderate cognitive complexity (9-15): ${topMod.map((c) => `${c.file}:${c.name} (${c.complexity})`).join(", ")}`,
         remediation: {
           action: "refactor",
-          description: "Reduce nesting depth and break long functions into smaller, focused units",
+          description:
+            "Consider simplifying functions with moderate complexity by extracting nested logic",
           confidence: "medium",
         },
       });
@@ -519,8 +727,10 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     if (deadCodeCandidates.length > 0) {
       problemAreas.push(`${deadCodeCandidates.length} potentially dead file(s)`);
     }
-    if (complexFiles.length > 0) {
-      problemAreas.push(`${complexFiles.length} high-complexity file(s)`);
+    if (poorFunctions.length > 0) {
+      problemAreas.push(`${poorFunctions.length} high-complexity function(s)`);
+    } else if (moderateFunctions.length > 3) {
+      problemAreas.push(`${moderateFunctions.length} moderate-complexity function(s)`);
     }
     if (filesWithDuplication > 0) {
       problemAreas.push(`${filesWithDuplication} file(s) with duplicated code`);

@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.5.0] — 2026-03-09
+
+### Added
+- **Navigability (P7):** Per-function cognitive complexity with aggregation (ARI-NAV-007) — replaces file-level heuristic with SonarSource-inspired per-function metric. Extracts functions via brace-matching (handles function declarations, arrow functions, class methods), computes complexity from control flow nesting depth, boolean operators, and ternaries. Reports top offenders with good/moderate/poor labels. (P1.11 AC#5)
+
+### Changed
+- ARI-NAV-007 severity upgraded: `high` for functions with complexity >15, `medium` for >3 moderate-complexity functions. Includes research evidence citation.
+- Function extraction is robust against string literals, comments, and large files (max 200 lines per function body, max 50 functions per file, max 2000 scan lines).
+- Self-scan score: 75/100 (L4 Productive) — no regression
+- Tests: 334 passing across 13 test files (+5 new per-function complexity tests)
+- Roadmap: P1.11 AC#5 complete
+
 ## [2.4.0] — 2026-03-09
 
 ### Added

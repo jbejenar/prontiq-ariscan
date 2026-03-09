@@ -1549,7 +1549,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.11 — Navigability Baseline / Pillar 7 (10 done, 1 partial, 2 not done) — updated 2026-03-09
+#### P1.11 — Navigability Baseline / Pillar 7 (10 done, 1 partial, 1 not done) — updated 2026-03-09
 
 **Deliverables:**
 
@@ -1561,7 +1561,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 4 | Import graph complexity (fan-in/fan-out, circular deps) | ✅ Done | ARI-NAV-004: flags files with >20 imports. ARI-NAV-005: builds import map, detects mutual imports. |
 | 5 | Dead code percentage (unused exports, files with no imports) | ✅ Done | ARI-NAV-006: dead code detection heuristic (files with no imports). Added 2026-03-09. |
 | 6 | Code duplication / clone detection | ✅ Done | ARI-NAV-008: normalized line-chunk hashing detects near-duplicate code blocks across files. Thresholds: >40% files or >8 files for high, >20% or >4 for moderate. Added 2026-03-09. |
-| 7 | Cognitive complexity score | ✅ Done | ARI-NAV-007: cognitive complexity estimate (nested conditionals, large methods). Added 2026-03-09. |
+| 7 | Cognitive complexity score | ✅ Done | ARI-NAV-007: per-function cognitive complexity with aggregation (SonarSource-inspired metric, good/moderate/poor labels). Added 2026-03-09, upgraded to per-function 2026-03-09. |
 | 8 | "Most costly navigation paths" summary | ✅ Done | Identifies top areas where agents will struggle most. Added 2026-03-09. |
 
 **Acceptance Criteria:**
@@ -1572,7 +1572,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 2 | Each metric with threshold calibration (good/moderate/poor) | 🔧 Partial | Depth and files-per-dir have implicit thresholds but no explicit labels in output |
 | 3 | Circular dependency detection with import chains | ✅ Done | ARI-NAV-005: builds import map and reports mutual import pairs |
 | 4 | Dead code detection <15% false-positive rate | ❌ Not done | Heuristic-based, no benchmark validation |
-| 5 | Cognitive complexity per function with aggregation | ❌ Not done | ARI-NAV-007 is file-level estimate, not per-function with aggregation |
+| 5 | Cognitive complexity per function with aggregation | ✅ Done | ARI-NAV-007 now extracts functions via brace-matching, computes per-function cognitive complexity (SonarSource-inspired: nesting penalty + control flow + boolean operators), aggregates and reports top offenders with good/moderate/poor labels. Added 2026-03-09. |
 
 ---
 
@@ -1740,7 +1740,7 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 
 **Remaining P1 gaps (highest priority):**
 - Semantic additionality engine (P1.04) — core feature, requires NLP/similarity analysis
-- Per-function cognitive complexity aggregation (P1.11) — file-level only
+- ~~Per-function cognitive complexity aggregation (P1.11)~~ — ✅ Done (2026-03-09)
 - --fix starter (P1.17) — not started
 - Benchmark cohort (P1.18) — not started
 
