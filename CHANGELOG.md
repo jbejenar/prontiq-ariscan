@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.4.0] — 2026-03-09
+
+### Added
+- **Navigability (P7):** Code duplication / clone detection (ARI-NAV-008) — uses normalized line-chunk hashing to detect near-duplicate code blocks across source files. Thresholds tuned to avoid false positives from interface-following patterns. (P1.11 deliverable #6)
+- **Context Quality (P1):** Non-parsable context file warnings (ARI-CTX-009) — validates JSON parse, YAML emptiness/mixed indentation, and empty file detection. Reduces score -5 per invalid file. (P1.03 acceptance criterion #2)
+
+### Changed
+- Self-scan score: 75/100 (L4 Productive) — down from 77 due to new duplication detector revealing structural similarity across analyzer files (expected: new rigorous checks surface previously invisible gaps)
+- Tests: 329 passing across 13 test files (+9 new tests)
+- Roadmap progress: 153/273 deliverables complete (56%)
+
 ## [2.3.0] — 2026-03-09
 
 ### Added

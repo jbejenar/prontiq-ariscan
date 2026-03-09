@@ -143,6 +143,69 @@ describe("navigabilityAnalyzer (P7)", () => {
     });
   });
 
+  describe("ARI-NAV-008: Code duplication detection", () => {
+    it("emits ARI-NAV-008 when multiple files share duplicated code blocks", async () => {
+      const sharedBlock = [
+        "function processData(input) {",
+        "  const result = input.map(item => item.value);",
+        "  const filtered = result.filter(v => v > 0);",
+        "  const sorted = filtered.sort((a, b) => a - b);",
+        "  const total = sorted.reduce((sum, v) => sum + v, 0);",
+        "  return { sorted, total };",
+        "}",
+      ].join("\n");
+
+      const files: Record<string, string> = {};
+      // Create several files with identical code blocks
+      for (let i = 0; i < 6; i++) {
+        files[`src/handler${i}.ts`] =
+          `const name${i} = "handler${i}";\n${sharedBlock}\nexport const h${i} = processData;`;
+      }
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-008")).toBe(true);
+    });
+
+    it("does not emit ARI-NAV-008 when files have unique code", async () => {
+      const files: Record<string, string> = {};
+      for (let i = 0; i < 5; i++) {
+        files[`src/unique${i}.ts`] = [
+          `export function fn${i}(x: number) {`,
+          `  const result${i} = x * ${i + 2};`,
+          `  const label${i} = "unique-${i}-value";`,
+          `  const check${i} = result${i} > ${i * 10};`,
+          `  const output${i} = check${i} ? label${i} : "none";`,
+          `  return output${i};`,
+          "}",
+        ].join("\n");
+      }
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-008")).toBe(false);
+    });
+
+    it("includes duplication in summary when detected", async () => {
+      const sharedBlock = [
+        "function validate(data) {",
+        "  const errors = [];",
+        "  if (!data.name) errors.push('missing name');",
+        "  if (!data.email) errors.push('missing email');",
+        "  if (!data.age) errors.push('missing age');",
+        "  return errors;",
+        "}",
+      ].join("\n");
+
+      const files: Record<string, string> = {};
+      for (let i = 0; i < 6; i++) {
+        files[`src/validator${i}.ts`] =
+          `const ctx${i} = ${i};\n${sharedBlock}\nexport default validate;`;
+      }
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("duplicated code");
+    });
+  });
+
   describe("summary includes top issues", () => {
     it("includes problem areas in summary when issues exist", async () => {
       const imports = Array.from(

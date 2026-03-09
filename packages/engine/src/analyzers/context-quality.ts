@@ -367,6 +367,54 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
       }
     }
 
+    // --- ARI-CTX-009: Non-parsable context file warnings ---
+    // Validate parse status for structured context files (JSON, YAML)
+    const nonParsableFiles: Array<{ path: string; reason: string }> = [];
+    for (const cf of foundContextFiles) {
+      const content = await context.readFile(cf);
+      if (content === null) continue;
+
+      if (cf.endsWith(".json")) {
+        try {
+          JSON.parse(content);
+        } catch {
+          nonParsableFiles.push({ path: cf, reason: "invalid JSON" });
+        }
+      } else if (cf.endsWith(".yml") || cf.endsWith(".yaml")) {
+        const trimmed = content.trim();
+        if (trimmed.length === 0) {
+          nonParsableFiles.push({ path: cf, reason: "empty YAML file" });
+        } else if (/^\t+ /m.test(trimmed) || /^ +\t/m.test(trimmed)) {
+          nonParsableFiles.push({ path: cf, reason: "mixed tabs and spaces in YAML" });
+        }
+      }
+
+      // Check for completely empty files (any type)
+      if (content.trim().length === 0 && !cf.endsWith(".yml") && !cf.endsWith(".yaml")) {
+        nonParsableFiles.push({ path: cf, reason: "empty file" });
+      }
+    }
+
+    if (nonParsableFiles.length > 0) {
+      score -= 5 * nonParsableFiles.length;
+      const details = nonParsableFiles
+        .slice(0, 3)
+        .map((f) => `${f.path} (${f.reason})`)
+        .join(", ");
+      findings.push({
+        code: "ARI-CTX-009",
+        severity: "high",
+        pillar: PILLAR,
+        message: `${nonParsableFiles.length} context file(s) failed parse validation: ${details}${nonParsableFiles.length > 3 ? ` and ${nonParsableFiles.length - 3} more` : ""}`,
+        remediation: {
+          action: "modify-config",
+          description:
+            "Fix parse errors in context files. Invalid JSON or malformed YAML will prevent agents from reading configuration correctly.",
+          confidence: "high",
+        },
+      });
+    }
+
     // Check README quality as context baseline
     const readme = await context.readFile("README.md");
     if (readme) {

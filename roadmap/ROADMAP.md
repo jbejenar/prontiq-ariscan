@@ -1038,7 +1038,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     - [x] **Module boundary clarity:** Clear separation between domains/features/layers. *(checks `src/` or `packages/`)*
     - [x] **Import graph complexity:** Fan-in/fan-out metrics, circular dependency detection. *(ARI-NAV-004: flags files with >20 imports. ARI-NAV-005: builds import map and detects mutual imports.)*
     - [x] **Dead code percentage:** Unreachable/unused exports, files with no imports. *(ARI-NAV-006 dead code detection heuristic added 2026-03-09)*
-    - [ ] **Code duplication:** Clone detection, DRY violations.
+    - [x] **Code duplication:** Clone detection, DRY violations. *(ARI-NAV-008 normalized line-chunk hashing added 2026-03-09)*
     - [x] **Cognitive complexity score:** Nested conditionals, excessive boolean operators, large methods. *(ARI-NAV-007 cognitive complexity estimate added 2026-03-09)*
   - [x] "Most costly navigation paths" summary: the top 5 areas where agents will struggle most. *(added 2026-03-09)*
   - [ ] Structural clarity for retrieval: evaluation of call hierarchies and predictable patterns.
@@ -1324,7 +1324,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.03 — Context File Discovery (4 done, 0 partial, 3 not done) — updated 2026-03-08
+#### P1.03 — Context File Discovery (6 done, 0 partial, 3 not done) — updated 2026-03-09
 
 **Deliverables:**
 
@@ -1340,7 +1340,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | # | Criterion | Status | Notes |
 |---|---|---|---|
 | 1 | Includes path, type, size, lastModified, parseStatus | ✅ Done | All fields populated: path, type, size (bytes), lineCount, lastModified (ISO 8601 from fs.stat), parseStatus (valid/warning/error from content validation). |
-| 2 | Non-parsable files surfaced with line-level warnings | ❌ Not done | No parse validation |
+| 2 | Non-parsable files surfaced with line-level warnings | ✅ Done | ARI-CTX-009: validates JSON parse, YAML emptiness/mixed indentation, empty files. Reduces score -5 per invalid file. Added 2026-03-09. |
 | 3 | Nested context files in monorepo subdirs | ✅ Done | Added 2026-03-09 |
 | 4 | Zero false negatives on benchmark cohort | ❌ Not done | No benchmark. All known formats now discovered. |
 | 5 | Discovery <1s for 100k files | ❌ Not done | No performance testing |
@@ -1549,7 +1549,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.11 — Navigability Baseline / Pillar 7 (7 done, 1 partial, 4 not done) — updated 2026-03-09
+#### P1.11 — Navigability Baseline / Pillar 7 (10 done, 1 partial, 2 not done) — updated 2026-03-09
 
 **Deliverables:**
 
@@ -1560,7 +1560,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 3 | Module boundary clarity | ✅ Done | Checks for `src/` or `packages/` |
 | 4 | Import graph complexity (fan-in/fan-out, circular deps) | ✅ Done | ARI-NAV-004: flags files with >20 imports. ARI-NAV-005: builds import map, detects mutual imports. |
 | 5 | Dead code percentage (unused exports, files with no imports) | ✅ Done | ARI-NAV-006: dead code detection heuristic (files with no imports). Added 2026-03-09. |
-| 6 | Code duplication / clone detection | ❌ Not done | |
+| 6 | Code duplication / clone detection | ✅ Done | ARI-NAV-008: normalized line-chunk hashing detects near-duplicate code blocks across files. Thresholds: >40% files or >8 files for high, >20% or >4 for moderate. Added 2026-03-09. |
 | 7 | Cognitive complexity score | ✅ Done | ARI-NAV-007: cognitive complexity estimate (nested conditionals, large methods). Added 2026-03-09. |
 | 8 | "Most costly navigation paths" summary | ✅ Done | Identifies top areas where agents will struggle most. Added 2026-03-09. |
 
@@ -1740,7 +1740,6 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 
 **Remaining P1 gaps (highest priority):**
 - Semantic additionality engine (P1.04) — core feature, requires NLP/similarity analysis
-- Code duplication / clone detection (P1.11) — not yet attempted
 - Per-function cognitive complexity aggregation (P1.11) — file-level only
 - --fix starter (P1.17) — not started
 - Benchmark cohort (P1.18) — not started
@@ -1753,6 +1752,8 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 - C# nullable refs (P1.10) — ARI-BLD-009 checks `<Nullable>enable</Nullable>` + `#nullable enable`
 - --verbose/--quiet modes (P1.01) — verbose shows detection/context/details, quiet outputs single line
 - Context file lastModified/parseStatus (P1.03) — already implemented, roadmap notes corrected
+- Code duplication / clone detection (P1.11) — ARI-NAV-008 normalized line-chunk hashing across source files
+- Non-parsable context file warnings (P1.03) — ARI-CTX-009 validates JSON/YAML/empty context files
 
 ### P1 Exit Criteria
 
