@@ -397,6 +397,117 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       });
     }
 
+    // --- ARI-NAV-008: Code duplication / clone detection ---
+    // Use normalized line-chunk hashing to detect near-duplicate code blocks
+    const CHUNK_SIZE = 6; // consecutive normalized lines per chunk
+    const chunkMap = new Map<string, string[]>(); // hash -> list of file paths
+    const filesWithContent = new Map<string, string[]>(); // file -> normalized lines
+    const sampledForDuplication = sourceFiles.slice(0, 40);
+
+    for (const file of sampledForDuplication) {
+      const content = await context.readFile(file);
+      if (!content) continue;
+
+      // Normalize lines: trim, collapse whitespace, skip empty/comment/import lines
+      const normalized = content
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(
+          (l) =>
+            l.length > 0 &&
+            !/^\s*\/\//.test(l) &&
+            !/^\s*\/?\*/.test(l) &&
+            !/^\s*#/.test(l) &&
+            !/^\s*(import|from|require|export)\b/.test(l) &&
+            l !== "{" &&
+            l !== "}" &&
+            l !== "};",
+        );
+
+      filesWithContent.set(file, normalized);
+
+      // Create overlapping chunks
+      for (let i = 0; i <= normalized.length - CHUNK_SIZE; i++) {
+        const chunk = normalized.slice(i, i + CHUNK_SIZE).join("\n");
+        const existing = chunkMap.get(chunk);
+        if (existing) {
+          if (!existing.includes(file)) {
+            existing.push(file);
+          }
+        } else {
+          chunkMap.set(chunk, [file]);
+        }
+      }
+    }
+
+    // Find files that share significant chunks with other files
+    const duplicationPairs = new Map<string, Set<string>>(); // file -> set of files it shares chunks with
+    let sharedChunkCount = 0;
+
+    for (const [, files] of chunkMap) {
+      if (files.length > 1) {
+        sharedChunkCount++;
+        for (const fileA of files) {
+          for (const fileB of files) {
+            if (fileA !== fileB) {
+              const set = duplicationPairs.get(fileA) ?? new Set<string>();
+              set.add(fileB);
+              duplicationPairs.set(fileA, set);
+            }
+          }
+        }
+      }
+    }
+
+    // Count files involved in duplication and compute ratio
+    const filesWithDuplication = duplicationPairs.size;
+    const duplicationRatio =
+      sampledForDuplication.length > 0 ? filesWithDuplication / sampledForDuplication.length : 0;
+
+    if (duplicationRatio > 0.4 || filesWithDuplication > 8) {
+      // High duplication: significant penalty
+      score -= 10;
+      const topPairs = [...duplicationPairs.entries()]
+        .sort((a, b) => b[1].size - a[1].size)
+        .slice(0, 3);
+      const examples = topPairs
+        .map(([file, peers]) => `${file} ↔ ${[...peers].slice(0, 2).join(", ")}`)
+        .join("; ");
+      findings.push({
+        code: "ARI-NAV-008",
+        severity: "medium",
+        pillar: PILLAR,
+        message: `Detected code duplication across ${filesWithDuplication} file(s) (${sharedChunkCount} shared block(s)): ${examples}`,
+        remediation: {
+          action: "refactor",
+          description:
+            "Extract duplicated code into shared utilities or base classes to reduce maintenance burden and improve agent navigability",
+          confidence: "medium",
+        },
+        evidence: {
+          paper: "Fowler, 2018",
+          finding:
+            "Code duplication is a primary source of maintenance burden and increases defect propagation risk",
+          confidence: "medium",
+        },
+      });
+    } else if (duplicationRatio > 0.2 || filesWithDuplication > 4) {
+      // Moderate duplication: mild penalty
+      score -= 5;
+      findings.push({
+        code: "ARI-NAV-008",
+        severity: "low",
+        pillar: PILLAR,
+        message: `Minor code duplication detected in ${filesWithDuplication} file(s) (${sharedChunkCount} shared block(s))`,
+        remediation: {
+          action: "refactor",
+          description:
+            "Consider extracting repeated patterns into shared modules to improve maintainability",
+          confidence: "low",
+        },
+      });
+    }
+
     // Build summary with "most costly navigation paths"
     const problemAreas: string[] = [];
     if (stuffedDirs.length > 0) {
@@ -413,6 +524,9 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     }
     if (complexFiles.length > 0) {
       problemAreas.push(`${complexFiles.length} high-complexity file(s)`);
+    }
+    if (filesWithDuplication > 0) {
+      problemAreas.push(`${filesWithDuplication} file(s) with duplicated code`);
     }
 
     const costlyPaths =

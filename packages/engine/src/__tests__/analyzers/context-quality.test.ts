@@ -440,6 +440,69 @@ describe("contextQualityAnalyzer (P1)", () => {
     });
   });
 
+  describe("non-parsable file warnings (ARI-CTX-009)", () => {
+    it("emits ARI-CTX-009 for invalid JSON context files", async () => {
+      const ctx = createMockContext({
+        ".claude/settings.json": "{ invalid json content",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-009")).toBe(true);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-009");
+      expect(finding?.message).toContain("invalid JSON");
+    });
+
+    it("emits ARI-CTX-009 for empty context files", async () => {
+      const ctx = createMockContext({
+        "AGENTS.md": "   ",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-009")).toBe(true);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-009");
+      expect(finding?.message).toContain("empty file");
+    });
+
+    it("emits ARI-CTX-009 for empty YAML context files", async () => {
+      const ctx = createMockContext({
+        ".aider.conf.yml": "   ",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-009")).toBe(true);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-009");
+      expect(finding?.message).toContain("empty YAML");
+    });
+
+    it("does not emit ARI-CTX-009 for valid JSON context files", async () => {
+      const ctx = createMockContext({
+        ".claude/settings.json": '{"key": "value"}',
+        ".mcp.json": '{"servers": {}}',
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-009")).toBe(false);
+    });
+
+    it("does not emit ARI-CTX-009 for valid markdown context files", async () => {
+      const ctx = createMockContext({
+        "AGENTS.md": "# Valid\nContent here.",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-009")).toBe(false);
+    });
+
+    it("reduces score for each non-parsable file", async () => {
+      const ctxValid = createMockContext({
+        ".claude/settings.json": '{"key": "value"}',
+      });
+      const resultValid = await contextQualityAnalyzer.analyze(ctxValid);
+
+      const ctxInvalid = createMockContext({
+        ".claude/settings.json": "{ broken json",
+      });
+      const resultInvalid = await contextQualityAnalyzer.analyze(ctxInvalid);
+
+      expect(resultInvalid.score).toBeLessThan(resultValid.score);
+    });
+  });
+
   describe("conciseness check (ARI-CTX-008)", () => {
     it("emits ARI-CTX-008 for very long AGENTS.md without proportional code blocks", async () => {
       // 600 lines of prose, only 1 code block
