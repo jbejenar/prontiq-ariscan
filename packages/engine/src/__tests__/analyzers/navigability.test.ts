@@ -108,16 +108,18 @@ describe("navigabilityAnalyzer (P7)", () => {
     });
   });
 
-  describe("ARI-NAV-007: Cognitive complexity estimate", () => {
-    it("emits ARI-NAV-007 for deeply nested code", async () => {
+  describe("ARI-NAV-007: Per-function cognitive complexity", () => {
+    it("emits ARI-NAV-007 with severity high for deeply nested functions (complexity >15)", async () => {
       const deeplyNested = [
         "export function complex() {",
         "  if (true) {",
         "    if (true) {",
-        "      if (true) {",
+        "      for (let i = 0; i < 10; i++) {",
         "        if (true) {",
-        "          if (true) {",
-        "            return 1;",
+        "          while (true) {",
+        "            if (true && false) {",
+        "              return 1;",
+        "            }",
         "          }",
         "        }",
         "      }",
@@ -129,7 +131,10 @@ describe("navigabilityAnalyzer (P7)", () => {
         "src/complex.ts": deeplyNested,
       });
       const result = await navigabilityAnalyzer.analyze(ctx);
-      expect(result.findings.some((f) => f.code === "ARI-NAV-007")).toBe(true);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-007");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("high");
+      expect(finding?.message).toContain("complex");
     });
 
     it("does not emit ARI-NAV-007 for simple flat code", async () => {
@@ -140,6 +145,168 @@ describe("navigabilityAnalyzer (P7)", () => {
       const ctx = createMockContext(files);
       const result = await navigabilityAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-NAV-007")).toBe(false);
+    });
+
+    it("reports function names in the ARI-NAV-007 finding message", async () => {
+      const complexFn = [
+        "export function processOrder() {",
+        "  if (true) {",
+        "    for (let i = 0; i < 10; i++) {",
+        "      if (true) {",
+        "        switch (i) {",
+        "          case 0:",
+        "            if (true || false) {",
+        "              while (true) {",
+        "                break;",
+        "              }",
+        "            }",
+        "            break;",
+        "        }",
+        "      }",
+        "    }",
+        "  }",
+        "}",
+      ].join("\n");
+      const ctx = createMockContext({
+        "src/order.ts": complexFn,
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-007");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("processOrder");
+    });
+
+    it("emits medium severity for moderate complexity (>3 moderate functions)", async () => {
+      // Create 4+ functions with moderate complexity (9-15)
+      // Each function has ~10 complexity: 3 if-statements + 1 for-loop with nesting
+      const moderateFn = (name: string) =>
+        [
+          `export function ${name}(x) {`,
+          "  if (x > 0) {",
+          "    for (let i = 0; i < x; i++) {",
+          "      if (i % 2 === 0) {",
+          "        console.log(i);",
+          "      }",
+          "    }",
+          "  }",
+          "  if (x < 0) {",
+          "    return -1;",
+          "  }",
+          "  if (x === 0) {",
+          "    return null;",
+          "  }",
+          "  return x;",
+          "}",
+        ].join("\n");
+
+      const ctx = createMockContext({
+        "src/a.ts": moderateFn("fnA"),
+        "src/b.ts": moderateFn("fnB"),
+        "src/c.ts": moderateFn("fnC"),
+        "src/d.ts": moderateFn("fnD"),
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-007");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("medium");
+    });
+
+    it("includes research evidence on high-complexity findings", async () => {
+      const deeplyNested = [
+        "export function terrible() {",
+        "  if (true) {",
+        "    if (true) {",
+        "      for (let i = 0; i < 10; i++) {",
+        "        if (true) {",
+        "          while (true) {",
+        "            if (true && false || true) {",
+        "              return 1;",
+        "            }",
+        "          }",
+        "        }",
+        "      }",
+        "    }",
+        "  }",
+        "}",
+      ].join("\n");
+      const ctx = createMockContext({
+        "src/bad.ts": deeplyNested,
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-007");
+      expect(finding?.evidence).toBeDefined();
+      expect(finding?.evidence?.paper).toContain("Shippey");
+    });
+
+    it("handles arrow functions assigned to const", async () => {
+      const arrowFn = [
+        "export const processData = (items) => {",
+        "  if (items.length > 0) {",
+        "    for (const item of items) {",
+        "      if (item.active) {",
+        "        if (item.value > 0) {",
+        "          if (item.type === 'a' || item.type === 'b') {",
+        "            for (const sub of item.children) {",
+        "              if (sub.valid) {",
+        "                return sub;",
+        "              }",
+        "            }",
+        "          }",
+        "        }",
+        "      }",
+        "    }",
+        "  }",
+        "};",
+      ].join("\n");
+      const ctx = createMockContext({
+        "src/arrow.ts": arrowFn,
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-007");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("processData");
+    });
+
+    it("aggregates complexity across multiple functions in same file", async () => {
+      // One file with multiple poor functions should report both
+      const content = [
+        "export function fn1() {",
+        "  if (true) {",
+        "    for (let i = 0; i < 10; i++) {",
+        "      if (true) {",
+        "        while (true) {",
+        "          if (true && false) {",
+        "            return 1;",
+        "          }",
+        "        }",
+        "      }",
+        "    }",
+        "  }",
+        "}",
+        "",
+        "export function fn2() {",
+        "  if (true) {",
+        "    for (let i = 0; i < 10; i++) {",
+        "      if (true) {",
+        "        switch (i) {",
+        "          case 0:",
+        "            if (true || false) {",
+        "              break;",
+        "            }",
+        "        }",
+        "      }",
+        "    }",
+        "  }",
+        "}",
+      ].join("\n");
+      const ctx = createMockContext({
+        "src/multi.ts": content,
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-007");
+      expect(finding).toBeDefined();
+      // Should mention multiple functions in the message
+      expect(finding?.message).toMatch(/\d+ function/);
     });
   });
 
