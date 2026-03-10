@@ -1802,7 +1802,7 @@ To maximise adoption across end users, plugin authors, and programmatic consumer
 - [ ] Add `publishConfig`, `repository`, `homepage`, and `bugs` fields to all three `package.json` files.
 - [ ] Add `files` whitelist (e.g., `["dist", "README.md"]`) to each package to avoid publishing source/test files.
 - [ ] Ensure `workspace:*` dependencies are resolved to real version ranges at publish time (pnpm handles this automatically with `pnpm publish`).
-- [ ] Add per-package `README.md` for `@prontiq/schema` and `@prontiq/engine` with API docs and usage examples.
+- [x] Add per-package `README.md` for all three packages (`ariscan`, `@prontiq/schema`, `@prontiq/engine`) with API docs and usage examples.
 - [ ] Integrate `@changesets/cli` for coordinated versioning across all three packages (see CI.07).
 - [ ] Enable npm provenance attestation (`--provenance`) in the publish workflow.
 
