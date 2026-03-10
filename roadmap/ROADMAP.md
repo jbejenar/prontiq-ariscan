@@ -756,7 +756,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     - [x] MCP configuration files (`.mcp.json`, `mcp.config.js`) *(added 2026-03-09)*
     - [x] `.aider.conf.yml` / `.aiderignore`
   - [x] For each discovered file: path, file type, size, last modified date, parse status (valid/warning/error). *(completed: ContextFileInfo includes lastModified via fs.stat and parseStatus via content validation in scan.ts `discoverContextFiles()`)*
-  - [ ] Cross-agent compatibility report: which agents have dedicated context files vs none.
+  - [x] Cross-agent compatibility report: which agents have dedicated context files vs none. *(ARI-CTX-010: maps files to 5 agent categories — Claude Code, Cursor, GitHub Copilot, Aider, Generic. Reports covered vs uncovered with remediation. Added 2026-03-09.)*
   - [x] Nested file discovery for monorepos (subdirectory-level AGENTS.md files). *(added 2026-03-09)*
   - [x] Discovery includes path, file type, size, last modified, and parsing status for each file. *(completed 2026-03-09: ContextFileInfo now includes all fields)*
   - [ ] Non-parsable files are surfaced with actionable warnings.
@@ -1324,7 +1324,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.03 — Context File Discovery (6 done, 0 partial, 3 not done) — updated 2026-03-09
+#### P1.03 — Context File Discovery (7 done, 0 partial, 2 not done) — updated 2026-03-09
 
 **Deliverables:**
 
@@ -1332,7 +1332,7 @@ It is the source of truth for what was actually built vs. what was specified.
 |---|---|---|---|
 | 1 | Discovery of all known context file formats | ✅ Done | Discovers: AGENTS.md (root+nested), CLAUDE.md, .claude/settings.json, .claude/commands/, .cursorrules, .cursor/rules, .github/copilot-instructions.md, .aider.conf.yml, .aiderignore, .agentignore, .mcp.json, mcp.config.js. Cross-agent compatibility report deferred to P2. |
 | 2 | Per-file metadata: path, type, size, lastModified, parseStatus | ✅ Done | ContextFileInfo tracks path, type, size, lineCount, lastModified (via fs.stat), parseStatus (valid/warning/error via content validation). Implemented in `scan.ts` `discoverContextFiles()`. |
-| 3 | Cross-agent compatibility report | ❌ Not done | Deferred to P2. Only counts context files, no per-agent coverage report. |
+| 3 | Cross-agent compatibility report | ✅ Done | ARI-CTX-010: maps context files to 5 agent categories (Claude Code, Cursor, GitHub Copilot, Aider, Generic). Reports covered vs uncovered agents with remediation. Added 2026-03-09. |
 | 4 | Nested monorepo discovery (subdirectory-level files) | ✅ Done | Nested AGENTS.md discovery for monorepos added 2026-03-09 |
 
 **Acceptance Criteria:**
@@ -1754,6 +1754,9 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 - Context file lastModified/parseStatus (P1.03) — already implemented, roadmap notes corrected
 - Code duplication / clone detection (P1.11) — ARI-NAV-008 normalized line-chunk hashing across source files
 - Non-parsable context file warnings (P1.03) — ARI-CTX-009 validates JSON/YAML/empty context files
+
+**Closed session 5 (2026-03-09):**
+- Cross-agent compatibility report (P1.03) — ARI-CTX-010 maps context files to 5 agent categories, reports covered vs uncovered
 
 ### P1 Exit Criteria
 

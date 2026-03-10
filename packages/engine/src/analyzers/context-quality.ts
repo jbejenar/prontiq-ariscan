@@ -20,6 +20,37 @@ const CONTEXT_FILES = [
 /** Directory patterns to check (any file under these dirs counts as a match) */
 const CONTEXT_DIRS = [".claude/commands"] as const;
 
+/** Agent-to-context-file mapping for cross-agent compatibility report */
+interface AgentMapping {
+  agent: string;
+  files: readonly string[];
+  dirs?: readonly string[];
+}
+
+const AGENT_MAPPINGS: readonly AgentMapping[] = [
+  {
+    agent: "Claude Code",
+    files: ["CLAUDE.md", ".claude/settings.json"],
+    dirs: [".claude/commands"],
+  },
+  {
+    agent: "Cursor",
+    files: [".cursorrules", ".cursor/rules"],
+  },
+  {
+    agent: "GitHub Copilot",
+    files: [".github/copilot-instructions.md"],
+  },
+  {
+    agent: "Aider",
+    files: [".aider.conf.yml", ".aiderignore"],
+  },
+  {
+    agent: "Generic (all agents)",
+    files: ["AGENTS.md", ".agentignore"],
+  },
+] as const;
+
 /** Keywords that indicate critical build/test/architecture info */
 const CRITICAL_INFO_PATTERNS = [
   /\b(pnpm|npm|yarn|make|cargo|go)\s+(install|build|test|run)/i,
@@ -410,6 +441,49 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
           action: "modify-config",
           description:
             "Fix parse errors in context files. Invalid JSON or malformed YAML will prevent agents from reading configuration correctly.",
+          confidence: "high",
+        },
+      });
+    }
+
+    // --- ARI-CTX-010: Cross-agent compatibility report ---
+    const coveredAgents: string[] = [];
+    const uncoveredAgents: string[] = [];
+
+    for (const mapping of AGENT_MAPPINGS) {
+      const hasFile = mapping.files.some((f) => foundContextFiles.includes(f));
+      const hasDir = mapping.dirs?.some((d) => foundContextFiles.includes(d + "/")) ?? false;
+
+      if (hasFile || hasDir) {
+        coveredAgents.push(mapping.agent);
+      } else {
+        uncoveredAgents.push(mapping.agent);
+      }
+    }
+
+    if (uncoveredAgents.length > 0 && foundContextFiles.length > 0) {
+      findings.push({
+        code: "ARI-CTX-010",
+        severity: "info",
+        pillar: PILLAR,
+        message: `Agent context coverage: ${coveredAgents.length}/${AGENT_MAPPINGS.length} agents covered. Missing: ${uncoveredAgents.join(", ")}.`,
+        remediation: {
+          action: "create-file",
+          description: `Add context files for uncovered agents: ${uncoveredAgents.join(", ")}. Use AGENTS.md for vendor-neutral context that all agents can read.`,
+          confidence: "medium",
+        },
+      });
+    } else if (foundContextFiles.length === 0) {
+      findings.push({
+        code: "ARI-CTX-010",
+        severity: "medium",
+        pillar: PILLAR,
+        message: `Agent context coverage: 0/${AGENT_MAPPINGS.length} agents covered. No agent has dedicated context files.`,
+        remediation: {
+          action: "create-file",
+          path: "AGENTS.md",
+          description:
+            "Start with AGENTS.md for vendor-neutral context, then add agent-specific files (CLAUDE.md, .cursorrules, etc.) as needed.",
           confidence: "high",
         },
       });

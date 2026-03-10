@@ -503,6 +503,72 @@ describe("contextQualityAnalyzer (P1)", () => {
     });
   });
 
+  describe("cross-agent compatibility report (ARI-CTX-010)", () => {
+    it("emits ARI-CTX-010 with 0 covered when no context files exist", async () => {
+      const ctx = createMockContext({});
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-010");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("medium");
+      expect(finding?.message).toContain("0/5 agents covered");
+    });
+
+    it("reports covered and uncovered agents when some context files exist", async () => {
+      const ctx = createMockContext({
+        "AGENTS.md":
+          "# Agents\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11",
+        "CLAUDE.md": "# Claude\nInstructions.",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-010");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+      expect(finding?.message).toContain("2/5 agents covered");
+      expect(finding?.message).toContain("Missing:");
+      expect(finding?.message).toContain("Cursor");
+    });
+
+    it("counts .claude/commands/ directory toward Claude Code coverage", async () => {
+      const ctx = createMockContext({
+        ".claude/commands/review.md": "# Review command",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-010");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("1/5 agents covered");
+    });
+
+    it("reports all agents covered when all context files present", async () => {
+      const ctx = createMockContext({
+        "AGENTS.md":
+          "# Agents\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11",
+        ".agentignore": "dist/",
+        "CLAUDE.md": "# Claude\nInstructions.",
+        ".cursorrules": "rules",
+        ".github/copilot-instructions.md": "# Copilot",
+        ".aider.conf.yml": "model: gpt-4",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-010");
+      // All 5 agents covered — no ARI-CTX-010 emitted
+      expect(finding).toBeUndefined();
+    });
+
+    it("recognizes Aider coverage via .aiderignore", async () => {
+      const ctx = createMockContext({
+        "AGENTS.md":
+          "# Agents\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11",
+        ".agentignore": "dist/",
+        ".aiderignore": "node_modules/",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-010");
+      expect(finding).toBeDefined();
+      // Generic + Aider covered = 2, still missing Claude Code, Cursor, Copilot
+      expect(finding?.message).toContain("2/5 agents covered");
+    });
+  });
+
   describe("conciseness check (ARI-CTX-008)", () => {
     it("emits ARI-CTX-008 for very long AGENTS.md without proportional code blocks", async () => {
       // 600 lines of prose, only 1 code block
