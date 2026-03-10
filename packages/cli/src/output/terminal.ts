@@ -118,8 +118,9 @@ export function formatTerminal(result: ScanResult, options: TerminalOptions = {}
 
     for (const finding of topFindings) {
       const color = severityColor(finding.severity);
+      const conf = finding.confidence ? pc.dim(` [${finding.confidence}]`) : "";
       lines.push(
-        `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)} ${finding.message}`,
+        `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)}${conf} ${finding.message}`,
       );
       if (finding.remediation) {
         lines.push(`           ${pc.dim("→")} ${finding.remediation.description}`);
@@ -199,8 +200,9 @@ export function formatTerminal(result: ScanResult, options: TerminalOptions = {}
 
       for (const finding of remaining) {
         const color = severityColor(finding.severity);
+        const conf = finding.confidence ? pc.dim(` [${finding.confidence}]`) : "";
         lines.push(
-          `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)} ${finding.message}`,
+          `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)}${conf} ${finding.message}`,
         );
         if (finding.remediation) {
           lines.push(`           ${pc.dim("→")} ${finding.remediation.description}`);

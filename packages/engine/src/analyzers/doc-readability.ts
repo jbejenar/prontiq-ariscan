@@ -46,7 +46,9 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
           code: "ARI-DOC-001",
           severity: "medium",
           pillar: PILLAR,
-          message: "Server code detected but no API contract (OpenAPI, GraphQL schema, tRPC)",
+          message:
+            "Server code detected but no API contract (OpenAPI, GraphQL schema, tRPC). Rationale: machine-readable contracts let agents understand API surface without parsing prose docs.",
+          confidence: "medium",
           remediation: {
             action: "create-file",
             description:
@@ -202,7 +204,8 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
         code: "ARI-DOC-002",
         severity: "low",
         pillar: PILLAR,
-        message: `Found ${proseOnlyRunbooks.length} prose-only runbook(s) but no machine-readable (YAML/JSON) runbooks`,
+        message: `Found ${proseOnlyRunbooks.length} prose-only runbook(s) but no machine-readable (YAML/JSON) runbooks. Rationale: structured runbooks let agents execute operational procedures without NLP parsing.`,
+        confidence: "medium",
         remediation: {
           action: "create-file",
           description: "Convert runbooks to YAML or JSON format for machine-readable operations",
@@ -242,7 +245,8 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
           code: "ARI-DOC-003",
           severity: "low",
           pillar: PILLAR,
-          message: `Only ${Math.round(jsdocRatio * 100)}% of sampled source files (${filesWithJsdoc}/${sampled.length}) contain JSDoc comments`,
+          message: `Only ${Math.round(jsdocRatio * 100)}% of sampled source files (${filesWithJsdoc}/${sampled.length}) contain JSDoc comments. Rationale: inline documentation helps agents understand intent without reading full function bodies.`,
+          confidence: "low",
           remediation: {
             action: "refactor",
             description:
@@ -287,7 +291,8 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
             code: "ARI-DOC-004",
             severity: "medium",
             pillar: PILLAR,
-            message: `README references ${cleanedPaths.length} file paths but ${missingCount} (${Math.round(driftRatio * 100)}%) no longer exist — documentation may be stale`,
+            message: `README references ${cleanedPaths.length} file paths but ${missingCount} (${Math.round(driftRatio * 100)}%) no longer exist — documentation may be stale. Rationale: stale path references cause agents to hallucinate about nonexistent files.`,
+            confidence: "medium",
             remediation: {
               action: "modify-config",
               path: "README.md",

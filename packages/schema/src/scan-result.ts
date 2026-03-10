@@ -47,6 +47,13 @@ export const Finding = z.object({
   file: z.string().optional(),
   line: z.number().optional(),
   message: z.string(),
+  /**
+   * How confident we are in this finding.
+   * - high: binary detection from config files (strict mode on/off, file presence).
+   * - medium: heuristic analysis with known accuracy bounds (naming, patterns).
+   * - low: inference from indirect signals (script names, import patterns).
+   */
+  confidence: Confidence.optional(),
   remediation: Remediation.optional(),
   evidence: Evidence.optional(),
 });
