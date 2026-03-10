@@ -1775,7 +1775,7 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 | All 8 pillars score + rationale + confidence | ✅ Met | All 8 analyzers return score, summary, confidence, and findings |
 | JSON output validates against schema | ✅ Met | Zod schema validation; `--json` produces valid JSON |
 | Deterministic repeat runs | ✅ Met | Same input → same score (no network, no random, no time-dependent logic) |
-| npm package published | ⬜ Not met | Not yet published to npm |
+| npm package published | 🔧 Partial | Publish workflow (`publish.yml`) and changesets configured. First publish pending a changeset + merge to main. |
 | README badge renders | ✅ Met | `--badge <path>` generates SVG badge. Added 2026-03-08. |
 | --fix generates content | ⬜ Not met | P1.17 not started |
 | 20+ repos benchmarked | ⬜ Not met | P1.18 not started |
@@ -1791,20 +1791,20 @@ To maximise adoption across end users, plugin authors, and programmatic consumer
 | Package | npm Name | Scope | Target Audience | Status |
 |---|---|---|---|---|
 | `packages/cli` | `ariscan` | Public (unscoped) | End users running `npx ariscan .` | `private: false` — ready to publish |
-| `packages/schema` | `@prontiq/schema` | Public (scoped) | Plugin authors, CI integrations, anyone importing types (`PillarId`, `Finding`, `ScanResult`) | `private: true` — **needs flip to `false`** |
-| `packages/engine` | `@prontiq/engine` | Public (scoped) | Programmatic consumers embedding scanning in their own tooling | `private: true` — **needs flip to `false`** |
+| `packages/schema` | `@prontiq/schema` | Public (scoped) | Plugin authors, CI integrations, anyone importing types (`PillarId`, `Finding`, `ScanResult`) | `private: false` — ready to publish |
+| `packages/engine` | `@prontiq/engine` | Public (scoped) | Programmatic consumers embedding scanning in their own tooling | `private: false` — ready to publish |
 
 #### Pre-Publish Checklist
 
-- [ ] Claim `@prontiq` npm organisation and add maintainers.
-- [ ] Add `NPM_TOKEN` secret to GitHub repo for CI publish.
-- [ ] Flip `private: false` in `packages/schema/package.json` and `packages/engine/package.json`.
-- [ ] Add `publishConfig`, `repository`, `homepage`, and `bugs` fields to all three `package.json` files.
-- [ ] Add `files` whitelist (e.g., `["dist", "README.md"]`) to each package to avoid publishing source/test files.
-- [ ] Ensure `workspace:*` dependencies are resolved to real version ranges at publish time (pnpm handles this automatically with `pnpm publish`).
+- [x] Claim `@prontiq` npm organisation and add maintainers.
+- [x] Add `NPM_TOKEN` secret to GitHub repo for CI publish.
+- [x] Flip `private: false` in `packages/schema/package.json` and `packages/engine/package.json`.
+- [x] Add `publishConfig`, `repository`, `homepage`, and `bugs` fields to all three `package.json` files.
+- [x] Add `files` whitelist (`["dist", "README.md"]`) to each package to avoid publishing source/test files.
+- [x] Ensure `workspace:*` dependencies are resolved to real version ranges at publish time (pnpm handles this automatically with `pnpm publish`).
 - [x] Add per-package `README.md` for all three packages (`ariscan`, `@prontiq/schema`, `@prontiq/engine`) with API docs and usage examples.
-- [ ] Integrate `@changesets/cli` for coordinated versioning across all three packages (see CI.07).
-- [ ] Enable npm provenance attestation (`--provenance`) in the publish workflow.
+- [x] Integrate `@changesets/cli` for coordinated versioning across all three packages (see CI.07).
+- [x] Enable npm provenance attestation (`--provenance`) in the publish workflow.
 
 #### Publication Order
 
@@ -2651,16 +2651,16 @@ P1 deterministic scoring foundation
   - [x] Fail on high-severity vulnerabilities
   - [x] Aligns with P8 analyzer expectations (we check others for this — we must do it ourselves)
 
-### Ticket CI.07 — Release Automation (🟠 P1) ⬜ Not Started
+### Ticket CI.07 — Release Automation (🟠 P1) ✅ Done
 
 - **Deliverables:**
-  - [ ] Changesets (`@changesets/cli`) for semantic versioning
-  - [ ] Automated npm publish workflow on merge to main with version bump
-  - [ ] CHANGELOG.md auto-generation from changesets
-  - [ ] GitHub Release creation with scan result artifact attached
-  - [ ] Provenance attestation for npm packages (`--provenance` flag)
+  - [x] Changesets (`@changesets/cli`) for semantic versioning. Installed and configured with `"access": "public"`, `"updateInternalDependencies": "patch"`.
+  - [x] Automated npm publish workflow on merge to main with version bump. `.github/workflows/publish.yml` using `changesets/action@v1`.
+  - [x] CHANGELOG.md auto-generation from changesets. Handled by `changesets/action` version PR.
+  - [x] GitHub Release creation with scan result artifact attached. Workflow uploads `scan-result.json` to each release.
+  - [x] Provenance attestation for npm packages (`--provenance` flag). Enabled via `id-token: write` permission and `--provenance` on publish.
 - **Why:** npm publishing is a P1 exit criterion. Provenance attestation is AI-first — agents downloading `ariscan` from npm should be able to verify the package hasn't been tampered with.
-- **Dependencies:** npm org setup, `NPM_TOKEN` secret.
+- **Dependencies:** ~~npm org setup, `NPM_TOKEN` secret.~~ Done — `@prontiq` org available, `NPM_TOKEN` configured.
 
 ### Ticket CI.08 — Test Coverage Reporting (🟡 P2) ⬜ Not Started
 

@@ -1,0 +1,76 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+
+# Provenance attestation requires id-token: write
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false # never cancel a publish mid-flight
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  publish:
+    name: Version or Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      # Self-scan to produce artifact for GitHub Release
+      - name: Self-scan (ARI)
+        run: node packages/cli/dist/cli.js . --json > scan-result.json
+
+      - name: Create release or version PR
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm version-packages
+          publish: pnpm changeset publish --provenance
+          title: "chore: version packages"
+          commit: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Attach scan result to GitHub Releases for published packages
+      - name: Upload scan artifact to GitHub Releases
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PUBLISHED='${{ steps.changesets.outputs.publishedPackages }}'
+          echo "Published packages: $PUBLISHED"
+
+          for TAG in $(echo "$PUBLISHED" | jq -r '.[] | "\(.name)@\(.version)"'); do
+            echo "Uploading scan result to release $TAG"
+            gh release create "$TAG" \
+              scan-result.json \
+              --title "$TAG" \
+              --notes "Published from $(git rev-parse --short HEAD). ARI scan result attached." \
+              --verify-tag 2>/dev/null || \
+            gh release upload "$TAG" scan-result.json --clobber 2>/dev/null || \
+              echo "Warning: could not attach artifact to $TAG"
+          done

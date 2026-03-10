@@ -1,8 +1,25 @@
 {
   "name": "@prontiq/schema",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
+  "license": "Elastic-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbejenar/prontiq-ariscan.git",
+    "directory": "packages/schema"
+  },
+  "homepage": "https://github.com/jbejenar/prontiq-ariscan/tree/main/packages/schema",
+  "bugs": {
+    "url": "https://github.com/jbejenar/prontiq-ariscan/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
