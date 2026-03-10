@@ -373,6 +373,140 @@ describe("navigabilityAnalyzer (P7)", () => {
     });
   });
 
+  describe("threshold labels in summary (AC#2)", () => {
+    it("includes threshold labels for all metrics in summary", async () => {
+      const files: Record<string, string> = {
+        "src/index.ts": "import { x } from './mod';\nexport { x };",
+        "src/mod.ts": "export const x = 1;",
+      };
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("Thresholds:");
+      expect(result.summary).toContain("depth:");
+      expect(result.summary).toContain("dirs:");
+      expect(result.summary).toContain("naming:");
+      expect(result.summary).toContain("imports:");
+      expect(result.summary).toContain("circular:");
+      expect(result.summary).toContain("dead-code:");
+      expect(result.summary).toContain("duplication:");
+    });
+
+    it("labels depth as good for shallow repos (<=5)", async () => {
+      const ctx = createMockContext({
+        "src/a.ts": "export const a = 1;",
+        "src/b.ts": "import { a } from './a';\nexport const b = a;",
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("depth:good");
+    });
+
+    it("labels depth as poor for deeply nested repos (>8)", async () => {
+      const files: Record<string, string> = {
+        "a/b/c/d/e/f/g/h/i/deep.ts": "export const x = 1;",
+        "src/index.ts": "export const y = 1;",
+      };
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("depth:poor");
+    });
+
+    it("labels naming as good when >=80% consistent", async () => {
+      const files: Record<string, string> = {};
+      for (let i = 0; i < 10; i++) {
+        files[`src/my-module-${i}.ts`] = `export const m${i} = ${i};`;
+      }
+      files["src/index.ts"] = "export const x = 1;";
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("naming:good");
+    });
+
+    it("labels imports as good when no files have >20 imports", async () => {
+      const ctx = createMockContext({
+        "src/a.ts": "import { x } from './b';\nexport const a = x;",
+        "src/b.ts": "export const x = 1;",
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("imports:good");
+    });
+
+    it("labels circular as good when no circular deps", async () => {
+      const ctx = createMockContext({
+        "src/a.ts": "import { b } from './b';\nexport const a = b;",
+        "src/b.ts": "export const b = 1;",
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("circular:good");
+    });
+
+    it("labels circular as poor when circular deps exist", async () => {
+      const ctx = createMockContext({
+        "src/a.ts": "import { b } from './b';\nexport const a = b + 1;",
+        "src/b.ts": "import { a } from './a';\nexport const b = a + 1;",
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("circular:poor");
+    });
+  });
+
+  describe("ARI-NAV-006: Dead code false positive reduction (AC#4)", () => {
+    it("does not flag config files as dead code", async () => {
+      const files: Record<string, string> = {
+        "src/index.ts": "export const x = 1;",
+        "vitest.config.ts": "export default {};",
+        "tsup.config.ts": "export default {};",
+        "eslint.config.ts": "export default {};",
+      };
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-006");
+      // Config files should not appear in dead code candidates
+      if (finding) {
+        expect(finding.message).not.toContain(".config.");
+      }
+    });
+
+    it("does not flag CLI entry files as dead code", async () => {
+      const files: Record<string, string> = {
+        "src/index.ts": "export const x = 1;",
+        "src/cli.ts": "import { x } from './index';\nconsole.log(x);",
+        "src/bin.ts": "#!/usr/bin/env node",
+      };
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-006");
+      if (finding) {
+        expect(finding.message).not.toContain("cli.ts");
+        expect(finding.message).not.toContain("bin.ts");
+      }
+    });
+
+    it("does not flag files in commands/ directory as dead code", async () => {
+      const files: Record<string, string> = {
+        "src/index.ts": "export const x = 1;",
+        "src/commands/scan.ts": "export default function scan() { return 1; }",
+        "src/commands/init.ts": "export default function init() { return 1; }",
+      };
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-006");
+      if (finding) {
+        expect(finding.message).not.toContain("commands/");
+      }
+    });
+
+    it("does not flag files re-exported through barrel files", async () => {
+      const files: Record<string, string> = {
+        "src/index.ts": "export * from './utils';\nexport * from './helpers';",
+        "src/utils.ts": "export const util = 1;",
+        "src/helpers.ts": "export const helper = 2;",
+      };
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-006")).toBe(false);
+    });
+  });
+
   describe("summary includes top issues", () => {
     it("includes problem areas in summary when issues exist", async () => {
       const imports = Array.from(

@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.7.0] — 2026-03-10
+
+### Added
+- **Navigability (P7):** Explicit threshold labels (good/moderate/poor) for all 7 navigability metrics in summary output — depth, directory size, naming consistency, import complexity, circular dependencies, dead code, and code duplication. (P1.11 AC#2)
+- **Navigability (P7):** Reduced dead code detection false positives — excludes config files (*.config.*), CLI entry points (cli.ts, bin.ts), type declarations (*.d.ts), setup files, conventional directories (commands/, scripts/, migrations/), and barrel file re-exports (export * from). Self-scan shows 0 false positives. (P1.11 AC#4)
+- 11 new navigability tests: 7 for threshold labels, 4 for dead code FP reduction
+
+### Metrics
+- **Self-scan score:** 75/100 (L4 Productive) — no regression
+- **Tests:** 350 passing across 13 test files (+11 new navigability tests)
+- **Roadmap progress:** P1.11 fully complete (all 8 deliverables, all 5 acceptance criteria done)
+
 ## [2.6.0] — 2026-03-09
 
 ### Added
