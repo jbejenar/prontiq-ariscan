@@ -18,7 +18,7 @@ import { scan } from "@prontiq/engine";
 const result = await scan("/path/to/repo");
 
 console.log(result.score);          // 0-100
-console.log(result.maturityLevel);  // "L1" .. "L5"
+console.log(result.level);          // "L1" .. "L5"
 console.log(result.pillars);        // Per-pillar scores and findings
 ```
 

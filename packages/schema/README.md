@@ -31,7 +31,7 @@ import {
 
 ```ts
 import {
-  Severity,           // "info" | "warning" | "error"
+  Severity,           // "critical" | "high" | "medium" | "low" | "info"
   Confidence,         // "low" | "medium" | "high"
   Finding,            // Individual issue found by an analyzer
   PillarResult,       // Score + findings for one pillar

@@ -66,10 +66,14 @@ Security acts as a **gate**: scoring below 40% on Security & Governance caps the
 
 ## Programmatic API
 
-```ts
-import { runScan } from "ariscan";
+For programmatic use, import `scan` from `@prontiq/engine` directly:
 
-const result = await runScan({ path: ".", json: true });
+```ts
+import { scan } from "@prontiq/engine";
+
+const result = await scan(".");
+console.log(result.score);         // 0-100
+console.log(result.level);         // "L1" .. "L5"
 ```
 
 ## Related Packages
