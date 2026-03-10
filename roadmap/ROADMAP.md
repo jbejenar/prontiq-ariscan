@@ -964,7 +964,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     - [x] **API contracts:** GraphQL schema files. *(checks `.graphql`/`.gql` files)*
     - [x] **Error taxonomy:** Structured error codes with machine-readable definitions. *(checks `error.taxonomy|error.codes|errors?\.(json|ya?ml)`)*
     - [x] **Machine-readable runbooks:** Executable or structured runbooks (YAML/JSON, not prose-only). *(ARI-DOC-002 runbook detection added 2026-03-09)*
-    - [x] **Env var schema:** Typed environment validation (zod, joi, t3-env, pydantic BaseSettings). *(checks package.json deps. JS-only, no Python pydantic BaseSettings.)*
+    - [x] **Env var schema:** Typed environment validation (zod, joi, t3-env, pydantic BaseSettings). *(checks package.json deps for JS libs + Python pydantic BaseSettings / pydantic-settings in pyproject.toml. Updated 2026-03-10.)*
     - [x] **ADR / decision records:** Architecture Decision Records present. *(checks files matching `adr|decision|rfc` with `.md`)*
     - [x] **Changelog format:** Conventional commits / Keep a Changelog format. *(checks `CHANGELOG.md`)*
     - [x] **Type exports / JSDoc coverage:** Public API types exported, JSDoc on public functions. *(ARI-DOC-003 JSDoc coverage measurement added 2026-03-09)*
@@ -1173,13 +1173,13 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **Problem statement:** JSON output serves machines; teams need a human-readable format for communication, decision-making, and executive reporting. The report must be actionable — not just scores, but prioritized recommendations.
 - **Target persona:** Tech leads, engineering managers, anyone sharing results with stakeholders.
 - **Definition of Done:**
-  - [ ] Markdown report ordered by impact and effort (highest-impact, lowest-effort fixes first). *(findings sorted by severity, not by impact × effort)*
-  - [ ] "First 3 actions" quick-start section highlighting immediate wins.
+  - [x] Markdown report ordered by impact and effort (highest-impact, lowest-effort fixes first). *(remediations sorted by impact × ease score — severity × confidence. Updated 2026-03-10.)*
+  - [x] "First 3 actions" quick-start section highlighting immediate wins. *(Quick Start: Top 3 Actions section in markdown output. Added 2026-03-10.)*
   - [x] Per-pillar sections with: score, confidence level, key findings, specific recommendations. *(pillar table with score bars, findings section with remediations)*
   - [x] Summary header with composite score, maturity level badge, and scan metadata. *(badge header with score, level, scan timestamp, duration)*
   - [x] Terminal-friendly colored output (when not piped to file). *(terminal.ts uses chalk for ANSI colors)*
-  - [ ] Report includes "first 3 actions" quick-start section.
-  - [ ] Recommendations are ordered by impact × ease (not by pillar number).
+  - [x] Report includes "first 3 actions" quick-start section. *(Quick Start: Top 3 Actions section. Added 2026-03-10.)*
+  - [x] Recommendations are ordered by impact × ease (not by pillar number). *(impactEaseScore() sorts by severity × confidence. Added 2026-03-10.)*
   - [x] Report renders correctly in GitHub PR comments, Slack markdown, and static markdown viewers. *(uses Unicode block chars, standard markdown tables — no emoji dependency)*
   - [x] Terminal output uses ANSI colors when TTY detected, plain text otherwise. *(chalk handles TTY detection automatically)*
 - **Dependencies:** P1.13 (composite scoring), P1.01 (CLI scaffold).
