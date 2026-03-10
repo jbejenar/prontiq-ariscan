@@ -35,6 +35,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           severity: "high",
           pillar: PILLAR,
           message: "TypeScript strict mode is not fully enabled",
+          confidence: "high",
           remediation: {
             action: "modify-config",
             path: "tsconfig.json",
@@ -54,6 +55,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           severity: "high",
           pillar: PILLAR,
           message: "TypeScript strict mode is not enabled",
+          confidence: "high",
           remediation: {
             action: "modify-config",
             path: "tsconfig.json",
@@ -136,6 +138,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           severity: "high",
           pillar: PILLAR,
           message: "Lockfile is gitignored — builds are non-deterministic",
+          confidence: "high",
           remediation: {
             action: "modify-config",
             path: ".gitignore",
@@ -149,6 +152,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           severity: "medium",
           pillar: PILLAR,
           message: "No lockfile found",
+          confidence: "high",
           remediation: {
             action: "add-dependency",
             description: "Run your package manager to generate a lockfile and commit it",
@@ -176,6 +180,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message:
             "Modern build tool detected — fast, deterministic builds improve agent feedback loops",
+          confidence: "high",
         });
       } else if (isWebpack) {
         score += 5;
@@ -185,6 +190,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message:
             "Webpack detected — consider migrating to a faster bundler (tsup, esbuild, vite, swc) for shorter agent feedback loops",
+          confidence: "high",
           remediation: {
             action: "modify-config",
             description:
@@ -243,6 +249,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
         severity: hasProjectRefs ? "info" : "medium",
         pillar: PILLAR,
         message: `Monorepo detected (${detectedMonorepoTools.join(", ")})${hasProjectRefs ? " with TypeScript project references configured" : " — consider adding TypeScript project references for faster incremental builds"}`,
+        confidence: "high",
         remediation: hasProjectRefs
           ? undefined
           : {
@@ -290,6 +297,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
                 severity: "high",
                 pillar: PILLAR,
                 message: `packageManager field specifies "${pmName}" but found lockfile(s) for a different package manager: ${wrongLockfiles.join(", ")}`,
+                confidence: "high",
                 remediation: {
                   action: "modify-config",
                   description: `Either update packageManager field to match the lockfile or regenerate the lockfile using ${pmName}`,
@@ -342,6 +350,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message:
             "Java project lacks nullability annotations — agents produce NullPointerException-prone code without null-safety constraints",
+          confidence: "medium",
           remediation: {
             action: "add-dependency",
             description:
@@ -394,6 +403,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message:
             "C# project has nullable reference types disabled — agents lack compile-time null safety guidance",
+          confidence: "high",
           remediation: {
             action: "modify-config",
             description:
@@ -428,6 +438,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           severity: "medium",
           pillar: PILLAR,
           message: `Found ${goAnyCount} uses of interface{}/any in Go files — reduces type safety`,
+          confidence: "medium",
           remediation: {
             action: "refactor",
             description: "Replace interface{}/any with concrete types or generics where possible",
@@ -457,6 +468,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           severity: "medium",
           pillar: PILLAR,
           message: `Found ${unwrapCount} uses of .unwrap() in Rust files — risk of panics at runtime`,
+          confidence: "medium",
           remediation: {
             action: "refactor",
             description: "Replace .unwrap() with proper error handling (?, match, unwrap_or, etc.)",

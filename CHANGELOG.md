@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.0.0] — 2026-03-10
+
+### Added
+- **Engine (P2.04):** Context Budget Analyzer — estimates token footprint per file category (source, test, docs, config, generated, lockfile, data, binary), identifies top token consumers, and provides compression recommendations ranked by savings. CLI: `--budget` flag for terminal/JSON output. 31 new tests.
+- **Engine (P1.17):** Safe `--fix` starter — generates AGENTS.md (additive-only, with TODO prompts referencing ARI criteria), `.agentignore` (language-aware defaults), and `.devcontainer/devcontainer.json` (stack-detected image, features, postCreateCommand). `--dry-run` mode previews changes. All generators are idempotent and non-destructive. 13 new tests.
+- **Engine (P2.05):** `.agentignore` parser — parses gitignore-compatible patterns with negation (`!`) support, directory-only markers, and per-file matching. `getDefaultPatterns()` provides ecosystem-specific defaults for Python, Go, Rust, Java, C#, Ruby. 19 new tests.
+- **Schema (P2.09):** Per-finding `confidence` field (high/medium/low) — findings now carry confidence levels indicating detection reliability: high for config-file checks, medium for heuristic analysis, low for indirect inference.
+- **Engine (P2.09):** Confidence weighting on all build-determinism findings (P6) and doc-readability findings (P5) — 15+ findings annotated with per-criterion confidence levels.
+- **Engine (P1.09):** Per-criterion rationale on doc-readability findings — each finding message now explains why the criterion matters for agents (e.g., "stale path references cause agents to hallucinate about nonexistent files").
+- **CLI:** `--budget` flag for token budget analysis, `--fix` and `--dry-run` flags for safe file generation. Confidence markers displayed in terminal output next to finding codes.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — up from 75
+- **Tests:** 535 passing across 21 test files (28 schema + 439 engine + 68 CLI), up from 472
+- **New test files:** 4 (token-estimator, budget-analyzer, fix-generators, agentignore-parser)
+- **Roadmap progress:** 5 items shipped (P2.04, P1.17, P2.09, P1.09 polish, P2.05)
+
 ## [2.9.0] — 2026-03-10
 
 ### Added

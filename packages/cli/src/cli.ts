@@ -1,12 +1,20 @@
 import { defineCommand, runMain } from "citty";
 import { resolve } from "node:path";
 import { access, writeFile } from "node:fs/promises";
-import { scan } from "@prontiq/engine";
+import {
+  scan,
+  createRepoContext,
+  analyzeTokenBudget,
+  detect,
+  generateFixProposals,
+} from "@prontiq/engine";
+import type { FixProposal } from "@prontiq/engine";
 import { formatTerminal } from "./output/terminal.js";
 import { formatJson, formatJsonSchema } from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
 import { formatSarif } from "./output/sarif.js";
 import { generateBadgeSvg, generateBadgeSnippets } from "./output/badge.js";
+import { formatBudgetTerminal, formatBudgetJson } from "./output/budget.js";
 import { resolveConfig } from "./config-loader.js";
 import type { ScanResult } from "@prontiq/schema";
 
@@ -22,6 +30,9 @@ Examples:
   npx ariscan . --threshold 60     # Fail if score < 60
   npx ariscan . --format sarif     # SARIF output for Code Scanning
   npx ariscan . --badge badge.svg  # Generate badge SVG
+  npx ariscan . --budget           # Analyze token budget
+  npx ariscan . --fix              # Generate missing config files
+  npx ariscan . --fix --dry-run   # Preview changes without writing
 
 Exit codes:
   0  Score meets or exceeds threshold (default: 0)
@@ -75,6 +86,21 @@ Exit codes:
       description: "Generate an SVG badge file at the given path (e.g. badge.svg)",
       required: false,
     },
+    budget: {
+      type: "boolean",
+      description: "Analyze token budget: estimate context window cost by file category",
+      default: false,
+    },
+    fix: {
+      type: "boolean",
+      description: "Generate missing config files (AGENTS.md, .agentignore, .devcontainer)",
+      default: false,
+    },
+    dryRun: {
+      type: "boolean",
+      description: "Preview --fix changes without writing files",
+      default: false,
+    },
   },
   async run({ args }) {
     if (args.jsonSchema) {
@@ -89,6 +115,58 @@ Exit codes:
     } catch {
       process.stderr.write(`Error: Path does not exist: ${repoPath}\n`);
       process.exit(2);
+    }
+
+    // Budget-only mode: analyze token budget and exit
+    if (args.budget) {
+      if (!args.quiet) {
+        process.stderr.write(`\nAnalyzing token budget for ${repoPath}...\n`);
+      }
+      try {
+        const context = await createRepoContext(repoPath);
+        const budgetResult = await analyzeTokenBudget(context);
+        if (args.json) {
+          process.stdout.write(formatBudgetJson(budgetResult));
+        } else {
+          process.stdout.write(formatBudgetTerminal(budgetResult));
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`Error: Budget analysis failed: ${message}\n`);
+        process.exit(2);
+      }
+      return;
+    }
+
+    // Fix mode: generate missing config files
+    if (args.fix) {
+      if (!args.quiet) {
+        process.stderr.write(`\nGenerating fix proposals for ${repoPath}...\n`);
+      }
+      try {
+        const context = await createRepoContext(repoPath);
+        const detection = await detect(context);
+        const proposals = await generateFixProposals(context, detection);
+
+        const actionable = proposals.filter((p) => !p.alreadyExists);
+        const skipped = proposals.filter((p) => p.alreadyExists);
+
+        if (actionable.length === 0) {
+          process.stderr.write("\nAll files already exist. Nothing to generate.\n");
+          return;
+        }
+
+        if (args.dryRun) {
+          process.stdout.write(formatDryRun(actionable, skipped));
+        } else {
+          await applyProposals(repoPath, actionable, skipped, args.quiet);
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`Error: Fix generation failed: ${message}\n`);
+        process.exit(2);
+      }
+      return;
     }
 
     // Build CLI overrides (only include values explicitly set by user)
@@ -152,5 +230,64 @@ Exit codes:
     }
   },
 });
+
+/** Format dry-run output showing what would be created. */
+function formatDryRun(actionable: FixProposal[], skipped: FixProposal[]): string {
+  const lines: string[] = [];
+  lines.push("\n--- Dry Run: Proposed Changes ---\n");
+
+  for (const p of actionable) {
+    lines.push(`CREATE  ${p.path}`);
+    lines.push(`  Criterion: ${p.criterion}`);
+    lines.push(`  Rationale: ${p.rationale}`);
+    lines.push(`  Size: ${p.content.length} bytes`);
+    lines.push("");
+  }
+
+  if (skipped.length > 0) {
+    lines.push("--- Skipped (already exist) ---\n");
+    for (const p of skipped) {
+      lines.push(`SKIP    ${p.path}`);
+    }
+    lines.push("");
+  }
+
+  lines.push(`Total: ${actionable.length} file(s) to create, ${skipped.length} skipped\n`);
+  lines.push("Run without --dry-run to apply changes.\n");
+  return lines.join("\n");
+}
+
+/** Apply fix proposals by writing files to disk. */
+async function applyProposals(
+  repoPath: string,
+  actionable: FixProposal[],
+  skipped: FixProposal[],
+  quiet: boolean,
+): Promise<void> {
+  const { mkdir } = await import("node:fs/promises");
+  const { dirname, join } = await import("node:path");
+
+  for (const p of actionable) {
+    const fullPath = join(repoPath, p.path);
+    const dir = dirname(fullPath);
+    await mkdir(dir, { recursive: true });
+    await writeFile(fullPath, p.content, "utf-8");
+    if (!quiet) {
+      process.stderr.write(`  CREATE  ${p.path}  (${p.criterion})\n`);
+    }
+  }
+
+  for (const p of skipped) {
+    if (!quiet) {
+      process.stderr.write(`  SKIP    ${p.path}  (already exists)\n`);
+    }
+  }
+
+  if (!quiet) {
+    process.stderr.write(
+      `\n${actionable.length} file(s) created. Review and customize the generated files.\n`,
+    );
+  }
+}
 
 runMain(main);

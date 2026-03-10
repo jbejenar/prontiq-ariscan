@@ -68,6 +68,13 @@ node packages/cli/dist/cli.js . --format markdown
 # With threshold (exit code 1 if score below)
 node packages/cli/dist/cli.js . --threshold 50
 
+# Token budget analysis
+node packages/cli/dist/cli.js . --budget
+
+# Safe fix generation (AGENTS.md, .agentignore, .devcontainer)
+node packages/cli/dist/cli.js . --fix --dry-run   # preview changes
+node packages/cli/dist/cli.js . --fix              # apply changes
+
 # Generate badge SVG
 node packages/cli/dist/cli.js . --badge badge.svg
 
@@ -83,14 +90,14 @@ node packages/cli/dist/cli.js --json-schema > ariscan.schema.json
 
 The core scanning engine is functional. What's built:
 
-- **@prontiq/schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig)
-- **@prontiq/engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification
-- **ariscan CLI** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export
-- **472 tests** across 17 test files
+- **@prontiq/schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig, Confidence)
+- **@prontiq/engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification, context budget analyzer, `.agentignore` parser, safe `--fix` generators
+- **ariscan CLI** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export; `--budget` token analysis; `--fix`/`--dry-run` safe file generation
+- **535 tests** across 21 test files
 - **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
 - **Test fixtures** — hostile-repo (L1), capable-repo (L3)
 - **JSON Schema** — `ariscan.schema.json` in repo root for output validation
-- **Dogfooding** — Self-scan: 75/100 (L4 Productive)
+- **Dogfooding** — Self-scan: 76/100 (L4 Productive)
 
 ---
 
@@ -137,7 +144,7 @@ The core scanning engine is functional. What's built:
 | `@prontiq/schema` | Built | Zod schemas for scan results, config, findings |
 | `@prontiq/engine` | Built | 8-pillar analyzers, composite scoring, security gate |
 | `@prontiq/sdk` | Planned | Programmatic integration for reporting/workflow automation |
-| `@prontiq/agentignore` | Planned | `.agentignore` parser (MIT, reusable by agent vendors) |
+| `@prontiq/agentignore` | Built (in engine) | `.agentignore` parser — gitignore-compatible patterns, negation, default patterns. Currently in `@prontiq/engine`; standalone MIT package planned. |
 
 ---
 
