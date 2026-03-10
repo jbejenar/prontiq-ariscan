@@ -1026,7 +1026,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Config file analysis, lockfile validation, build tool detection.
 - **Out of scope:** Actual type coverage measurement (requires compilation), build execution.
 
-#### Ticket P1.11 — Navigability Baseline (Pillar 7) (🟠) 🔧 Partial
+#### Ticket P1.11 — Navigability Baseline (Pillar 7) (🟢) ✅ Done
 
 - **User story:** As a developer, I need to know how easily AI agents can find and understand relevant code in my repository.
 - **Problem statement:** Developers spend up to 70% of their time comprehending code (Multitudes DX research). Complex code requires 250-500% more maintenance time (IEEE). This applies equally to agents — SWE-agent (Yang et al., NeurIPS 2024) proves that the agent-codebase interface is as important as the underlying model. Vector-only RAG degrades toward zero accuracy when queries involve >5 entities; AST-derived knowledge graphs maintain stable performance at 10+ entities (arXiv 2601.08773, 2025). GraphRAG achieves 3.4x accuracy improvement over vector RAG for multi-hop architectural reasoning (Fluree, 2025). Codebases with clear call hierarchies and predictable patterns enable better retrieval, regardless of retrieval strategy.
