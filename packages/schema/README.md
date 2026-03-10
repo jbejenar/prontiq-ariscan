@@ -16,7 +16,7 @@ npm install @prontiq/schema
 
 ```ts
 import {
-  PillarId,           // "context-quality" | "feedback-loop" | ... (8 pillars)
+  PillarId,           // "P1" | "P2" | ... | "P8"
   PillarDefinition,   // { id, name, weight }
   MaturityLevel,      // "L1" | "L2" | "L3" | "L4" | "L5"
   PILLAR_NAMES,       // Record<PillarId, string>

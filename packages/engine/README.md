@@ -34,7 +34,7 @@ import type { ScanResult, ScanConfig } from "@prontiq/schema";
 
 const config: Partial<ScanConfig> = {
   pillars: {
-    "dev-environment": { enabled: false }, // skip a pillar
+    P4: { enabled: false }, // skip Dev Environment pillar
   },
 };
 
@@ -98,7 +98,7 @@ import { ANALYZERS, getAnalyzer } from "@prontiq/engine";
 console.log(ANALYZERS.map(a => a.name));
 
 // Get a specific analyzer by pillar ID
-const ctx = getAnalyzer("context-quality");
+const analyzer = getAnalyzer("P1"); // Agent Context Quality
 ```
 
 ## Related Packages
