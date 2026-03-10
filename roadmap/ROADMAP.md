@@ -1782,6 +1782,46 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 
 ---
 
+### NPM Package Publication Strategy
+
+To maximise adoption across end users, plugin authors, and programmatic consumers, all three workspace packages will be published to npm.
+
+#### Package Inventory
+
+| Package | npm Name | Scope | Target Audience | Status |
+|---|---|---|---|---|
+| `packages/cli` | `ariscan` | Public (unscoped) | End users running `npx ariscan .` | `private: false` — ready to publish |
+| `packages/schema` | `@prontiq/schema` | Public (scoped) | Plugin authors, CI integrations, anyone importing types (`PillarId`, `Finding`, `ScanResult`) | `private: true` — **needs flip to `false`** |
+| `packages/engine` | `@prontiq/engine` | Public (scoped) | Programmatic consumers embedding scanning in their own tooling | `private: true` — **needs flip to `false`** |
+
+#### Pre-Publish Checklist
+
+- [ ] Claim `@prontiq` npm organisation and add maintainers.
+- [ ] Add `NPM_TOKEN` secret to GitHub repo for CI publish.
+- [ ] Flip `private: false` in `packages/schema/package.json` and `packages/engine/package.json`.
+- [ ] Add `publishConfig`, `repository`, `homepage`, and `bugs` fields to all three `package.json` files.
+- [ ] Add `files` whitelist (e.g., `["dist", "README.md"]`) to each package to avoid publishing source/test files.
+- [ ] Ensure `workspace:*` dependencies are resolved to real version ranges at publish time (pnpm handles this automatically with `pnpm publish`).
+- [ ] Add per-package `README.md` for `@prontiq/schema` and `@prontiq/engine` with API docs and usage examples.
+- [ ] Integrate `@changesets/cli` for coordinated versioning across all three packages (see CI.07).
+- [ ] Enable npm provenance attestation (`--provenance`) in the publish workflow.
+
+#### Publication Order
+
+Build and publish order must follow the dependency graph:
+
+1. `@prontiq/schema` (no internal deps)
+2. `@prontiq/engine` (depends on `@prontiq/schema`)
+3. `ariscan` (depends on both)
+
+Changesets will coordinate version bumps so that a schema change triggers engine and CLI releases as needed.
+
+#### Plugin Ecosystem (P3.08)
+
+Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plugin authors will depend on `@prontiq/schema` for type contracts (`PillarAnalyzer`, `Finding`, `PillarResult`) and optionally on `@prontiq/engine` for utilities like `RepoContext`.
+
+---
+
 ## Phase P2 — Context Intelligence and Practical Remediation (`ariscan` v0.5.0, Weeks 7–14)
 
 **Goal:** evolve from scanner to actionable guidance engine with measurable improvement loops.
