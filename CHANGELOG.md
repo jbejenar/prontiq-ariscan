@@ -12,7 +12,7 @@
 
 ### Metrics
 - **Self-scan score:** 76/100 (L4 Productive) — holding steady
-- **Tests:** 518 passing across 19 test files (450 engine + 68 CLI), up from 535
+- **Tests:** 546 passing across 21 test files (28 schema + 450 engine + 68 CLI), up from 535
 - **Roadmap progress:** 6 items shipped (P2.09 expansion, P2.08, P2.10, P2.11, P1.06 AC#3, P1.17 provider)
 
 ## [3.0.0] — 2026-03-10

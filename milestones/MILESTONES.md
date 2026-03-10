@@ -31,8 +31,8 @@
 **Target:** July 13, 2026 | **Duration:** 10 weeks
 
 - [ ] AGENTS.md generator ships (P2.01)
-- [ ] Context budget analyser ships (P2.04)
-- [ ] .agentignore generation ships (P2.05)
+- [x] Context budget analyser ships (P2.04)
+- [x] .agentignore generation ships (P2.05)
 
 **Success:** Generated AGENTS.md outscores LLM-generated. 1,000+ installs.
 

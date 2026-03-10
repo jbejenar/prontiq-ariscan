@@ -3,7 +3,7 @@
 ## Session: 2026-03-10 (tenth session)
 **Phase:** P2 — Context Intelligence (continued)
 **Self-scan:** 76/100 (L4 Productive) — holding steady
-**Tests:** 518 passing across 19 test files (450 engine + 68 CLI)
+**Tests:** 546 passing across 21 test files (28 schema + 450 engine + 68 CLI)
 **Quality gate:** typecheck, lint, test, build — all green
 **Roadmap progress:** 6 items shipped this session
 

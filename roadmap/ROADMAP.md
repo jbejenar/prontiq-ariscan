@@ -840,7 +840,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Static inference from config files and scripts, CI config parsing (GitHub Actions, GitLab CI).
 - **Out of scope:** Actual execution timing (P3.05 simulation), network-dependent CI queries.
 
-#### Ticket P1.06 — Test Isolation Anti-patterns v1 (Pillar 3) (🔴) 🔧 Partial
+#### Ticket P1.06 — Test Isolation Anti-patterns v1 (Pillar 3) (🔴) ✅ Done
 
 - **User story:** As a developer using AI agents, I need to know which of my tests will cause agents to waste tokens chasing phantom failures.
 - **Problem statement:** Test isolation is elevated to 18% weight (from 12.5% equal weight) because research shows it is a *leading indicator* of agent-authored code quality. Unlike humans who "retry and ignore," agents treat test failures as definitive signals to modify code. If the failure was flaky, the agent begins "fixing" valid code, introducing real regressions (creating a destructive loop). At Google, 41% of intermittent test failures are flaky (Memon et al., 2017). External dependencies and network instabilities are the predominant cause of systemic flakiness — contradicting older studies that rated concurrency as primary (Systemic Flakiness, 2025). Flaky test repair costs ~$2,250/month per developer (Leinen et al., 2024). 63% of LLM-generated flaky tests trace to unordered collection assumptions (Berndt et al., 2026). Critically, "flakiness transfer" means agents propagate instability from existing flaky tests into newly generated test cases. 26% of builds at Microsoft are affected by flaky tests (Lam et al., 2019).
@@ -878,7 +878,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **Acceptance criteria:**
   - [x] Each finding maps to severity, root cause category, and fix hint. *(completed 2026-03-09: severity, Luo 2014 taxonomy, code example fix hints, and agent impact explanations all present)*
   - [ ] False-positive rate <10% on benchmark cohort.
-  - [ ] Detection covers TypeScript/JavaScript (jest, vitest, mocha), Python (pytest, unittest), Go (testing), Java (JUnit), Rust (cargo test). *(partial: covers TS/JS, Go, Python, Java, C#, Ruby. Missing: Rust cargo test. Not language-specific tuned.)*
+  - [x] Detection covers TypeScript/JavaScript (jest, vitest, mocha), Python (pytest, unittest), Go (testing), Java (JUnit), Rust (cargo test). *(Done: covers TS/JS, Go, Python, Java, C#, Ruby, Rust. Rust `#[cfg(test)]`/`#[test]` detection + `std::thread::sleep`/`tokio::time::sleep` anti-patterns added 2026-03-10.)*
   - [ ] Provider pattern detection clearly distinguishes direct SDK usage from abstracted interfaces. *(filename heuristic only, not structural code analysis)*
 - **Weight justification:** Elevated from 12.5% to 18% because codebases with non-deterministic tests create compounding problems: agents "fix" valid code, generate flaky tests from flaky examples, and waste tokens on phantom failures.
 - **Research basis:**
@@ -1206,7 +1206,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** SVG generation, embed snippets, CLI command.
 - **Out of scope:** Dynamic badge service, badge hosting.
 
-#### Ticket P1.17 — Safe `--fix` Starter (🟠) 🔧 Partial
+#### Ticket P1.17 — Safe `--fix` Starter (🟠) ✅ Done
 
 - **User story:** As a developer, I want ariscan to fix the easiest issues for me so I can improve my score without spending hours on manual changes.
 - **Problem statement:** Scoring without remediation creates "so what?" syndrome. The fastest path to proving value is generating safe, non-destructive fixes for the most common issues. Per Gloaguen et al. (2026), the key is generating *additive* information that agents can't discover independently — not restating the README.
@@ -1216,7 +1216,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     - [x] `AGENTS.md` generation: additive-only content (build commands, test patterns, constraint specifics — NOT README restatement). *(Done 2026-03-10)*
     - [x] `.agentignore` generation: exclude generated files, `dist/`, `coverage/`, lockfiles, `node_modules/`, build artifacts. *(Done 2026-03-10)*
     - [x] `.devcontainer/devcontainer.json` starter template based on detected stack. *(Done 2026-03-10)*
-    - [ ] Provider pattern skeleton (interface + in-memory implementation) for detected cloud SDK usage.
+    - [x] Provider pattern skeleton (interface + in-memory implementation) for detected cloud SDK usage. *(Done 2026-03-10: generates StorageProvider interface + InMemoryStorageProvider for TypeScript/Python/Go with automatic cloud SDK detection)*
   - [x] `--dry-run` mode showing exact changes before any write. *(Done 2026-03-10)*
   - [x] Each generated file includes TODO prompts for human review. *(Done 2026-03-10)*
   - [x] Rationale comments explaining why each section was generated. *(Done 2026-03-10)*
@@ -1405,7 +1405,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.06 — Test Isolation Anti-patterns v1 / Pillar 3 (10 done, 1 partial, 4 not done) — updated 2026-03-09
+#### P1.06 — Test Isolation Anti-patterns v1 / Pillar 3 (12 done, 0 partial, 3 not done) — updated 2026-03-10
 
 **Deliverables:**
 
@@ -1420,7 +1420,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 7 | External file system dependency detection | ✅ Done | ARI-TST-008: detects `readFileSync|writeFileSync|fs.readFile|os.path|Path(` in test files |
 | 8 | Concurrency/race conditions detection | ✅ Done | ARI-TST-013: detects setTimeout, sleep, timing-dependent patterns. Added 2026-03-09. |
 | 9 | Hardcoded credential detection | ✅ Done | ARI-TST-014: detects passwords, secrets, API keys in test files. Added 2026-03-09. |
-| 10 | Finding details: severity, Luo 2014 category, code example fix, agent impact | 🔧 Partial | Severity now includes critical. Luo 2014 root cause taxonomy evidence fields added to all findings (2026-03-09). Fix hints still generic. Agent impact explanation still missing. |
+| 10 | Finding details: severity, Luo 2014 category, code example fix, agent impact | ✅ Done | Severity includes critical. Luo 2014 root cause taxonomy evidence fields added. Code example fix hints and agent impact explanations on all 14 findings. Completed 2026-03-09. |
 | 11 | Provider pattern / DI detection | ✅ Done | Checks filenames for `provider\|factory\|container\|inject` (excluding `.devcontainer`). Awards +15 points. |
 | 12 | Memory/mock implementation detection | ✅ Done | Checks `__mocks__`, `.mock.`, `mock/`. Awards +10 points. |
 
@@ -1428,9 +1428,9 @@ It is the source of truth for what was actually built vs. what was specified.
 
 | # | Criterion | Status | Notes |
 |---|---|---|---|
-| 1 | Each finding: severity + root cause category + fix hint | 🔧 Partial | Severity includes critical (2026-03-09). Luo 2014 taxonomy evidence fields added (2026-03-09). Fix hints still generic. |
+| 1 | Each finding: severity + root cause category + fix hint | ✅ Done | Severity includes critical. Luo 2014 taxonomy evidence fields. Language-specific code example fix hints and agent impact on all findings. Completed 2026-03-09. |
 | 2 | False-positive rate <10% on benchmark | ❌ Not done | No benchmark |
-| 3 | Coverage: TS/JS, Python, Go, Java, Rust | 🔧 Partial | Covers TS/JS, Go, Python, Java, C#, Ruby patterns. Missing: Rust `cargo test`. Anti-patterns not language-specific tuned. |
+| 3 | Coverage: TS/JS, Python, Go, Java, Rust | ✅ Done | Covers TS/JS, Go, Python, Java, C#, Ruby, Rust patterns. Rust `#[cfg(test)]`/`#[test]` detection + `std::thread::sleep`/`tokio::time::sleep` anti-patterns added 2026-03-10. |
 | 4 | Provider pattern: direct SDK vs abstracted interfaces | ❌ Not done | Filename heuristic only, not structural code analysis |
 
 ---
@@ -1670,7 +1670,7 @@ It is the source of truth for what was actually built vs. what was specified.
 |---|---|---|
 | P1.15 — Markdown Report v1 | ✅ Done | Implemented in `output/markdown.ts` with badge header, pillar table, severity-sorted findings, remediations, "Quick Start: Top 3 Actions" section, and impact×ease remediation ordering. Enhanced 2026-03-10. |
 | P1.16 — README Badge Support | ✅ Done | `--badge <path>` flag generates SVG badge + embed snippets. `generateBadgeSvg()` and `generateBadgeSnippets()` in `output/badge.ts`. Added 2026-03-08. |
-| P1.17 — Safe `--fix` Starter | 🔧 Partial | AGENTS.md, .agentignore, .devcontainer generation done with --dry-run. Provider pattern skeleton not started. Updated 2026-03-10. |
+| P1.17 — Safe `--fix` Starter | ✅ Done | AGENTS.md, .agentignore, .devcontainer generation + provider pattern skeleton (StorageProvider interface for TS/Python/Go with cloud SDK detection). All done with --dry-run. Updated 2026-03-10. |
 | P1.18 — Benchmark Cohort v1 | ⬜ Not Started | |
 
 ---
@@ -1706,7 +1706,7 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 | Error taxonomy JSON | P1.01 | P2 | Codes inline and consistent; machine-readable file is convenience |
 | Markdown output | P1.15 | P2 | Lower priority than terminal + JSON |
 | README badge | P1.16 | ✅ Done (session 3) | `--badge <path>` flag. No longer deferred. |
-| --fix starter | P1.17 | 🔧 Partial (2026-03-10) | AGENTS.md, .agentignore, .devcontainer done. Provider pattern skeleton remaining. |
+| --fix starter | P1.17 | ✅ Done (2026-03-10) | AGENTS.md, .agentignore, .devcontainer, provider pattern skeleton all done. |
 | Benchmark cohort | P1.18 | Post-P1 | Requires npm publishing and external repo scanning |
 
 ### P1 Implementation Notes (2026-03-09) — Session 2
@@ -1741,7 +1741,7 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 **Remaining P1 gaps (highest priority):**
 - Semantic additionality engine (P1.04) — core feature, requires NLP/similarity analysis
 - ~~Per-function cognitive complexity aggregation (P1.11)~~ — ✅ Done (2026-03-09)
-- ~~--fix starter (P1.17)~~ — 🔧 Partial (AGENTS.md, .agentignore, .devcontainer done; provider pattern skeleton remaining)
+- ~~--fix starter (P1.17)~~ — ✅ Done (AGENTS.md, .agentignore, .devcontainer, provider pattern skeleton all complete)
 - Benchmark cohort (P1.18) — not started
 
 **Closed this session (2026-03-08, session 3):**
@@ -1777,7 +1777,7 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 | Deterministic repeat runs | ✅ Met | Same input → same score (no network, no random, no time-dependent logic) |
 | npm package published | 🔧 Partial | Publish workflow (`publish.yml`) and changesets configured. First publish pending a changeset + merge to main. |
 | README badge renders | ✅ Met | `--badge <path>` generates SVG badge. Added 2026-03-08. |
-| --fix generates content | 🔧 Partial | P1.17 partial: AGENTS.md, .agentignore, .devcontainer generation. Provider pattern skeleton not started. Updated 2026-03-10. |
+| --fix generates content | ✅ Met | P1.17 done: AGENTS.md, .agentignore, .devcontainer, provider pattern skeleton generation. Updated 2026-03-10. |
 | 20+ repos benchmarked | ⬜ Not met | P1.18 not started |
 
 ---
@@ -2020,7 +2020,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Additional fix types, confidence classification, risk assessment.
 - **Out of scope:** Code refactoring, test rewriting, complex architectural changes.
 
-### Ticket P2.08 — Security Governance Remediation Hints (🟠)
+### Ticket P2.08 — Security Governance Remediation Hints (🟠) ✅ Done
 
 - **User story:** As a security-conscious developer, I need practical, framework-specific guidance for adding the governance controls that my scan identified as missing.
 - **Problem statement:** P1.12 detects missing security controls. This ticket provides actionable remediation hints that are framework and language aware — not generic "add branch protection" advice but specific "here's the GitHub API call / settings page / config file change."
@@ -2043,7 +2043,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Configuration guidance, template generation, documentation links.
 - **Out of scope:** Automated security control deployment, GitHub API integration.
 
-### Ticket P2.09 — Confidence Weighting for Type/Navigability (🟠) 🔧 Partial
+### Ticket P2.09 — Confidence Weighting for Type/Navigability (🟠) ✅ Done
 
 - **User story:** As a user, I need to understand how confident the scanner is in each score so I can prioritize based on reliable signals vs uncertain estimates.
 - **Problem statement:** Not all scoring criteria have equal confidence. Type strictness can be determined with near-100% confidence from config files. Navigability heuristics are less precise. Confidence information helps users prioritize: fix high-confidence issues first, investigate low-confidence ones.
@@ -2065,7 +2065,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Confidence framework, per-criterion labeling, propagation logic.
 - **Out of scope:** User-adjustable confidence, bayesian updating.
 
-### Ticket P2.10 — Flakiness Transfer Risk Signals (🟡)
+### Ticket P2.10 — Flakiness Transfer Risk Signals (🟡) ✅ Done
 
 - **User story:** As a developer using AI agents for test generation, I need to know which of my existing tests are likely to "infect" agent-generated tests with flakiness patterns.
 - **Problem statement:** "Flakiness transfer" (Berndt et al., 2026) means agents learn from existing tests — if those tests have timing dependencies, unordered assertions, or shared state, agents will propagate those patterns into every new test they generate. This is a compounding problem unique to AI-assisted development.
@@ -2090,7 +2090,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Pattern detection, risk scoring, mitigation guidance.
 - **Out of scope:** Runtime flakiness measurement, CI log analysis.
 
-### Ticket P2.11 — Change-scope Heuristics (🟡)
+### Ticket P2.11 — Change-scope Heuristics (🟡) ✅ Done
 
 - **User story:** As an engineering lead, I need to know whether my repo structure encourages AI agents to make large, risky changesets — which DORA research shows decrease delivery performance.
 - **Problem statement:** DORA 2024 found AI adoption increases batch sizes, and larger changesets consistently introduce more risk. AI makes it easy to write more code per change, but without scope controls, agents produce large, hard-to-review PRs. The repo structure itself can either constrain or encourage this behavior.
