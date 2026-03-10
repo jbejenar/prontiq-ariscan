@@ -588,6 +588,74 @@ describe("testIsolationAnalyzer (P3)", () => {
     });
   });
 
+  describe("Rust test detection", () => {
+    it("detects Rust test files in tests/ directory", async () => {
+      const ctx = createMockContext({
+        "src/lib.rs": "pub fn add(a: i32, b: i32) -> i32 { a + b }",
+        "tests/integration_test.rs": `
+          use mylib::add;
+          #[test]
+          fn test_add() { assert_eq!(add(1, 2), 3); }
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      // Should find the test file and not report "No test files found"
+      expect(result.findings.some((f) => f.code === "ARI-TST-006")).toBe(false);
+      expect(result.summary).not.toBe("No test files found");
+    });
+
+    it("detects Rust inline tests via #[cfg(test)] in source files", async () => {
+      const ctx = createMockContext({
+        "src/lib.rs": `
+          pub fn add(a: i32, b: i32) -> i32 { a + b }
+
+          #[cfg(test)]
+          mod tests {
+              use super::*;
+              #[test]
+              fn test_add() { assert_eq!(add(1, 2), 3); }
+          }
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      // The inline test should be detected — no "No test files found"
+      expect(result.findings.some((f) => f.code === "ARI-TST-006")).toBe(false);
+      expect(result.summary).not.toBe("No test files found");
+    });
+
+    it("detects Rust _test.rs files as test files", async () => {
+      const ctx = createMockContext({
+        "src/main.rs": "fn main() {}",
+        "src/utils.rs": "pub fn helper() -> bool { true }",
+        "src/utils_test.rs": `
+          use super::utils::helper;
+          #[test]
+          fn test_helper() { assert!(helper()); }
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-006")).toBe(false);
+      expect(result.summary).not.toBe("No test files found");
+    });
+
+    it("detects std::thread::sleep as timing dependency in Rust test files", async () => {
+      const ctx = createMockContext({
+        "src/lib.rs": "pub fn work() {}",
+        "tests/slow_test.rs": `
+          use std::thread;
+          use std::time::Duration;
+          #[test]
+          fn test_work() {
+              std::thread::sleep(Duration::from_millis(500));
+              assert!(true);
+          }
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-TST-013")).toBe(true);
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const files: Record<string, string> = {};
@@ -620,6 +688,88 @@ describe("testIsolationAnalyzer (P3)", () => {
       });
       const result = await testIsolationAnalyzer.analyze(ctx);
       expect(result.score).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe("flakiness transfer risk (ARI-TST-015)", () => {
+    it("does not emit ARI-TST-015 for a file with 0-1 anti-pattern categories", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('only timing', () => {
+            setTimeout(() => {}, 100);
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      // Only timing category (1 category) — should NOT emit ARI-TST-015
+      expect(result.findings.some((f) => f.code === "ARI-TST-015")).toBe(false);
+    });
+
+    it("emits medium severity ARI-TST-015 for a file with 2 anti-pattern categories", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('timing and network', async () => {
+            setTimeout(() => {}, 100);
+            const res = await fetch('https://api.example.com/data');
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-TST-015");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("medium");
+      expect(finding?.confidence).toBe("medium");
+      expect(finding?.message).toContain("2 anti-pattern categories");
+      expect(finding?.message).toContain("timing");
+      expect(finding?.message).toContain("network-dependencies");
+      expect(finding?.evidence?.paper).toBe("Berndt et al., 2026");
+    });
+
+    it("emits high severity ARI-TST-015 for a file with 3+ anti-pattern categories", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('many problems', async () => {
+            setTimeout(() => {}, 100);
+            const res = await fetch('https://api.example.com/data');
+            const data = fs.readFileSync('/tmp/test.json', 'utf-8');
+          });
+        `,
+      });
+      const result = await testIsolationAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-TST-015");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("high");
+      expect(finding?.message).toContain("3 anti-pattern categories");
+      expect(finding?.message).toContain("AI agents learning from this file");
+      // Remediation should list categories in priority order (most impactful first)
+      expect(finding?.remediation?.description).toContain("Priority:");
+      expect(finding?.remediation?.description).toContain("filesystem-dependencies");
+    });
+
+    it("deducts score for high-risk files (3+ categories)", async () => {
+      const cleanFiles: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('clean', () => { expect(1).toBe(1); });",
+      };
+      const riskyFiles: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": `
+          test('risky', async () => {
+            setTimeout(() => {}, 100);
+            process.env.NODE_ENV = 'test';
+            const res = await fetch('https://api.example.com/data');
+          });
+        `,
+      };
+
+      const cleanResult = await testIsolationAnalyzer.analyze(createMockContext(cleanFiles));
+      const riskyResult = await testIsolationAnalyzer.analyze(createMockContext(riskyFiles));
+      // The risky file has 3+ categories (timing, shared-mutable-state, network-dependencies)
+      // so it should deduct points
+      expect(cleanResult.score).toBeGreaterThan(riskyResult.score);
     });
   });
 });

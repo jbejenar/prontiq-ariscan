@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.1.0] — 2026-03-10
+
+### Added
+- **Engine (P2.09):** Confidence weighting expanded to all 8 analyzer pillars — context-quality (10 findings), feedback-loop (10 findings), test-isolation (14 findings), dev-environment (13 findings), security-governance (8 findings), navigability (8 findings) now carry high/medium/low confidence annotations based on detection method.
+- **Engine (P2.08):** Security governance remediation hints — all 7 security findings now include framework-specific code snippets: CODEOWNERS template with security-sensitive paths, SECURITY.md disclosure policy, gitleaks config + GitHub Actions workflow, dependabot.yml schedule, PR template with AI-code review checklist, .agentignore for sensitive paths, license-checker GitHub Actions workflow.
+- **Engine (P2.10):** Flakiness transfer risk signals (ARI-TST-015) — detects agent-propagated test anti-patterns including shared mutable state in beforeAll, sleep-based synchronization, and network calls in test files.
+- **Engine (P2.11):** Change-scope heuristics (ARI-FBK-010) — detects PR size limits, conventional commits enforcement, package boundary controls, and breaking change detection. Scores +3 per control (max +12).
+- **Engine (P1.06 AC#3):** Rust `cargo test` coverage — test-isolation analyzer now detects `#[cfg(test)]` and `#[test]` attributes in `.rs` source files for test ratio calculation.
+- **Engine (P1.17):** Provider pattern skeleton for `--fix` — generates `StorageProvider` interface + `InMemoryStorageProvider` for TypeScript, Python, and Go with automatic cloud SDK detection (AWS, Azure, GCP).
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — holding steady
+- **Tests:** 546 passing across 21 test files (28 schema + 450 engine + 68 CLI), up from 535
+- **Roadmap progress:** 6 items shipped (P2.09 expansion, P2.08, P2.10, P2.11, P1.06 AC#3, P1.17 provider)
+
 ## [3.0.0] — 2026-03-10
 
 ### Added

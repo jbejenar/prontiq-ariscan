@@ -42,6 +42,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
           severity: "high",
           pillar: PILLAR,
           message: "No test command found in package.json scripts",
+          confidence: "high",
           remediation: {
             action: "add-script",
             description: "Add a 'test' script to package.json",
@@ -67,6 +68,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: "No lint command found",
+        confidence: "high",
         remediation: {
           action: "add-script",
           description: "Add a 'lint' script to package.json with ESLint or equivalent",
@@ -87,6 +89,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
           severity: "medium",
           pillar: PILLAR,
           message: "TypeScript project without a dedicated typecheck script",
+          confidence: "high",
           remediation: {
             action: "add-script",
             description: "Add 'typecheck': 'tsc --noEmit' to package.json scripts",
@@ -138,6 +141,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: "No CI configuration found",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: ".github/workflows/ci.yml",
@@ -196,6 +200,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: "No changeset scope controls found (commitlint, changesets, or Danger)",
+        confidence: "high",
         remediation: {
           action: "configure-tool",
           description:
@@ -227,6 +232,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         severity: "info",
         pillar: PILLAR,
         message: "Watch mode detected",
+        confidence: "medium",
       });
     } else {
       findings.push({
@@ -234,6 +240,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: "No watch mode command found",
+        confidence: "medium",
         remediation: {
           action: "add-script",
           description:
@@ -255,6 +262,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         severity: "info",
         pillar: PILLAR,
         message: `Incremental build detected (${hasTurbo ? "turbo" : "nx"})`,
+        confidence: "high",
       });
     } else {
       findings.push({
@@ -262,6 +270,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: "No incremental build configuration",
+        confidence: "high",
         remediation: {
           action: "configure-tool",
           description: "Add Turborepo or Nx for incremental/cached builds",
@@ -269,6 +278,128 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         },
       });
     }
+
+    // --- Change-scope heuristics (ARI-FBK-010) ---
+    const changeScopeControls: string[] = [];
+
+    // 1. PR size limits: workflow files with size-limit patterns, or dangerfile
+    let hasPrSizeLimits = false;
+    const workflowFiles = context.files.filter((f) => /^\.github\/workflows\/.*\.ya?ml$/.test(f));
+    for (const wf of workflowFiles) {
+      const content = await context.readFile(wf);
+      if (content && /max-.*lines|diff.*size|pr.*size|changed.*files.*limit/i.test(content)) {
+        hasPrSizeLimits = true;
+        break;
+      }
+    }
+    if (!hasPrSizeLimits) {
+      const dangerContent =
+        (await context.readFile("dangerfile.ts")) ?? (await context.readFile("dangerfile.js"));
+      if (dangerContent && /lines|size|diff|big/i.test(dangerContent)) {
+        hasPrSizeLimits = true;
+      }
+    }
+    if (hasPrSizeLimits) {
+      changeScopeControls.push("PR size limits");
+    }
+
+    // 2. Conventional commits (reuse existing detection)
+    if (hasChangesetControls) {
+      changeScopeControls.push("conventional commits");
+    }
+
+    // 3. Monorepo package boundaries
+    const packageDirs = context.files.filter((f) => /^packages\/[^/]+\//.test(f));
+    const uniquePackages = new Set(packageDirs.map((f) => f.split("/")[1]));
+    const hasPackageBoundaries = uniquePackages.size >= 2 && (hasTurbo || hasNx);
+    if (hasPackageBoundaries) {
+      changeScopeControls.push("package boundaries");
+    }
+
+    // 4. Breaking change detection
+    const hasChangesetConfig = await context.fileExists(".changeset/config.json");
+    let hasBreakingChangeDetection = hasChangesetConfig;
+    if (!hasBreakingChangeDetection && pkg) {
+      const deps = {
+        ...(pkg["dependencies"] as Record<string, string> | undefined),
+        ...(pkg["devDependencies"] as Record<string, string> | undefined),
+      };
+      if (deps["semantic-release"] || deps["standard-version"]) {
+        hasBreakingChangeDetection = true;
+      }
+    }
+    if (hasBreakingChangeDetection) {
+      changeScopeControls.push("breaking change detection");
+    }
+
+    const changeScopeCount = changeScopeControls.length;
+    const allCategories = [
+      "PR size limits",
+      "conventional commits",
+      "package boundaries",
+      "breaking change detection",
+    ];
+    const missingControls = allCategories.filter((c) => !changeScopeControls.includes(c));
+
+    const detectedList = changeScopeControls.join(", ") || "none";
+    const missingList = missingControls.join(", ");
+    const changeScopeMessage = `Change-scope controls: ${changeScopeCount}/4 detected (${detectedList}).${missingControls.length > 0 ? ` Missing: ${missingList}.` : ""}`;
+
+    if (changeScopeCount === 0) {
+      findings.push({
+        code: "ARI-FBK-010",
+        severity: "medium",
+        pillar: PILLAR,
+        message: changeScopeMessage,
+        confidence: "medium",
+        remediation: {
+          action: "configure-tool",
+          description: `Add change-scope controls to prevent AI agents from producing oversized PRs. Missing: ${missingList}. DORA 2024 found AI increases batch sizes, which consistently introduces more risk.`,
+          confidence: "medium",
+        },
+        evidence: {
+          paper: "DORA, 2024",
+          finding:
+            "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
+          confidence: "high",
+        },
+      });
+    } else if (changeScopeCount <= 2) {
+      findings.push({
+        code: "ARI-FBK-010",
+        severity: "info",
+        pillar: PILLAR,
+        message: changeScopeMessage,
+        confidence: "medium",
+        remediation: {
+          action: "configure-tool",
+          description: `Add change-scope controls to prevent AI agents from producing oversized PRs. Missing: ${missingList}. DORA 2024 found AI increases batch sizes, which consistently introduces more risk.`,
+          confidence: "medium",
+        },
+        evidence: {
+          paper: "DORA, 2024",
+          finding:
+            "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
+          confidence: "high",
+        },
+      });
+    } else {
+      findings.push({
+        code: "ARI-FBK-010",
+        severity: "info",
+        pillar: PILLAR,
+        message: changeScopeMessage,
+        confidence: "high",
+        evidence: {
+          paper: "DORA, 2024",
+          finding:
+            "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
+          confidence: "high",
+        },
+      });
+    }
+
+    score += Math.min(12, changeScopeCount * 3);
 
     // --- Estimated execution time / feedback latency (ARI-FBK-009) ---
     const vitestConfig =
@@ -300,6 +431,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
             severity: "medium",
             pillar: PILLAR,
             message: `Test timeout is ${timeout}ms (>60s) — slow feedback loop`,
+            confidence: "medium",
             remediation: {
               action: "modify-config",
               description:
@@ -351,6 +483,8 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
       severity: "info",
       pillar: PILLAR,
       message: `Estimated feedback latency: ${latencyEstimate} (confidence: ${latencyLabel})`,
+      confidence:
+        latencyLabel === "measured" ? "high" : latencyLabel === "inferred" ? "medium" : "low",
     });
 
     score = Math.min(100, Math.max(0, score));

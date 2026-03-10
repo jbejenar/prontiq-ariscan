@@ -209,6 +209,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         severity: "high",
         pillar: PILLAR,
         message: "No agent context files found (AGENTS.md, CLAUDE.md, .cursorrules, etc.)",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: "AGENTS.md",
@@ -243,6 +244,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               pillar: PILLAR,
               message:
                 "AGENTS.md is too short (< 10 lines). Effective context files provide detailed project-specific guidance.",
+              confidence: "medium",
               remediation: {
                 action: "modify-config",
                 path: "AGENTS.md",
@@ -267,6 +269,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               pillar: PILLAR,
               message:
                 "AGENTS.md has critical info (build commands, architecture) buried below the first 20% of the file. Front-load important context for better agent performance.",
+              confidence: "medium",
               remediation: {
                 action: "modify-config",
                 path: "AGENTS.md",
@@ -297,6 +300,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               severity: "low",
               pillar: PILLAR,
               message: `AGENTS.md references ${stalePaths.length} path(s) not found in the repo: ${stalePaths.slice(0, 3).join(", ")}${stalePaths.length > 3 ? "..." : ""}. Content may be stale.`,
+              confidence: "medium",
               remediation: {
                 action: "modify-config",
                 path: "AGENTS.md",
@@ -316,6 +320,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               pillar: PILLAR,
               message:
                 "AGENTS.md appears to contain auto-generated or boilerplate content without project-specific details.",
+              confidence: "low",
               remediation: {
                 action: "modify-config",
                 path: "AGENTS.md",
@@ -339,6 +344,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
                 severity: "low",
                 pillar: PILLAR,
                 message: `AGENTS.md is very long (${lines} lines) without proportional code examples. Verbose context files can reduce agent efficiency.`,
+                confidence: "low",
                 remediation: {
                   action: "modify-config",
                   path: "AGENTS.md",
@@ -364,6 +370,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               pillar: PILLAR,
               message:
                 "CLAUDE.md has critical info (build commands, architecture) buried below the first 20% of the file. Front-load important context for better agent performance.",
+              confidence: "medium",
               remediation: {
                 action: "modify-config",
                 path: "CLAUDE.md",
@@ -387,6 +394,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message:
             "No .agentignore file found. This file helps agents exclude irrelevant files from context.",
+          confidence: "high",
           remediation: {
             action: "create-file",
             path: ".agentignore",
@@ -437,6 +445,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         severity: "high",
         pillar: PILLAR,
         message: `${nonParsableFiles.length} context file(s) failed parse validation: ${details}${nonParsableFiles.length > 3 ? ` and ${nonParsableFiles.length - 3} more` : ""}`,
+        confidence: "high",
         remediation: {
           action: "modify-config",
           description:
@@ -467,6 +476,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         severity: "info",
         pillar: PILLAR,
         message: `Agent context coverage: ${coveredAgents.length}/${AGENT_MAPPINGS.length} agents covered. Missing: ${uncoveredAgents.join(", ")}.`,
+        confidence: "high",
         remediation: {
           action: "create-file",
           description: `Add context files for uncovered agents: ${uncoveredAgents.join(", ")}. Use AGENTS.md for vendor-neutral context that all agents can read.`,
@@ -479,6 +489,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: `Agent context coverage: 0/${AGENT_MAPPINGS.length} agents covered. No agent has dedicated context files.`,
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: "AGENTS.md",
@@ -500,6 +511,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: "No README.md found. README serves as baseline context for all agents.",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: "README.md",

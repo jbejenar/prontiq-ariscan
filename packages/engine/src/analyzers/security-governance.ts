@@ -131,10 +131,22 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: "No CODEOWNERS file found",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: ".github/CODEOWNERS",
-          description: "Add CODEOWNERS to define code review ownership for critical paths",
+          description:
+            "Add CODEOWNERS to define code review ownership for critical paths.\n\n" +
+            "GitHub CODEOWNERS template (.github/CODEOWNERS):\n" +
+            "```\n" +
+            "# Default owners for everything\n" +
+            "* @your-org/engineering-leads\n" +
+            "\n" +
+            "# Security-sensitive paths require security team review\n" +
+            "/src/auth/       @your-org/security-team\n" +
+            "/src/crypto/     @your-org/security-team\n" +
+            "*.env.example    @your-org/security-team\n" +
+            "```",
           confidence: "high",
         },
         evidence: {
@@ -158,10 +170,25 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: "No SECURITY.md found",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: "SECURITY.md",
-          description: "Add security policy with vulnerability reporting instructions",
+          description:
+            "Add security policy with vulnerability reporting instructions.\n\n" +
+            "SECURITY.md template:\n" +
+            "```markdown\n" +
+            "# Security Policy\n" +
+            "\n" +
+            "## Reporting a Vulnerability\n" +
+            "Please report security vulnerabilities to security@your-org.com.\n" +
+            "Do NOT open a public issue. We will respond within 48 hours.\n" +
+            "\n" +
+            "## Supported Versions\n" +
+            "| Version | Supported |\n" +
+            "| ------- | --------- |\n" +
+            "| latest  | Yes       |\n" +
+            "```",
           confidence: "high",
         },
         evidence: {
@@ -198,9 +225,30 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         severity: "high",
         pillar: PILLAR,
         message: "No secrets scanning configuration found",
+        confidence: "high",
         remediation: {
           action: "configure-tool",
-          description: "Add gitleaks or truffleHog for secrets scanning in CI",
+          description:
+            "Add gitleaks or truffleHog for secrets scanning in CI.\n\n" +
+            ".gitleaks.toml config:\n" +
+            "```toml\n" +
+            "[allowlist]\n" +
+            'description = "Global allowlist"\n' +
+            'paths = ["node_modules", "vendor", "__fixtures__"]\n' +
+            "```\n\n" +
+            "GitHub Actions workflow (.github/workflows/gitleaks.yml):\n" +
+            "```yaml\n" +
+            "name: gitleaks\n" +
+            "on: [push, pull_request]\n" +
+            "jobs:\n" +
+            "  scan:\n" +
+            "    runs-on: ubuntu-latest\n" +
+            "    steps:\n" +
+            "      - uses: actions/checkout@v4\n" +
+            "        with: { fetch-depth: 0 }\n" +
+            "      - uses: gitleaks/gitleaks-action@v2\n" +
+            "        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }\n" +
+            "```",
           confidence: "high",
         },
         evidence: {
@@ -225,10 +273,22 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: "No dependency update automation (Dependabot, Renovate)",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: ".github/dependabot.yml",
-          description: "Add Dependabot or Renovate for automated dependency updates",
+          description:
+            "Add Dependabot or Renovate for automated dependency updates.\n\n" +
+            "GitHub Dependabot config (.github/dependabot.yml):\n" +
+            "```yaml\n" +
+            "version: 2\n" +
+            "updates:\n" +
+            "  - package-ecosystem: npm\n" +
+            "    directory: /\n" +
+            "    schedule: { interval: weekly }\n" +
+            "    open-pull-requests-limit: 10\n" +
+            "    reviewers: [your-org/security-team]\n" +
+            "```",
           confidence: "high",
         },
         evidence: {
@@ -327,10 +387,22 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: "No license compliance tooling found in CI workflows",
+        confidence: "medium",
         remediation: {
           action: "configure-tool",
           description:
-            "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks",
+            "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks.\n\n" +
+            "GitHub Actions workflow (.github/workflows/license-check.yml):\n" +
+            "```yaml\n" +
+            "name: license-check\n" +
+            "on: [push, pull_request]\n" +
+            "jobs:\n" +
+            "  check:\n" +
+            "    runs-on: ubuntu-latest\n" +
+            "    steps:\n" +
+            "      - uses: actions/checkout@v4\n" +
+            "      - run: npx license-checker --production --failOn 'GPL-3.0;AGPL-3.0'\n" +
+            "```",
           confidence: "medium",
         },
         evidence: {
@@ -360,11 +432,21 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: "PR template does not include AI-specific review checklist items",
+        confidence: "medium",
         remediation: {
           action: "modify-config",
           path: ".github/PULL_REQUEST_TEMPLATE.md",
           description:
-            "Add an AI/agent review section to your PR template (e.g., 'Was this code AI-generated?', 'Have AI-generated changes been reviewed for security?')",
+            "Add an AI/agent review section to your PR template.\n\n" +
+            "Add to .github/PULL_REQUEST_TEMPLATE.md:\n" +
+            "```markdown\n" +
+            "## AI-Generated Code Review\n" +
+            "- [ ] Is any code in this PR AI-generated? If yes, note which files.\n" +
+            "- [ ] AI-generated code reviewed for hardcoded secrets or credentials\n" +
+            "- [ ] AI-generated code reviewed for injection vulnerabilities\n" +
+            "- [ ] AI-generated code reviewed for correct error handling\n" +
+            "- [ ] License compatibility verified for any AI-suggested dependencies\n" +
+            "```",
           confidence: "medium",
         },
         evidence: {
@@ -402,11 +484,23 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message:
           "No agent scope control found (.agentignore, .claudeignore, .copilotignore, or CLAUDE.md)",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: ".agentignore",
           description:
-            "Add an .agentignore or similar file to restrict which files AI agents can access or modify",
+            "Add an .agentignore or similar file to restrict which files AI agents can access or modify.\n\n" +
+            ".agentignore template:\n" +
+            "```\n" +
+            "# Prevent AI agents from reading/modifying sensitive paths\n" +
+            ".env*\n" +
+            "secrets/\n" +
+            "*.pem\n" +
+            "*.key\n" +
+            "src/auth/\n" +
+            "src/crypto/\n" +
+            "infrastructure/\n" +
+            "```",
           confidence: "medium",
         },
         evidence: {
@@ -436,6 +530,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         severity: "info",
         pillar: PILLAR,
         message: `Language-specific AI vulnerability context: ${languageContextEntries.join("; ")}`,
+        confidence: "medium",
         remediation: {
           action: "configure-tool",
           description: primaryCtx

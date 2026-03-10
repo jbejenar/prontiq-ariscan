@@ -72,6 +72,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
             pillar: PILLAR,
             message:
               "Devcontainer is missing 'image' or 'build' field — container may not be functional",
+            confidence: "high",
             remediation: {
               action: "modify-config",
               path: ".devcontainer/devcontainer.json",
@@ -95,6 +96,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: "No devcontainer configuration found",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: ".devcontainer/devcontainer.json",
@@ -149,6 +151,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: "No bootstrap/setup script found",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: "scripts/setup.sh",
@@ -185,6 +188,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: "No version pinning found (.nvmrc, .tool-versions, engines field)",
+        confidence: "high",
         remediation: {
           action: "create-file",
           path: ".nvmrc",
@@ -242,6 +246,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: "No doctor/health-check command found in package.json scripts",
+        confidence: "medium",
         remediation: {
           action: "add-script",
           description:
@@ -286,6 +291,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       severity: "info",
       pillar: PILLAR,
       message: `Devcontainer: ${devcontainerStatus}`,
+      confidence: "high",
     });
 
     // --- NEW: ARI-ENV-006 — First-run blockers ---
@@ -337,6 +343,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         severity: "high",
         pillar: PILLAR,
         message: `Likely first-run blockers: ${blockers.join("; ")}`,
+        confidence: "medium",
         remediation: {
           action: "create-file",
           description:
@@ -355,6 +362,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         severity: "info",
         pillar: PILLAR,
         message: "No obvious first-run blockers detected",
+        confidence: "medium",
       });
     }
 
@@ -387,6 +395,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
           severity: "medium",
           pillar: PILLAR,
           message: `Environment variable completeness: ${missingVars.length} var(s) referenced in code but missing from .env.example: ${missingVars.slice(0, 10).join(", ")}${missingVars.length > 10 ? "..." : ""}`,
+          confidence: "medium",
           remediation: {
             action: "modify-config",
             path: ".env.example",
@@ -400,6 +409,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
           severity: "info",
           pillar: PILLAR,
           message: `Environment variable completeness: all referenced vars documented in .env.example (${documentedVars.length} vars)`,
+          confidence: "medium",
         });
       }
     } else if (codeReferencesEnv) {
@@ -408,6 +418,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: "No .env.example found but code references process.env variables",
+        confidence: "medium",
         remediation: {
           action: "create-file",
           path: ".env.example",
@@ -474,6 +485,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       severity: ttftpLabel === "slow" ? "medium" : "info",
       pillar: PILLAR,
       message: `Estimated time-to-first-test-pass: ~${ttftpMinutes} min (${ttftpLabel}). Factors: ${ttftpFactors.join(", ")}`,
+      confidence: "low",
       ...(ttftpLabel === "slow"
         ? {
             remediation: {
@@ -492,6 +504,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       severity: "info",
       pillar: PILLAR,
       message: `Setup scripts: ${hasSetup ? "pass" : "fail"}`,
+      confidence: "high",
     });
 
     findings.push({
@@ -499,6 +512,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       severity: "info",
       pillar: PILLAR,
       message: `Version pinning: ${hasVersionPinning ? "pass" : "fail"}`,
+      confidence: "high",
     });
 
     findings.push({
@@ -506,6 +520,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       severity: "info",
       pillar: PILLAR,
       message: `Docker Compose: ${hasCompose ? "pass" : "fail"}`,
+      confidence: "high",
     });
 
     findings.push({
@@ -513,6 +528,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       severity: "info",
       pillar: PILLAR,
       message: `Env example file: ${hasEnvExample ? "pass" : "fail"}`,
+      confidence: "high",
     });
 
     findings.push({
@@ -520,6 +536,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       severity: "info",
       pillar: PILLAR,
       message: `Doctor/health-check: ${hasDoctorCmd ? "pass" : "fail"}`,
+      confidence: "medium",
     });
 
     score = Math.min(100, Math.max(0, score));

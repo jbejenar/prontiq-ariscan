@@ -49,11 +49,12 @@ describe("generateFixProposals", () => {
 
     const proposals = await generateFixProposals(ctx, nodeDetection);
 
-    expect(proposals.length).toBe(3);
+    expect(proposals.length).toBe(4);
     const paths = proposals.map((p) => p.path);
     expect(paths).toContain("AGENTS.md");
     expect(paths).toContain(".agentignore");
     expect(paths).toContain(".devcontainer/devcontainer.json");
+    expect(paths).toContain("src/providers/storage.provider.ts");
   });
 
   it("marks existing files as alreadyExists", async () => {
@@ -190,7 +191,7 @@ describe("generateFixProposals", () => {
         "AGENTS.md": "# exists",
         ".agentignore": "dist/",
       },
-      [".devcontainer/devcontainer.json"],
+      [".devcontainer/devcontainer.json", "src/providers/storage.provider.ts"],
     );
 
     const proposals = await generateFixProposals(ctx, nodeDetection);

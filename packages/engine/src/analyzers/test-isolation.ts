@@ -13,6 +13,8 @@ const TEST_FILE_PATTERNS = [
   /Test\.java$/,
   /Tests?\.cs$/,
   /_spec\.rb$/,
+  /_test\.rs$/,
+  /\btests\/.*\.rs$/,
 ];
 
 const ANTI_PATTERNS = [
@@ -79,6 +81,7 @@ const FS_DEPENDENCY_PATTERNS = [
   /\bos\.(path\.|remove|makedirs|listdir)\b/,
   /\bioutil\.(ReadFile|WriteFile|TempDir)\b/,
   /\bFile\.(open|read|write|delete)\b/i,
+  /\bstd::fs::/,
 ];
 
 /** Patterns that detect order-sensitive assertions on unordered collections */
@@ -160,6 +163,16 @@ const CONCURRENCY_PATTERNS = [
     category: "async-wait" as const,
     description: "new Promise wrapping setTimeout",
   },
+  {
+    pattern: /\bstd::thread::sleep\b/,
+    category: "async-wait" as const,
+    description: "std::thread::sleep in test",
+  },
+  {
+    pattern: /\btokio::time::sleep\b/,
+    category: "async-wait" as const,
+    description: "tokio::time::sleep in test",
+  },
 ];
 
 /** Hardcoded credential patterns (critical severity) */
@@ -214,9 +227,23 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
     // Find test files
     const testFiles = context.files.filter((f) => TEST_FILE_PATTERNS.some((p) => p.test(f)));
 
+    // Detect Rust inline tests: .rs source files containing #[cfg(test)] or #[test]
+    const rsSourceFiles = context.files.filter(
+      (f) =>
+        f.endsWith(".rs") &&
+        !TEST_FILE_PATTERNS.some((p) => p.test(f)) &&
+        !f.includes("node_modules"),
+    );
+    for (const rsFile of rsSourceFiles) {
+      const content = await context.readFile(rsFile);
+      if (content && (/#\[cfg\(test\)\]/.test(content) || /#\[test\]/.test(content))) {
+        testFiles.push(rsFile);
+      }
+    }
+
     const sourceFiles = context.files.filter(
       (f) =>
-        /\.[jt]sx?$|\.py$|\.go$|\.java$|\.cs$|\.rb$/.test(f) &&
+        /\.[jt]sx?$|\.py$|\.go$|\.java$|\.cs$|\.rb$|\.rs$/.test(f) &&
         !TEST_FILE_PATTERNS.some((p) => p.test(f)) &&
         !f.includes("node_modules"),
     );
@@ -227,6 +254,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         severity: "critical",
         pillar: PILLAR,
         message: "No test files found in the repository",
+        confidence: "high",
         remediation: {
           action: "create-file",
           description:
@@ -267,6 +295,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: `Low test-to-source ratio: ${ratio.toFixed(2)} (${testFiles.length} tests / ${sourceFiles.length} sources)`,
+        confidence: "medium",
         remediation: {
           action: "create-file",
           description:
@@ -297,6 +326,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             pillar: PILLAR,
             file: testFile,
             message: ap.message,
+            confidence: "medium",
             remediation: {
               action: "refactor",
               description: ap.remediation,
@@ -327,6 +357,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             pillar: PILLAR,
             file: testFile,
             message: "Test file accesses the real filesystem — should use mocks or in-memory FS",
+            confidence: "medium",
             remediation: {
               action: "refactor",
               description:
@@ -359,6 +390,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               pillar: PILLAR,
               file: testFile,
               message: "Assertion on unordered collection without sorting — may cause flaky tests",
+              confidence: "medium",
               remediation: {
                 action: "refactor",
                 description:
@@ -397,6 +429,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
           severity: "high",
           pillar: PILLAR,
           message: `Very low test file count ratio: ${testFileRatio.toFixed(2)} (${testFiles.length} test files / ${sourceFiles.length} source files). Target at least 0.5.`,
+          confidence: "medium",
           remediation: {
             action: "create-file",
             description:
@@ -427,6 +460,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               pillar: PILLAR,
               file: testFile,
               message: `Mutable global environment detected: ${gm.description}`,
+              confidence: "medium",
               remediation: {
                 action: "refactor",
                 description:
@@ -473,6 +507,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
                   pillar: PILLAR,
                   file: testFile,
                   message: `Test order dependency: ${od.description} modifies shared state`,
+                  confidence: "low",
                   remediation: {
                     action: "refactor",
                     description:
@@ -497,6 +532,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
                 pillar: PILLAR,
                 file: testFile,
                 message: `Test order dependency: ${od.description}`,
+                confidence: "high",
                 remediation: {
                   action: "refactor",
                   description:
@@ -532,6 +568,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               pillar: PILLAR,
               file: testFile,
               message: `Concurrency/race condition pattern: ${cp.description}`,
+              confidence: "medium",
               remediation: {
                 action: "refactor",
                 description:
@@ -561,6 +598,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             pillar: PILLAR,
             file: testFile,
             message: "Hardcoded credential detected in test file",
+            confidence: "high",
             remediation: {
               action: "refactor",
               description:
@@ -582,6 +620,110 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
     const newAntiPatternCount = globalMutationCount + orderDependencyCount + concurrencyCount;
     if (newAntiPatternCount > 0) {
       score -= Math.min(15, newAntiPatternCount * 3);
+    }
+
+    // --- NEW: Flakiness transfer risk assessment (ARI-TST-015) ---
+    // Per Berndt et al., 2026: agents learn from existing tests — if those tests
+    // have timing dependencies, unordered assertions, or shared state, agents will
+    // propagate those patterns into generated tests.
+    const TRANSFER_RISK_CATEGORIES = [
+      {
+        name: "timing",
+        impact: 1,
+        test: (c: string) => CONCURRENCY_PATTERNS.some((cp) => cp.pattern.test(c)),
+      },
+      {
+        name: "shared-mutable-state",
+        impact: 2,
+        test: (c: string) =>
+          GLOBAL_MUTATION_PATTERNS.some((gm) => gm.pattern.test(c)) ||
+          (/\b(beforeAll|before)\s*\(/.test(c) &&
+            /^\s*(let|var)\s+\w+/.test(c) &&
+            /\w+\s*=\s*/.test(c)),
+      },
+      {
+        name: "unordered-assertions",
+        impact: 3,
+        test: (c: string) => {
+          const lines = c.split("\n");
+          return lines.some((line) => ORDER_SENSITIVE_PATTERNS.some((p) => p.test(line)));
+        },
+      },
+      {
+        name: "network-dependencies",
+        impact: 4,
+        test: (c: string) =>
+          ANTI_PATTERNS.filter((ap) => ap.code === "ARI-TST-001" || ap.code === "ARI-TST-002").some(
+            (ap) => ap.pattern.test(c),
+          ),
+      },
+      {
+        name: "filesystem-dependencies",
+        impact: 5,
+        test: (c: string) => FS_DEPENDENCY_PATTERNS.some((fp) => fp.test(c)),
+      },
+      {
+        name: "hardcoded-credentials",
+        impact: 6,
+        test: (c: string) => CREDENTIAL_PATTERNS.some((cp) => cp.test(c)),
+      },
+    ] as const;
+
+    // Priority order: highest impact number = most impactful (for remediation ordering)
+    const CATEGORY_PRIORITY = [...TRANSFER_RISK_CATEGORIES].sort((a, b) => b.impact - a.impact);
+
+    let highRiskFileCount = 0;
+    for (const testFile of filtered) {
+      const content = await context.readFile(testFile);
+      if (!content) continue;
+
+      const presentCategories: string[] = [];
+      for (const cat of TRANSFER_RISK_CATEGORIES) {
+        if (cat.test(content)) {
+          presentCategories.push(cat.name);
+        }
+      }
+
+      if (presentCategories.length >= 2) {
+        const severity = presentCategories.length >= 3 ? "high" : "medium";
+        if (severity === "high") {
+          highRiskFileCount++;
+        }
+
+        // Order categories by priority for remediation
+        const prioritized = CATEGORY_PRIORITY.filter((c) => presentCategories.includes(c.name)).map(
+          (c) => c.name,
+        );
+
+        findings.push({
+          code: "ARI-TST-015",
+          severity,
+          pillar: PILLAR,
+          file: testFile,
+          message:
+            `High flakiness transfer risk: ${testFile} contains ${presentCategories.length} anti-pattern categories (${presentCategories.join(", ")}). ` +
+            `AI agents learning from this file will propagate these patterns into generated tests.`,
+          confidence: "medium",
+          remediation: {
+            action: "refactor",
+            description:
+              `Fix the identified anti-patterns in this test file before using it as a reference for AI-generated tests. ` +
+              `Priority: ${prioritized.join(", ")}.`,
+            confidence: "medium",
+          },
+          evidence: {
+            paper: "Berndt et al., 2026",
+            finding:
+              "Agents learn from existing tests — if those tests have timing dependencies, unordered assertions, or shared state, agents will propagate those patterns",
+            confidence: "high",
+          },
+        });
+      }
+    }
+
+    // Deduct 2 points per high-risk file (3+ categories), capped at 10
+    if (highRiskFileCount > 0) {
+      score -= Math.min(10, highRiskFileCount * 2);
     }
 
     // Check for DI/provider patterns (match filename only, exclude .devcontainer paths)

@@ -264,6 +264,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         file: dirName,
         message: `Directory "${dirName}" has ${dirCount} source files — consider splitting into submodules`,
+        confidence: "medium",
         remediation: {
           action: "refactor",
           description: "Split large directories into focused submodules with clear boundaries",
@@ -284,6 +285,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: `Maximum directory depth is ${maxDepth} — deep nesting hurts navigation`,
+        confidence: "medium",
         remediation: {
           action: "refactor",
           description: "Flatten deeply nested directory structures. Aim for max depth of 5-6.",
@@ -330,6 +332,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
           .filter((s) => s.count > 0)
           .map((s) => `${s.name}(${s.count})`)
           .join(", ")}`,
+        confidence: "low",
         remediation: {
           action: "refactor",
           description: `Standardize file naming to ${dominant.name}`,
@@ -376,6 +379,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
             pillar: PILLAR,
             file,
             message: `File has ${importLines.length} imports — high coupling, consider splitting`,
+            confidence: "medium",
             remediation: {
               action: "refactor",
               description:
@@ -444,6 +448,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
               severity: "high",
               pillar: PILLAR,
               message: `Potential circular dependency between "${fileA}" and "${fileB}"`,
+              confidence: "low",
               remediation: {
                 action: "refactor",
                 description:
@@ -563,6 +568,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: `Found ${deadCodeCandidates.length} source file(s) that appear unused (never imported): ${deadCodeCandidates.slice(0, 3).join(", ")}${deadCodeCandidates.length > 3 ? ` and ${deadCodeCandidates.length - 3} more` : ""}`,
+        confidence: "low",
         remediation: {
           action: "refactor",
           description:
@@ -615,6 +621,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         severity: "high",
         pillar: PILLAR,
         message: `${poorFunctions.length} function(s) with poor cognitive complexity (>15): ${topPoor.map((c) => `${c.file}:${c.name} (${c.complexity})`).join(", ")}`,
+        confidence: "medium",
         remediation: {
           action: "refactor",
           description:
@@ -636,6 +643,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: `${moderateFunctions.length} function(s) with moderate cognitive complexity (9-15): ${topMod.map((c) => `${c.file}:${c.name} (${c.complexity})`).join(", ")}`,
+        confidence: "medium",
         remediation: {
           action: "refactor",
           description:
@@ -723,6 +731,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         severity: "medium",
         pillar: PILLAR,
         message: `Detected code duplication across ${filesWithDuplication} file(s) (${sharedChunkCount} shared block(s)): ${examples}`,
+        confidence: "low",
         remediation: {
           action: "refactor",
           description:
@@ -744,6 +753,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         severity: "low",
         pillar: PILLAR,
         message: `Minor code duplication detected in ${filesWithDuplication} file(s) (${sharedChunkCount} shared block(s))`,
+        confidence: "low",
         remediation: {
           action: "refactor",
           description:

@@ -392,6 +392,60 @@ describe("feedbackLoopAnalyzer (P2)", () => {
     });
   });
 
+  describe("change-scope heuristics (ARI-FBK-010)", () => {
+    it("emits medium severity when no change-scope controls detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk010 = result.findings.find((f) => f.code === "ARI-FBK-010");
+      expect(fbk010).toBeDefined();
+      expect(fbk010?.severity).toBe("medium");
+      expect(fbk010?.confidence).toBe("medium");
+      expect(fbk010?.message).toContain("0/4 detected");
+    });
+
+    it("emits info severity with medium confidence when 2 controls detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          scripts: {},
+          devDependencies: { "semantic-release": "^20.0.0" },
+        }),
+        "commitlint.config.js":
+          "module.exports = { extends: ['@commitlint/config-conventional'] };",
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk010 = result.findings.find((f) => f.code === "ARI-FBK-010");
+      expect(fbk010).toBeDefined();
+      expect(fbk010?.severity).toBe("info");
+      expect(fbk010?.confidence).toBe("medium");
+      expect(fbk010?.message).toContain("2/4 detected");
+    });
+
+    it("emits info severity with high confidence when all 4 controls detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          scripts: {},
+          devDependencies: { "semantic-release": "^20.0.0" },
+        }),
+        "commitlint.config.js":
+          "module.exports = { extends: ['@commitlint/config-conventional'] };",
+        ".changeset/config.json": JSON.stringify({ changelog: "@changesets/cli" }),
+        ".github/workflows/pr-size.yml":
+          "name: PR Size\non: pull_request\njobs:\n  check:\n    runs-on: ubuntu-latest\n    steps:\n      - run: max-lines-check",
+        "turbo.json": JSON.stringify({ pipeline: {} }),
+        "packages/a/package.json": JSON.stringify({ name: "@scope/a" }),
+        "packages/b/package.json": JSON.stringify({ name: "@scope/b" }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk010 = result.findings.find((f) => f.code === "ARI-FBK-010");
+      expect(fbk010).toBeDefined();
+      expect(fbk010?.severity).toBe("info");
+      expect(fbk010?.confidence).toBe("high");
+      expect(fbk010?.message).toContain("4/4 detected");
+    });
+  });
+
   describe("local vs CI weight differentiation", () => {
     it("local feedback contributes more than CI feedback to score", async () => {
       // Repo with only CI config (no local scripts)
