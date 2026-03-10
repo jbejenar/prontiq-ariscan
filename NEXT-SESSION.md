@@ -3,7 +3,7 @@
 ## Session: 2026-03-10 (eighth session)
 **Phase:** P1 — MVP CLI Foundation (nearing completion)
 **Self-scan:** 75/100 (L4 Productive) — stable
-**Tests:** 444 passing across 15 test files
+**Tests:** 472 passing across 17 test files (28 schema + 376 engine + 68 CLI)
 **Quality gate:** typecheck, lint, test, build — all green
 **Roadmap progress:** 8 items closed this session
 

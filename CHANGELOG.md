@@ -15,7 +15,7 @@
 
 ### Metrics
 - **Self-scan score:** 75/100 (L4 Productive) — no regression
-- **Tests:** 444 passing across 15 test files (+78 new tests vs v2.8.0)
+- **Tests:** 472 passing across 17 test files (28 schema + 376 engine + 68 CLI)
 - **Roadmap progress:** 8 acceptance criteria / deliverables closed this session
 
 ## [2.8.0] — 2026-03-10

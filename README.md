@@ -86,7 +86,7 @@ The core scanning engine is functional. What's built:
 - **@prontiq/schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig)
 - **@prontiq/engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification
 - **ariscan CLI** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export
-- **444 tests** across 15 test files
+- **472 tests** across 17 test files
 - **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
 - **Test fixtures** — hostile-repo (L1), capable-repo (L3)
 - **JSON Schema** — `ariscan.schema.json` in repo root for output validation
