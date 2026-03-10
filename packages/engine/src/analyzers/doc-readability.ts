@@ -101,6 +101,36 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
         }
       }
     }
+    // Also check Python projects for pydantic BaseSettings
+    if (!hasEnvValidation) {
+      const pyFiles = context.files.filter(
+        (f) =>
+          f.endsWith(".py") &&
+          !f.includes("node_modules") &&
+          !f.includes("__pycache__") &&
+          !f.includes(".venv"),
+      );
+      const pySampled = pyFiles.slice(0, 10);
+      for (const pyf of pySampled) {
+        const content = await context.readFile(pyf);
+        if (
+          content &&
+          (/from\s+pydantic_settings\s+import\s+BaseSettings/.test(content) ||
+            /from\s+pydantic\s+import\s+BaseSettings/.test(content) ||
+            /class\s+\w+\(BaseSettings\)/.test(content))
+        ) {
+          hasEnvValidation = true;
+          break;
+        }
+      }
+    }
+    // Also check pyproject.toml for pydantic-settings dependency
+    if (!hasEnvValidation) {
+      const pyproject = await context.readFile("pyproject.toml");
+      if (pyproject && /pydantic.settings|pydantic-settings/.test(pyproject)) {
+        hasEnvValidation = true;
+      }
+    }
     if (hasEnvValidation) {
       score += 10;
     }

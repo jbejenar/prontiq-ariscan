@@ -1276,7 +1276,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.01 — CLI Scaffold and Config Runtime (7 done, 1 partial, 2 not done) — updated 2026-03-08
+#### P1.01 — CLI Scaffold and Config Runtime (7 done, 1 partial, 1 not done) — updated 2026-03-10
 
 **Deliverables:**
 
@@ -1294,7 +1294,7 @@ It is the source of truth for what was actually built vs. what was specified.
 |---|---|---|---|
 | 1 | `--help` documents flags + 3 usage examples | ✅ Done | 3 examples in CLI description: basic scan, JSON output, threshold |
 | 2 | Config precedence tested with unit tests | ✅ Done | 16 tests in `config-loader.test.ts` covering YAML parsing, validation, directory traversal, merging |
-| 3 | Exit code matrix documented in `--help` and docs | ❌ Not done | Exit codes work but undocumented |
+| 3 | Exit code matrix documented in `--help` and docs | ✅ Done | Exit codes 0/1/2 documented in `--help` description. Added 2026-03-10. |
 | 4 | Completes on 100k files within 60s | ❌ Not done | No performance tests (scans complete <100ms on this repo though) |
 | 5 | Zero external network calls | ✅ Done | No `fetch`, `http`, `axios`, or network imports in engine/CLI |
 
@@ -1449,7 +1449,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.08 — Onboarding Reproducibility Checks / Pillar 4 (8 done, 0 partial, 1 not done) — updated 2026-03-09
+#### P1.08 — Onboarding Reproducibility Checks / Pillar 4 (9 done, 0 partial, 0 not done) — updated 2026-03-10
 
 **Deliverables:**
 
@@ -1459,7 +1459,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 2 | `docker-compose.yml` / `compose.yml` detection | ✅ Done | Checks 3 filename variants |
 | 3 | Bootstrap script detection | ✅ Done | Checks `scripts/setup.sh`, `scripts/bootstrap.sh`, Makefile, justfile, package.json setup/bootstrap/prepare/postinstall |
 | 4 | Doctor/health-check command detection | ✅ Done | ARI-ENV-004: detects `doctor`/`health`/`check`/`verify`/`validate` scripts in package.json |
-| 5 | Time-to-first-test-pass estimate | ❌ Not done | |
+| 5 | Time-to-first-test-pass estimate | ✅ Done | ARI-ENV-013: estimates TTFTP in minutes based on install, build, env setup, devcontainer, and test script presence. Labels fast/moderate/slow with breakdown factors. Added 2026-03-10. |
 | 6 | Environment variable documentation | ✅ Done | Checks `.env.example` / `.env.template`. ARI-ENV-007: compares code usage vs .env.example entries. Enhanced 2026-03-09. |
 | 7 | Required tool versions (.nvmrc, .tool-versions, engines) | ✅ Done | Checks `.nvmrc`, `.node-version`, `.tool-versions`, `.python-version`, `rust-toolchain.toml`, `engines` in package.json |
 | 8 | Seed/fixture data detection | ✅ Done | Detects `seeds/`, `fixtures/`, `testdata/` directories + seed/fixture scripts in package.json |
@@ -1476,7 +1476,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.09 — Machine-readable Docs Baseline / Pillar 5 (9 done, 3 partial, 0 not done) — updated 2026-03-09
+#### P1.09 — Machine-readable Docs Baseline / Pillar 5 (9 done, 2 partial, 0 not done) — updated 2026-03-10
 
 **Deliverables:**
 
@@ -1500,11 +1500,11 @@ It is the source of truth for what was actually built vs. what was specified.
 | 1 | Findings with priority + confidence markers | 🔧 Partial | Findings have `severity`. Confidence only on API contract finding; others produce score adjustments only. |
 | 2 | Drift detection between docs and code | ✅ Done | ARI-DOC-004: detects documentation-code drift. Added 2026-03-09. |
 | 3 | Each criterion independently scored with rationale | 🔧 Partial | Each adds to score independently but no per-criterion rationale emitted |
-| 4 | Supports TS, Python, Go, Java minimum | 🔧 Partial | Env var validation JS-only. File detection is language-agnostic. No Python `pydantic BaseSettings`. |
+| 4 | Supports TS, Python, Go, Java minimum | ✅ Done | Env var validation: JS (package.json deps) + Python (pydantic BaseSettings, pydantic-settings in pyproject.toml). File detection is language-agnostic. Updated 2026-03-10. |
 
 ---
 
-#### P1.10 — Type Strictness Scoring Baseline / Pillar 6 (13 done, 3 partial, 2 not done) — updated 2026-03-08
+#### P1.10 — Type Strictness Scoring Baseline / Pillar 6 (13 done, 2 partial, 2 not done) — updated 2026-03-10
 
 **TypeScript checks:**
 
@@ -1544,7 +1544,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 2 | TypeScript config is field-level, not binary | ✅ Done | Checks strict, strictNullChecks, noImplicitAny, isolatedModules individually |
 | 3 | Cross-language strictness confidence-labeled | 🔧 Partial | Overall confidence `"high"` for TS, `"medium"` otherwise. No per-check confidence. |
 | 4 | Lockfile drift detection | ✅ Done | ARI-BLD-007: detects packageManager field vs actual lockfile mismatch. Added 2026-03-09. |
-| 5 | Build tool modernity scored with rationale | 🔧 Partial | Modern +10, webpack +5. No explanatory finding emitted. |
+| 5 | Build tool modernity scored with rationale | ✅ Done | ARI-BLD-010: info finding for modern bundlers, low-severity finding with migration advice + research evidence for webpack. Added 2026-03-10. |
 | 6 | Cross-pillar type bonus (P2, P7) | ✅ Done | `applyCrossPillarTypeBonus()` applies +5 to P2/P7 when P6 >= 70. Added 2026-03-08. |
 
 ---
@@ -1626,7 +1626,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.14 — JSON Output Contract v1 (11 done, 4 partial, 4 not done) — updated 2026-03-08
+#### P1.14 — JSON Output Contract v1 (12 done, 3 partial, 3 not done) — updated 2026-03-10
 
 **Deliverables:**
 
@@ -1640,7 +1640,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 6 | Language/framework detection results | ✅ Done | `ScanResult.detection` field with `languages`, `frameworks`, `monorepo` |
 | 7 | Context file inventory | ✅ Done | `ContextFileInfo` type with path, type, size, lineCount added to ScanResult. Added 2026-03-09. |
 | 8 | Semver impact rules | ❌ Not done | No versioning policy |
-| 9 | Schema published in repo + npm | 🔧 Partial | Zod schemas in `@prontiq/schema`. `formatJsonSchema()` function added 2026-03-09 but no standalone JSON Schema file published. |
+| 9 | Schema published in repo + npm | ✅ Done | `ariscan.schema.json` published in repo root. `getJsonSchemaObject()` exported for programmatic use. Zod schemas in `@prontiq/schema`. Added 2026-03-10. |
 | 10 | `--json-schema` flag for schema export | ✅ Done | `--jsonSchema` CLI flag wired (2026-03-09). Outputs full JSON Schema and exits. |
 
 **AI-first design:**
@@ -1656,7 +1656,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | # | Criterion | Status | Notes |
 |---|---|---|---|
 | 1 | Schema published + semver rules | ❌ Not done | |
-| 2 | Output validates against schema in CI | 🔧 Partial | Zod schemas exist. No explicit CI validation test. |
+| 2 | Output validates against schema in CI | ✅ Done | 5 CI validation tests: required fields, finding code pattern, score ranges, maturity level enum, composite score bounds. Added 2026-03-10. |
 | 3 | Backwards compatibility within major version | ❌ Not done | No versioning policy |
 | 4 | Schema includes `$schema` and `$id` | ✅ Done | `$schema` and `$id` fields added to JSON output. Added 2026-03-09. |
 | 5 | JSON output streamable (newline-delimited) | ❌ Not done | Single `JSON.stringify` blob |
@@ -1668,7 +1668,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 | Ticket | Status | Notes |
 |---|---|---|
-| P1.15 — Markdown Report v1 | ✅ Done | Implemented in `output/markdown.ts` with badge header, pillar table, severity-sorted findings, remediations |
+| P1.15 — Markdown Report v1 | ✅ Done | Implemented in `output/markdown.ts` with badge header, pillar table, severity-sorted findings, remediations, "Quick Start: Top 3 Actions" section, and impact×ease remediation ordering. Enhanced 2026-03-10. |
 | P1.16 — README Badge Support | ✅ Done | `--badge <path>` flag generates SVG badge + embed snippets. `generateBadgeSvg()` and `generateBadgeSnippets()` in `output/badge.ts`. Added 2026-03-08. |
 | P1.17 — Safe `--fix` Starter | ⬜ Not Started | |
 | P1.18 — Benchmark Cohort v1 | ⬜ Not Started | |

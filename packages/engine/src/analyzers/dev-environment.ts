@@ -417,7 +417,76 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       });
     }
 
-    // --- NEW: Per-criterion status labels (info findings) ---
+    // --- ARI-ENV-013: Time-to-first-test-pass estimate ---
+    const ttftpFactors: string[] = [];
+    let ttftpMinutes = 0;
+
+    // Install time estimate
+    if (hasPackageJson) {
+      ttftpMinutes += 2; // npm/pnpm install
+      ttftpFactors.push("dependency install (~2 min)");
+    }
+    if (await context.fileExists("requirements.txt")) {
+      ttftpMinutes += 3;
+      ttftpFactors.push("pip install (~3 min)");
+    }
+
+    // Build step
+    if (scripts["build"]) {
+      ttftpMinutes += 1;
+      ttftpFactors.push("build step (~1 min)");
+    }
+
+    // Environment setup
+    if (!hasEnvExample && codeReferencesEnv) {
+      ttftpMinutes += 10;
+      ttftpFactors.push("missing .env.example — manual env setup (~10 min)");
+    }
+    if (!hasDevcontainer && !hasCompose) {
+      ttftpMinutes += 5;
+      ttftpFactors.push("no devcontainer/compose — manual tool installation (~5 min)");
+    }
+    if (!hasTsConfig && hasTsFiles) {
+      ttftpMinutes += 5;
+      ttftpFactors.push("missing tsconfig.json (~5 min)");
+    }
+
+    // Database/services
+    if (hasCompose) {
+      ttftpMinutes += 2;
+      ttftpFactors.push("docker compose up (~2 min)");
+    }
+
+    // Test run itself
+    const hasTestScript = scripts["test"];
+    if (hasTestScript) {
+      ttftpMinutes += 1;
+      ttftpFactors.push("test execution (~1 min)");
+    } else {
+      ttftpMinutes += 5;
+      ttftpFactors.push("no test script — unknown test setup (~5 min)");
+    }
+
+    const ttftpLabel = ttftpMinutes <= 5 ? "fast" : ttftpMinutes <= 15 ? "moderate" : "slow";
+
+    findings.push({
+      code: "ARI-ENV-013",
+      severity: ttftpLabel === "slow" ? "medium" : "info",
+      pillar: PILLAR,
+      message: `Estimated time-to-first-test-pass: ~${ttftpMinutes} min (${ttftpLabel}). Factors: ${ttftpFactors.join(", ")}`,
+      ...(ttftpLabel === "slow"
+        ? {
+            remediation: {
+              action: "create-file",
+              description:
+                "Reduce onboarding friction: add devcontainer, .env.example, and a bootstrap script to bring time-to-first-test below 5 minutes",
+              confidence: "medium",
+            },
+          }
+        : {}),
+    });
+
+    // --- Per-criterion status labels (info findings) ---
     findings.push({
       code: "ARI-ENV-008",
       severity: "info",

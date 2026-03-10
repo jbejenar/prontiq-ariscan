@@ -509,6 +509,39 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     });
   });
 
+  describe("ARI-BLD-010: Build tool modernity rationale", () => {
+    it("emits info ARI-BLD-010 for modern build tools", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { build: "tsup src/index.ts" } }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-010");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+      expect(finding?.message).toContain("Modern build tool");
+    });
+
+    it("emits low ARI-BLD-010 for webpack with migration advice", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { build: "webpack --mode production" } }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-010");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("low");
+      expect(finding?.remediation).toBeDefined();
+      expect(finding?.evidence).toBeDefined();
+    });
+
+    it("does not emit ARI-BLD-010 when no build script exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-010")).toBe(false);
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

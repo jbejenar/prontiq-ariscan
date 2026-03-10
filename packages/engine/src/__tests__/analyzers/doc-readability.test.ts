@@ -210,6 +210,40 @@ describe("docReadabilityAnalyzer (P5)", () => {
     });
   });
 
+  describe("Python pydantic BaseSettings detection", () => {
+    it("detects pydantic BaseSettings import in Python files", async () => {
+      const ctx = createMockContext({
+        "app/config.py":
+          "from pydantic_settings import BaseSettings\n\nclass Settings(BaseSettings):\n    db_url: str",
+      });
+      const baseline = createMockContext({});
+      const r1 = await docReadabilityAnalyzer.analyze(ctx);
+      const r2 = await docReadabilityAnalyzer.analyze(baseline);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+
+    it("detects pydantic-settings in pyproject.toml", async () => {
+      const ctx = createMockContext({
+        "pyproject.toml": '[project]\ndependencies = ["pydantic-settings>=2.0"]\n',
+      });
+      const baseline = createMockContext({});
+      const r1 = await docReadabilityAnalyzer.analyze(ctx);
+      const r2 = await docReadabilityAnalyzer.analyze(baseline);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+
+    it("detects class inheriting BaseSettings", async () => {
+      const ctx = createMockContext({
+        "settings.py":
+          "from pydantic import BaseSettings\n\nclass AppConfig(BaseSettings):\n    secret: str",
+      });
+      const baseline = createMockContext({});
+      const r1 = await docReadabilityAnalyzer.analyze(ctx);
+      const r2 = await docReadabilityAnalyzer.analyze(baseline);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

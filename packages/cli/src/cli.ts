@@ -21,7 +21,12 @@ Examples:
   npx ariscan /path/to/repo --json # JSON output
   npx ariscan . --threshold 60     # Fail if score < 60
   npx ariscan . --format sarif     # SARIF output for Code Scanning
-  npx ariscan . --badge badge.svg  # Generate badge SVG`,
+  npx ariscan . --badge badge.svg  # Generate badge SVG
+
+Exit codes:
+  0  Score meets or exceeds threshold (default: 0)
+  1  Score is below the specified --threshold
+  2  Runtime error (path not found, scan failure)`,
   },
   args: {
     path: {
