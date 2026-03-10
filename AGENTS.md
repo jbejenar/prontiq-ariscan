@@ -22,7 +22,7 @@ Dependencies flow one-way: `cli -> engine -> schema`. No circular imports.
 - **`PillarAnalyzer`** (`packages/engine/src/analyzers/analyzer.interface.ts`) — interface every analyzer implements: `pillar`, `name`, `version`, `supports()`, `analyze()`.
 - **`RepoContext`** (`packages/engine/src/context/repo-context.ts`) — read-only filesystem abstraction passed to analyzers. Provides `readFile()`, `fileExists()`, `readJson()`, and a `files` listing.
 - **`ANALYZERS` registry** (`packages/engine/src/analyzers/registry.ts`) — array of all 8 analyzers, queried by pillar ID.
-- **`Finding`** — structured diagnostic with `code`, `severity`, `pillar`, `message`, `remediation`, and optional `evidence`.
+- **`Finding`** — structured diagnostic with `code`, `severity`, `pillar`, `message`, `remediation`, optional `evidence`, and optional `confidence` (high/medium/low).
 
 ## Tech Stack
 
@@ -105,6 +105,16 @@ packages/engine/src/
     repo-context.ts       — RepoContext read-only filesystem abstraction
   scoring/
     composite.ts          — composite score calculation, security gate logic
+  budget/
+    token-estimator.ts    — file classification and token estimation
+    budget-analyzer.ts    — budget analysis, hotspots, compression recommendations
+    index.ts              — barrel export
+  fix/
+    generators.ts         — safe --fix generators (AGENTS.md, .agentignore, .devcontainer)
+    index.ts              — barrel export
+  agentignore/
+    parser.ts             — .agentignore parser (gitignore-compatible patterns)
+    index.ts              — barrel export
   scan.ts                — orchestrates analyzers, computes composite
   index.ts               — public API
 
@@ -116,6 +126,7 @@ packages/cli/src/
   output/                — output formatting
     json.ts              — JSON output formatter
     terminal.ts          — terminal/text output formatter
+    budget.ts            — token budget output formatter
 ```
 
 ## Common Tasks

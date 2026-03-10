@@ -952,7 +952,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** File presence and validity checks, setup complexity estimation, env var usage analysis.
 - **Out of scope:** Actual setup execution (P3.05 simulation), network dependency resolution.
 
-#### Ticket P1.09 — Machine-readable Docs Baseline (Pillar 5) (🟠) 🔧 Partial
+#### Ticket P1.09 — Machine-readable Docs Baseline (Pillar 5) (🟠) ✅ Done
 
 - **User story:** As a developer, I need to know whether my documentation is structured for machines to parse or locked in prose that agents struggle with.
 - **Problem statement:** LLMs struggle with "schema drift" and "formatting inconsistency" in prose documentation — token costs triple when agents must retry failed parsing attempts (Tetrate, 2025). LLM embeddings contain more accurate task information when documentation emphasises semantic structure (entities, relations, graphs) over narrative prose (Chalmers Literate Programming study, 2026). Machine-readable formats reduce hallucination rates (bioRxiv OpenEval, 2026). Research argues that "publication systems should optimize separately for the dissemination of data and results versus novel ideas" — API specs and error codes must be machine-readable (JATS XML, OpenAPI).
@@ -969,9 +969,9 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     - [x] **Changelog format:** Conventional commits / Keep a Changelog format. *(checks `CHANGELOG.md`)*
     - [x] **Type exports / JSDoc coverage:** Public API types exported, JSDoc on public functions. *(ARI-DOC-003 JSDoc coverage measurement added 2026-03-09)*
     - [x] **Documentation-code consistency:** Docs reference current function names, parameters, paths (drift detection). *(ARI-DOC-004 documentation-code drift detection added 2026-03-09)*
-  - [ ] Per-criterion findings include priority level and confidence markers. *(partial: findings have severity. Confidence only on API contract finding.)*
-  - [ ] Drift detection between documentation references and actual code symbols.
-  - [ ] Each criterion independently scored with clear rationale. *(partial: each adds to score independently but no per-criterion rationale emitted)*
+  - [x] Per-criterion findings include priority level and confidence markers. *(All doc-readability findings carry severity + confidence. Updated 2026-03-10.)*
+  - [x] Drift detection between documentation references and actual code symbols. *(ARI-DOC-004. Updated 2026-03-09.)*
+  - [x] Each criterion independently scored with clear rationale. *(Per-finding rationale explaining agent impact. Updated 2026-03-10.)*
   - [ ] Supports TypeScript, Python, Go, Java at minimum. *(partial: env var validation JS-only. File detection is language-agnostic.)*
 - **Research basis:**
   - Tetrate (2025): Unstructured parsing triples token costs.
@@ -1206,25 +1206,25 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** SVG generation, embed snippets, CLI command.
 - **Out of scope:** Dynamic badge service, badge hosting.
 
-#### Ticket P1.17 — Safe `--fix` Starter (🟠) ⬜ Not Started
+#### Ticket P1.17 — Safe `--fix` Starter (🟠) 🔧 Partial
 
 - **User story:** As a developer, I want ariscan to fix the easiest issues for me so I can improve my score without spending hours on manual changes.
 - **Problem statement:** Scoring without remediation creates "so what?" syndrome. The fastest path to proving value is generating safe, non-destructive fixes for the most common issues. Per Gloaguen et al. (2026), the key is generating *additive* information that agents can't discover independently — not restating the README.
 - **Target persona:** Any developer who just ran their first scan and wants to improve.
 - **Definition of Done:**
   - Safe, non-destructive scaffolding for:
-    - [ ] `AGENTS.md` generation: additive-only content (build commands, test patterns, constraint specifics — NOT README restatement).
-    - [ ] `.agentignore` generation: exclude generated files, `dist/`, `coverage/`, lockfiles, `node_modules/`, build artifacts.
-    - [ ] `.devcontainer/devcontainer.json` starter template based on detected stack.
+    - [x] `AGENTS.md` generation: additive-only content (build commands, test patterns, constraint specifics — NOT README restatement). *(Done 2026-03-10)*
+    - [x] `.agentignore` generation: exclude generated files, `dist/`, `coverage/`, lockfiles, `node_modules/`, build artifacts. *(Done 2026-03-10)*
+    - [x] `.devcontainer/devcontainer.json` starter template based on detected stack. *(Done 2026-03-10)*
     - [ ] Provider pattern skeleton (interface + in-memory implementation) for detected cloud SDK usage.
-  - [ ] `--dry-run` mode showing exact changes before any write.
-  - [ ] Each generated file includes TODO prompts for human review.
-  - [ ] Rationale comments explaining why each section was generated.
-  - [ ] Dry-run mode shows exact changes before write (diff format).
-  - [ ] Zero destructive file edits without explicit opt-in.
-  - [ ] Generated AGENTS.md scores higher on additionality than a naive "dump everything" approach.
-  - [ ] Each TODO prompt references the specific criterion it addresses.
-  - [ ] `--fix` is idempotent (running twice produces no additional changes).
+  - [x] `--dry-run` mode showing exact changes before any write. *(Done 2026-03-10)*
+  - [x] Each generated file includes TODO prompts for human review. *(Done 2026-03-10)*
+  - [x] Rationale comments explaining why each section was generated. *(Done 2026-03-10)*
+  - [x] Dry-run mode shows exact changes before write (diff format). *(Done 2026-03-10)*
+  - [x] Zero destructive file edits without explicit opt-in. *(Done 2026-03-10 — generators check fileExists first)*
+  - [x] Generated AGENTS.md scores higher on additionality than a naive "dump everything" approach. *(Done 2026-03-10 — computeOverlap() avoids README duplication)*
+  - [x] Each TODO prompt references the specific criterion it addresses. *(Done 2026-03-10 — TODOs reference ARI-CTX-001, etc.)*
+  - [x] `--fix` is idempotent (running twice produces no additional changes). *(Done 2026-03-10 — alreadyExists flag)*
 - **Research basis:** Gloaguen et al. (2026): Additive information helps; redundant information hurts. The --fix feature must encode only information agents can't discover independently.
 - **Dependencies:** P1.04 (additionality scoring — to verify generated content is additive), P1.06 (test isolation — for provider pattern detection).
 - **Telemetry:** fix adoption rate, fix types applied.
@@ -1476,7 +1476,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.09 — Machine-readable Docs Baseline / Pillar 5 (9 done, 2 partial, 0 not done) — updated 2026-03-10
+#### P1.09 — Machine-readable Docs Baseline / Pillar 5 (10 done, 0 partial, 0 not done) — updated 2026-03-10
 
 **Deliverables:**
 
@@ -1497,9 +1497,9 @@ It is the source of truth for what was actually built vs. what was specified.
 
 | # | Criterion | Status | Notes |
 |---|---|---|---|
-| 1 | Findings with priority + confidence markers | 🔧 Partial | Findings have `severity`. Confidence only on API contract finding; others produce score adjustments only. |
+| 1 | Findings with priority + confidence markers | ✅ Done | All doc-readability findings (ARI-DOC-001 through ARI-DOC-004) now carry both severity and confidence levels. Updated 2026-03-10. |
 | 2 | Drift detection between docs and code | ✅ Done | ARI-DOC-004: detects documentation-code drift. Added 2026-03-09. |
-| 3 | Each criterion independently scored with rationale | 🔧 Partial | Each adds to score independently but no per-criterion rationale emitted |
+| 3 | Each criterion independently scored with rationale | ✅ Done | Each criterion scores independently with per-finding rationale explaining why it matters for agents (P1.09 polish). Updated 2026-03-10. |
 | 4 | Supports TS, Python, Go, Java minimum | ✅ Done | Env var validation: JS (package.json deps) + Python (pydantic BaseSettings, pydantic-settings in pyproject.toml). File detection is language-agnostic. Updated 2026-03-10. |
 
 ---
@@ -1670,7 +1670,7 @@ It is the source of truth for what was actually built vs. what was specified.
 |---|---|---|
 | P1.15 — Markdown Report v1 | ✅ Done | Implemented in `output/markdown.ts` with badge header, pillar table, severity-sorted findings, remediations, "Quick Start: Top 3 Actions" section, and impact×ease remediation ordering. Enhanced 2026-03-10. |
 | P1.16 — README Badge Support | ✅ Done | `--badge <path>` flag generates SVG badge + embed snippets. `generateBadgeSvg()` and `generateBadgeSnippets()` in `output/badge.ts`. Added 2026-03-08. |
-| P1.17 — Safe `--fix` Starter | ⬜ Not Started | |
+| P1.17 — Safe `--fix` Starter | 🔧 Partial | AGENTS.md, .agentignore, .devcontainer generation done with --dry-run. Provider pattern skeleton not started. Updated 2026-03-10. |
 | P1.18 — Benchmark Cohort v1 | ⬜ Not Started | |
 
 ---
@@ -1706,7 +1706,7 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 | Error taxonomy JSON | P1.01 | P2 | Codes inline and consistent; machine-readable file is convenience |
 | Markdown output | P1.15 | P2 | Lower priority than terminal + JSON |
 | README badge | P1.16 | ✅ Done (session 3) | `--badge <path>` flag. No longer deferred. |
-| --fix starter | P1.17 | P2.01 | Overlaps with AGENTS.md generator |
+| --fix starter | P1.17 | 🔧 Partial (2026-03-10) | AGENTS.md, .agentignore, .devcontainer done. Provider pattern skeleton remaining. |
 | Benchmark cohort | P1.18 | Post-P1 | Requires npm publishing and external repo scanning |
 
 ### P1 Implementation Notes (2026-03-09) — Session 2
@@ -1741,7 +1741,7 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 **Remaining P1 gaps (highest priority):**
 - Semantic additionality engine (P1.04) — core feature, requires NLP/similarity analysis
 - ~~Per-function cognitive complexity aggregation (P1.11)~~ — ✅ Done (2026-03-09)
-- --fix starter (P1.17) — not started
+- ~~--fix starter (P1.17)~~ — 🔧 Partial (AGENTS.md, .agentignore, .devcontainer done; provider pattern skeleton remaining)
 - Benchmark cohort (P1.18) — not started
 
 **Closed this session (2026-03-08, session 3):**
@@ -1777,7 +1777,7 @@ Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhanc
 | Deterministic repeat runs | ✅ Met | Same input → same score (no network, no random, no time-dependent logic) |
 | npm package published | 🔧 Partial | Publish workflow (`publish.yml`) and changesets configured. First publish pending a changeset + merge to main. |
 | README badge renders | ✅ Met | `--badge <path>` generates SVG badge. Added 2026-03-08. |
-| --fix generates content | ⬜ Not met | P1.17 not started |
+| --fix generates content | 🔧 Partial | P1.17 partial: AGENTS.md, .agentignore, .devcontainer generation. Provider pattern skeleton not started. Updated 2026-03-10. |
 | 20+ repos benchmarked | ⬜ Not met | P1.18 not started |
 
 ---
@@ -1908,7 +1908,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Cross-file comparison, deduplication analysis, merge suggestions.
 - **Out of scope:** Automated merging of context files.
 
-### Ticket P2.04 — Context Budget Analyzer (🔴)
+### Ticket P2.04 — Context Budget Analyzer (🔴) ✅ Done
 
 - **User story:** As a developer, I need to understand my repository's total token footprint and where the waste is so I can optimize for agent cost efficiency.
 - **Problem statement:** Context window saturation is a real concern — "Lost in the Middle" (Liu et al., 2024) showed >30% performance degradation from positional bias, and arXiv 2510.05381 (2025) showed volume alone degrades reasoning. Even inserting 25,000 whitespace characters causes models to reach wrong answers. Every file an agent reads costs tokens. Repos with excessive generated files, build artifacts, lockfiles, and dead code in the scan path waste significant context budget. Agents using LLM-generated context files see >20% increase in inference costs (Gloaguen et al., 2026).
@@ -1935,7 +1935,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Token estimation, categorization, prioritization, savings calculation.
 - **Out of scope:** Actual token counting via LLM tokenizer APIs (use local estimation), real-time budget monitoring.
 
-### Ticket P2.05 — `.agentignore` Spec v1 (🔴)
+### Ticket P2.05 — `.agentignore` Spec v1 (🔴) 🔧 Partial
 
 - **User story:** As a developer, I need a standard way to tell AI agents which files to skip, similar to how `.gitignore` tells Git which files to ignore.
 - **Problem statement:** There is no standard mechanism for excluding low-value or noisy paths from agent context. Agents waste significant tokens reading build artifacts, generated code, lockfiles, and coverage reports that provide no useful signal. The goal is for `.agentignore` to become as standard as `.gitignore` — every repository has one.
@@ -2043,7 +2043,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Configuration guidance, template generation, documentation links.
 - **Out of scope:** Automated security control deployment, GitHub API integration.
 
-### Ticket P2.09 — Confidence Weighting for Type/Navigability (🟠)
+### Ticket P2.09 — Confidence Weighting for Type/Navigability (🟠) 🔧 Partial
 
 - **User story:** As a user, I need to understand how confident the scanner is in each score so I can prioritize based on reliable signals vs uncertain estimates.
 - **Problem statement:** Not all scoring criteria have equal confidence. Type strictness can be determined with near-100% confidence from config files. Navigability heuristics are less precise. Confidence information helps users prioritize: fix high-confidence issues first, investigate low-confidence ones.
