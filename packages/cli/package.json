@@ -3,6 +3,22 @@
   "version": "0.1.0",
   "description": "Measure and improve repository readiness for AI coding agents",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbejenar/prontiq-ariscan.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/jbejenar/prontiq-ariscan/tree/main/packages/cli",
+  "bugs": {
+    "url": "https://github.com/jbejenar/prontiq-ariscan/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "bin": {
     "ariscan": "./dist/cli.js"
   },
