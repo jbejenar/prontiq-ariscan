@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.8.0] — 2026-03-10
+
+### Added
+- **Security (P8):** Risk rationale on all security findings — every missing control now includes `evidence` fields with research-backed risk rationale citing specific papers (Pearce 2021, Veracode 2025, Apiiro 2025, CodeRabbit 2025, IEEE-ISTAS 2025, Cotroneo 2025). Findings sorted by severity for risk-priority ordering. (P1.12 AC#1)
+- **Security (P8):** AI-specific security sub-score — SAST, AI review checklist, and agent scope controls tracked separately and reported as a percentage in the pillar summary (e.g., "AI-specific security: 60% (15/25)"). (P1.12 AC#3)
+- **Security (P8):** Language-specific vulnerability context (ARI-SEC-008) — detects primary languages from file extensions and provides research-backed per-language AI vulnerability rates: Java 72%, JavaScript 56%, TypeScript 48%, C# 52%, Ruby 46%, Go 44%, Python 38%, Rust 25%. Remediation advice is tailored to the primary language. (P1.12 AC#5)
+- 16 new security governance tests: 6 for risk rationale evidence, 4 for AI-specific sub-scoring, 6 for language-specific vulnerability context
+
+### Metrics
+- **Self-scan score:** 75/100 (L4 Productive) — no regression
+- **Tests:** 366 passing across 13 test files (+16 new security tests)
+- **Roadmap progress:** P1.12 acceptance criteria now fully complete (5/5 AC done)
+
 ## [2.7.0] — 2026-03-10
 
 ### Added

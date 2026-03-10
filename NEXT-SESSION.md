@@ -1,17 +1,17 @@
 # Next Session Guide
 
-## Session: 2026-03-10 (sixth session)
+## Session: 2026-03-10 (seventh session)
 **Phase:** P1 — MVP CLI Foundation (nearing completion)
 **Self-scan:** 75/100 (L4 Productive) — stable
-**Tests:** 350 passing across 13 test files
+**Tests:** 366 passing across 13 test files
 **Quality gate:** typecheck, lint, test, build — all green
-**Roadmap progress:** P1.11 fully complete (all deliverables + all acceptance criteria)
+**Roadmap progress:** P1.12 AC fully complete (5/5 acceptance criteria done)
 
 ## Items Completed This Session
-- Navigability (P7): Explicit threshold labels for all 7 metrics (P1.11 AC#2) — summary now shows good/moderate/poor for depth, dirs, naming, imports, circular, dead-code, duplication
-- Navigability (P7): Dead code detection false positive reduction (P1.11 AC#4) — excludes config files, CLI entries, type declarations, conventional directories, barrel re-exports
-- 11 new tests added for threshold labels and dead code FP reduction
-- P1.11 is now fully complete (all 8 deliverables, all 5 acceptance criteria)
+- Security (P8): Risk rationale on all findings via `evidence` fields with research citations (P1.12 AC#1)
+- Security (P8): AI-specific security sub-score — SAST, AI review, agent scope tracked separately (P1.12 AC#3)
+- Security (P8): Language-specific vulnerability context (ARI-SEC-008) — 8 languages with per-language AI vulnerability rates (P1.12 AC#5)
+- 16 new security governance tests
 
 ## Items Deferred (unchanged from previous session)
 - Semantic additionality engine (P1.04): requires NLP/similarity analysis — deferred to P2
@@ -24,9 +24,6 @@
 ### Priority 1: Close remaining P1 gaps
 - P1.03 AC#4: Zero false negatives on benchmark cohort
 - P1.03 AC#5: Discovery <1s for 100k files (performance test)
-- P1.12 AC#1: Missing controls prioritized by operational risk with rationale
-- P1.12 AC#3: AI-specific criteria separately scored
-- P1.12 AC#5: Language-specific vulnerability context
 
 ### Priority 2: P1.14 JSON contract items
 - Semver impact rules documentation

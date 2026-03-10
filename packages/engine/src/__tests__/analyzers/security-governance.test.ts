@@ -400,4 +400,179 @@ describe("securityGovernanceAnalyzer (P8)", () => {
       expect(result.score).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe("AC#1: findings have risk rationale via evidence fields", () => {
+    it("ARI-SEC-001 (CODEOWNERS) includes evidence with risk rationale", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-001");
+      expect(finding).toBeDefined();
+      expect(finding?.evidence).toBeDefined();
+      expect(finding?.evidence?.paper).toBeTruthy();
+      expect(finding?.evidence?.finding).toContain("AI");
+    });
+
+    it("ARI-SEC-003 (secrets scanning) includes evidence with risk rationale", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-003");
+      expect(finding?.evidence).toBeDefined();
+      expect(finding?.evidence?.finding).toContain("credential");
+    });
+
+    it("ARI-SEC-004 (dep audit) includes evidence with risk rationale", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-004");
+      expect(finding?.evidence).toBeDefined();
+      expect(finding?.evidence?.paper).toContain("Apiiro");
+    });
+
+    it("ARI-SEC-005 (AI review checklist) includes evidence", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-005");
+      expect(finding?.evidence).toBeDefined();
+      expect(finding?.evidence?.paper).toContain("CodeRabbit");
+    });
+
+    it("ARI-SEC-006 (agent scope) includes evidence", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-006");
+      expect(finding?.evidence).toBeDefined();
+      expect(finding?.evidence?.finding).toContain("322%");
+    });
+
+    it("findings are sorted by severity (high before medium before low)", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const severities = result.findings.map((f) => f.severity);
+      const severityOrder: Record<string, number> = {
+        critical: 0,
+        high: 1,
+        medium: 2,
+        low: 3,
+        info: 4,
+      };
+      for (let i = 1; i < severities.length; i++) {
+        const curr = severities[i] as string;
+        const prev = severities[i - 1] as string;
+        expect(severityOrder[curr] ?? 4).toBeGreaterThanOrEqual(severityOrder[prev] ?? 4);
+      }
+    });
+  });
+
+  describe("AC#3: AI-specific criteria separately scored", () => {
+    it("summary includes AI-specific security sub-score", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("AI-specific security:");
+      expect(result.summary).toMatch(/AI-specific security: \d+%/);
+    });
+
+    it("AI-specific score is 100% when SAST + AI review + agent scope are all configured", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/ci.yml":
+          "name: CI\njobs:\n  sast:\n    steps:\n      - uses: github/codeql-action/analyze@v2",
+        ".github/PULL_REQUEST_TEMPLATE.md": "## AI Review\n- [ ] Was this AI-generated?",
+        "CLAUDE.md": "# Agent instructions",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("AI-specific security: 100%");
+    });
+
+    it("AI-specific score is 0% when none of the AI controls are configured", async () => {
+      const ctx = createMockContext({
+        ".github/CODEOWNERS": "* @owner",
+        "SECURITY.md": "# Policy",
+        ".gitleaks.toml": "[allowlist]",
+        ".github/dependabot.yml": "version: 2",
+        LICENSE: "MIT",
+        ".gitignore": ".env\n",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("AI-specific security: 0%");
+    });
+
+    it("AI-specific score reflects partial AI controls", async () => {
+      const ctx = createMockContext({
+        "CLAUDE.md": "# Agent instructions",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      // Agent scope (5/25) = 20%, but only if SAST not present
+      // AI controls: SAST (15 max) + AI review (5 max) + agent scope (5 max) = 25 max
+      // Only agent scope present = 5/25 = 20%
+      expect(result.summary).toContain("AI-specific security: 20%");
+    });
+  });
+
+  describe("AC#5: language-specific vulnerability context (ARI-SEC-008)", () => {
+    it("emits ARI-SEC-008 with language context for TypeScript repos", async () => {
+      const ctx = createMockContext({
+        "src/index.ts": "export const x = 1;",
+        "src/utils.ts": "export const y = 2;",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-008");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+      expect(finding?.message).toContain("typescript");
+      expect(finding?.message).toContain("48%");
+    });
+
+    it("emits ARI-SEC-008 with language context for Java repos", async () => {
+      const ctx = createMockContext({
+        "src/Main.java": "public class Main {}",
+        "src/Utils.java": "public class Utils {}",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-008");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("java");
+      expect(finding?.message).toContain("72%");
+    });
+
+    it("emits ARI-SEC-008 with multiple languages for mixed repos", async () => {
+      const ctx = createMockContext({
+        "src/app.ts": "export const x = 1;",
+        "scripts/build.py": "print('build')",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-008");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("typescript");
+      expect(finding?.message).toContain("python");
+    });
+
+    it("does not emit ARI-SEC-008 when no recognized languages", async () => {
+      const ctx = createMockContext({
+        "README.md": "# Hello",
+        "config.yml": "key: value",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-008");
+      expect(finding).toBeUndefined();
+    });
+
+    it("ARI-SEC-008 includes evidence with research source", async () => {
+      const ctx = createMockContext({
+        "main.py": "print('hello')",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-008");
+      expect(finding?.evidence).toBeDefined();
+      expect(finding?.evidence?.paper).toBeTruthy();
+    });
+
+    it("ARI-SEC-008 remediation references the primary language", async () => {
+      const ctx = createMockContext({
+        "app.go": "package main",
+        "util.go": "package main",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-008");
+      expect(finding?.remediation?.description).toContain("go");
+    });
+  });
 });

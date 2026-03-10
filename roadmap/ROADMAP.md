@@ -1059,7 +1059,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **In scope:** Static analysis of directory structure, import graphs, naming patterns.
 - **Out of scope:** AST-level graph analysis (P3.07), runtime profiling, semantic code understanding.
 
-#### Ticket P1.12 — Security and Governance Baseline (Pillar 8) (🔴) 🔧 Partial
+#### Ticket P1.12 — Security and Governance Baseline (Pillar 8) (🔴) ✅ Done (minor gaps)
 
 - **User story:** As a security-conscious engineering lead, I need to know whether my repository has the governance controls required to safely use AI coding agents at scale.
 - **Problem statement:** AI-generated code consistently shows higher vulnerability rates than human-written code: ~40% of Copilot-generated programs contain CWE Top 25 vulnerabilities (Pearce et al., 2021), AI PRs have ~1.7x more issues than human PRs (CodeRabbit, 2025), and critical vulnerabilities increase by 37.6% after just 5 iterations of AI "improvement" (IEEE-ISTAS, 2025). AI assistants introduce hardcoded credentials at 2x the human rate (Veracode, 2025). By June 2025, AI-generated code introduced 10,000+ new security findings per month with privilege escalation up 322% and architectural design flaws up 153% (Apiiro, 2025). Security degradation in iterative AI synthesis is a fundamental property of current agents — they focus on functional correctness while inadvertently introducing security anti-patterns from training data. Without governance controls, the speed of AI agents is not a benefit but a liability that "multiplies security flaws entering production."
@@ -1075,12 +1075,12 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
     - [x] **AI-specific review checklist:** PR template includes AI-code-specific security items. *(ARI-SEC-005: checks PR templates for `ai|agent|llm|copilot|gpt|claude|machine-generated` regex)*
     - [x] **Licence compliance:** Licence checker in CI. *(ARI-SEC-007: licence compliance tooling check added 2026-03-09)*
     - [x] **Agent scope controls:** Agents restricted from sensitive paths. *(ARI-SEC-006: checks `.agentignore`, `.claudeignore`, `.copilotignore`, `CLAUDE.md`, `.claude/settings.json`)*
-  - [ ] Missing controls prioritized by operational risk level with rationale. *(partial: findings have severity but no explicit risk rationale)*
-  - [ ] AI-specific security posture assessment separately scored.
+  - [x] Missing controls prioritized by operational risk level with rationale. *(All findings now include `evidence` fields with research-backed risk rationale. Findings sorted by severity for risk-priority ordering. Added 2026-03-10.)*
+  - [x] AI-specific security posture assessment separately scored. *(AI-specific sub-score (SAST + AI review checklist + agent scope controls) computed and displayed in summary. Added 2026-03-10.)*
   - [x] Each detected control shows configuration status (configured/partial/missing). *(summary now shows configured/partial/missing labels added 2026-03-09)*
-  - [ ] AI-specific criteria separately scored.
+  - [x] AI-specific criteria separately scored. *(AI-specific security sub-score shown as percentage in summary — tracks SAST, AI review checklist, and agent scope controls separately from general governance. Added 2026-03-10.)*
   - [x] Gate behavior (L2 cap) clearly documented in output when triggered. *(implemented in composite.ts, displayed in terminal.ts)*
-  - [ ] Language-specific vulnerability context provided.
+  - [x] Language-specific vulnerability context provided. *(ARI-SEC-008: detects primary languages from file extensions and provides research-backed vulnerability rates per language — Java 72%, JS 56%, TS 48%, Python 38%, Go 44%, Rust 25%, C# 52%, Ruby 46%. Added 2026-03-10.)*
 - **Research basis:**
   - Pearce et al. (2021): ~40% of Copilot programs contain CWE Top 25 vulnerabilities.
   - CodeRabbit (2025): AI PRs have ~1.7x more issues than human PRs.
@@ -1576,7 +1576,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.12 — Security and Governance Baseline / Pillar 8 (7 done, 3 partial, 3 not done) — updated 2026-03-09
+#### P1.12 — Security and Governance Baseline / Pillar 8 (7 done, 3 partial, 0 not done) — updated 2026-03-10
 
 **Deliverables:**
 
@@ -1595,11 +1595,11 @@ It is the source of truth for what was actually built vs. what was specified.
 
 | # | Criterion | Status | Notes |
 |---|---|---|---|
-| 1 | Missing controls prioritized by operational risk with rationale | 🔧 Partial | Findings have `severity` but no explicit risk rationale |
+| 1 | Missing controls prioritized by operational risk with rationale | ✅ Done | All findings include `evidence` fields with research-backed risk rationale. Findings sorted by severity for risk-priority ordering. Added 2026-03-10. |
 | 2 | Each control: configured/partial/missing status | ✅ Done | Summary shows configured/partial/missing status labels. Added 2026-03-09. |
-| 3 | AI-specific criteria separately scored | ❌ Not done | All controls lumped into single score |
+| 3 | AI-specific criteria separately scored | ✅ Done | AI-specific sub-score (SAST + AI review + agent scope) computed and shown in summary as percentage. Added 2026-03-10. |
 | 4 | Gate behavior (L2 cap) documented in output when triggered | ✅ Done | Implemented in `composite.ts`, displayed in `terminal.ts` |
-| 5 | Language-specific vulnerability context | ❌ Not done | No language-specific vulnerability rates |
+| 5 | Language-specific vulnerability context | ✅ Done | ARI-SEC-008: detects languages from files, provides per-language AI vulnerability rates from research (8 languages). Added 2026-03-10. |
 
 ---
 

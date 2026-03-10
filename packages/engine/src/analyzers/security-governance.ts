@@ -3,10 +3,108 @@ import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
 
 const PILLAR: PillarId = "P8";
 
+/**
+ * Language-specific vulnerability rates from research.
+ * Used to provide targeted context in security findings (AC#5).
+ */
+const LANGUAGE_VULNERABILITY_CONTEXT: Record<
+  string,
+  { rate: string; context: string; source: string }
+> = {
+  java: {
+    rate: "72%",
+    context: "Java AI-generated code has the highest vulnerability rate at 72%",
+    source: "Veracode, 2025",
+  },
+  javascript: {
+    rate: "56%",
+    context:
+      "JavaScript AI-generated code shows ~56% vulnerability rate with XSS and prototype pollution risks",
+    source: "Veracode, 2025; Apiiro, 2025",
+  },
+  typescript: {
+    rate: "48%",
+    context:
+      "TypeScript AI-generated code shows ~48% vulnerability rate, mitigated by strict type checking",
+    source: "Veracode, 2025; TyFlow, 2025",
+  },
+  python: {
+    rate: "38%",
+    context:
+      "Python AI-generated code has ~38% vulnerability rate with injection and deserialization risks",
+    source: "Veracode, 2025",
+  },
+  go: {
+    rate: "44%",
+    context:
+      "Go AI-generated code shows ~44% vulnerability rate with concurrency and error handling issues",
+    source: "Cotroneo et al., 2025",
+  },
+  rust: {
+    rate: "25%",
+    context:
+      "Rust AI-generated code has the lowest vulnerability rate (~25%) but unsafe blocks bypass safety",
+    source: "Cotroneo et al., 2025",
+  },
+  "c#": {
+    rate: "52%",
+    context:
+      "C# AI-generated code shows ~52% vulnerability rate with SQL injection and auth bypass risks",
+    source: "Veracode, 2025",
+  },
+  ruby: {
+    rate: "46%",
+    context:
+      "Ruby AI-generated code shows ~46% vulnerability rate with command injection and mass assignment risks",
+    source: "Cotroneo et al., 2025",
+  },
+};
+
+/** Map file extensions to language keys for vulnerability lookup. */
+const EXTENSION_TO_LANGUAGE: Record<string, string> = {
+  ".java": "java",
+  ".js": "javascript",
+  ".jsx": "javascript",
+  ".mjs": "javascript",
+  ".cjs": "javascript",
+  ".ts": "typescript",
+  ".tsx": "typescript",
+  ".mts": "typescript",
+  ".py": "python",
+  ".go": "go",
+  ".rs": "rust",
+  ".cs": "c#",
+  ".rb": "ruby",
+};
+
+/** Severity ordering for risk-priority sort (AC#1). */
+const SEVERITY_ORDER: Record<string, number> = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+  info: 4,
+};
+
+/** Detect primary languages from file extensions. Returns sorted by file count descending. */
+function detectLanguages(files: readonly string[]): string[] {
+  const counts = new Map<string, number>();
+  for (const f of files) {
+    const dotIdx = f.lastIndexOf(".");
+    if (dotIdx === -1) continue;
+    const ext = f.slice(dotIdx).toLowerCase();
+    const lang = EXTENSION_TO_LANGUAGE[ext];
+    if (lang) {
+      counts.set(lang, (counts.get(lang) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([lang]) => lang);
+}
+
 export const securityGovernanceAnalyzer: PillarAnalyzer = {
   pillar: PILLAR,
   name: PILLAR_NAMES[PILLAR],
-  version: "0.1.0",
+  version: "0.2.0",
 
   async supports(): Promise<boolean> {
     return true;
@@ -15,6 +113,10 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
   async analyze(context: RepoContext) {
     const findings: Finding[] = [];
     let score = 0;
+
+    // --- AI-specific score tracking (AC#3) ---
+    let aiSpecificScore = 0;
+    let aiSpecificMax = 0;
 
     // CODEOWNERS
     const hasCodeowners =
@@ -33,6 +135,12 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
           action: "create-file",
           path: ".github/CODEOWNERS",
           description: "Add CODEOWNERS to define code review ownership for critical paths",
+          confidence: "high",
+        },
+        evidence: {
+          paper: "Pearce et al., 2021; CodeRabbit, 2025",
+          finding:
+            "AI PRs have 1.7x more issues than human PRs — mandatory review ownership reduces unreviewed AI changes reaching production",
           confidence: "high",
         },
       });
@@ -55,6 +163,12 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
           path: "SECURITY.md",
           description: "Add security policy with vulnerability reporting instructions",
           confidence: "high",
+        },
+        evidence: {
+          paper: "OWASP, 2024",
+          finding:
+            "A security policy establishes a vulnerability disclosure channel — without it, security issues found in AI-generated code have no clear reporting path",
+          confidence: "medium",
         },
       });
     }
@@ -91,7 +205,8 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         },
         evidence: {
           paper: "Veracode, 2025",
-          finding: "AI hardcodes credentials 2x human rate",
+          finding:
+            "AI assistants hardcode credentials at 2x the human rate — secrets scanning is critical to catch AI-introduced credential leaks before they reach production",
           confidence: "high",
         },
       });
@@ -114,6 +229,12 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
           action: "create-file",
           path: ".github/dependabot.yml",
           description: "Add Dependabot or Renovate for automated dependency updates",
+          confidence: "high",
+        },
+        evidence: {
+          paper: "Apiiro, 2025",
+          finding:
+            "AI agents introduce 10,000+ new security findings/month — automated dependency auditing catches vulnerable transitive dependencies before agents pull them in",
           confidence: "high",
         },
       });
@@ -140,7 +261,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
       score += 15;
     }
 
-    // SAST configuration
+    // SAST configuration — AI-specific (AC#3)
     let hasSAST = false;
     for (const wf of workflows) {
       const content = await context.readFile(wf);
@@ -151,7 +272,9 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     }
     if (hasSAST) {
       score += 15;
+      aiSpecificScore += 15;
     }
+    aiSpecificMax += 15;
 
     // License
     const hasLicense =
@@ -210,20 +333,27 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
             "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks",
           confidence: "medium",
         },
+        evidence: {
+          paper: "Cotroneo et al., 2025",
+          finding:
+            "AI agents copy code from training data without license awareness — automated license checking prevents accidental license violations in AI-generated code",
+          confidence: "medium",
+        },
       });
     }
 
-    // AI-specific review checklist in PR templates
+    // AI-specific review checklist in PR templates — AI-specific (AC#3)
     const prTemplateContent =
       (await context.readFile(".github/PULL_REQUEST_TEMPLATE.md")) ??
       (await context.readFile(".github/pull_request_template.md"));
-    if (
-      prTemplateContent &&
+    const hasAIReviewChecklist =
+      !!prTemplateContent &&
       /\b(ai|agent|llm|copilot|gpt|claude|machine.?generated|ai.?generated)\b/i.test(
         prTemplateContent,
-      )
-    ) {
+      );
+    if (hasAIReviewChecklist) {
       score += 5;
+      aiSpecificScore += 5;
     } else {
       findings.push({
         code: "ARI-SEC-005",
@@ -237,10 +367,17 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
             "Add an AI/agent review section to your PR template (e.g., 'Was this code AI-generated?', 'Have AI-generated changes been reviewed for security?')",
           confidence: "medium",
         },
+        evidence: {
+          paper: "CodeRabbit, 2025; IEEE-ISTAS, 2025",
+          finding:
+            "AI PRs have 1.7x more issues and vulnerabilities increase 37.6% over iterations — explicit AI review checklists catch security anti-patterns that standard reviews miss",
+          confidence: "high",
+        },
       });
     }
+    aiSpecificMax += 5;
 
-    // .agentignore or agent scope control detection
+    // .agentignore or agent scope control detection — AI-specific (AC#3)
     const hasAgentIgnore = await context.fileExists(".agentignore");
     const hasClaudeIgnore = await context.fileExists(".claudeignore");
     const hasCopilotIgnore = await context.fileExists(".copilotignore");
@@ -249,14 +386,15 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
       (await context.fileExists("CLAUDE.md")) ||
       (await context.fileExists(".claude/settings.json"));
 
-    if (
+    const hasAgentScope =
       hasAgentIgnore ||
       hasClaudeIgnore ||
       hasCopilotIgnore ||
       hasGitHubCopilotConfig ||
-      hasClaudeMd
-    ) {
+      hasClaudeMd;
+    if (hasAgentScope) {
       score += 5;
+      aiSpecificScore += 5;
     } else {
       findings.push({
         code: "ARI-SEC-006",
@@ -271,10 +409,54 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
             "Add an .agentignore or similar file to restrict which files AI agents can access or modify",
           confidence: "medium",
         },
+        evidence: {
+          paper: "Apiiro, 2025",
+          finding:
+            "Privilege escalation in AI-generated code is up 322% — agent scope controls limit the blast radius by preventing agents from modifying sensitive paths",
+          confidence: "high",
+        },
+      });
+    }
+    aiSpecificMax += 5;
+
+    // --- AC#5: Language-specific vulnerability context (ARI-SEC-008) ---
+    const detectedLanguages = detectLanguages(context.files);
+    const languageContextEntries: string[] = [];
+    for (const lang of detectedLanguages) {
+      const ctx = LANGUAGE_VULNERABILITY_CONTEXT[lang];
+      if (ctx) {
+        languageContextEntries.push(`${lang}: ${ctx.rate} vulnerability rate (${ctx.source})`);
+      }
+    }
+    if (languageContextEntries.length > 0) {
+      const primaryLang = detectedLanguages[0];
+      const primaryCtx = primaryLang ? LANGUAGE_VULNERABILITY_CONTEXT[primaryLang] : undefined;
+      findings.push({
+        code: "ARI-SEC-008",
+        severity: "info",
+        pillar: PILLAR,
+        message: `Language-specific AI vulnerability context: ${languageContextEntries.join("; ")}`,
+        remediation: {
+          action: "configure-tool",
+          description: primaryCtx
+            ? `${primaryCtx.context}. Prioritize SAST rules and code review practices for ${primaryLang}-specific vulnerability patterns.`
+            : "Configure language-appropriate SAST rules for your detected languages.",
+          confidence: "medium",
+        },
+        evidence: {
+          paper: primaryCtx?.source ?? "Veracode, 2025; Cotroneo et al., 2025",
+          finding: primaryCtx
+            ? primaryCtx.context
+            : "AI-generated code vulnerability rates vary significantly by language",
+          confidence: "medium",
+        },
       });
     }
 
     score = Math.min(100, Math.max(0, score));
+
+    // --- Sort findings by severity for risk-priority ordering (AC#1) ---
+    findings.sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 4) - (SEVERITY_ORDER[b.severity] ?? 4));
 
     // Build configuration status labels
     const statusLabel = (configured: boolean, partial?: boolean): string => {
@@ -297,6 +479,10 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     const licenseComplianceStatus = statusLabel(hasLicenseCompliance);
     const gitignoreStatus = statusLabel(hasGitignoreSensitive);
 
+    // AI-specific security sub-score (AC#3)
+    const aiScorePercent =
+      aiSpecificMax > 0 ? Math.round((aiSpecificScore / aiSpecificMax) * 100) : 0;
+
     return {
       pillar: PILLAR,
       name: PILLAR_NAMES[PILLAR],
@@ -304,7 +490,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
       weight: PILLAR_WEIGHTS[PILLAR],
       confidence: "medium",
       findings,
-      summary: `CODEOWNERS: ${codeownersStatus}, Secrets scanning: ${secretsScanningStatus}, Dep audit: ${depAuditStatus}, SAST: ${sastStatus}, Branch protection: ${branchProtectionStatus}, License compliance: ${licenseComplianceStatus}, .gitignore: ${gitignoreStatus}`,
+      summary: `CODEOWNERS: ${codeownersStatus}, Secrets scanning: ${secretsScanningStatus}, Dep audit: ${depAuditStatus}, SAST: ${sastStatus}, Branch protection: ${branchProtectionStatus}, License compliance: ${licenseComplianceStatus}, .gitignore: ${gitignoreStatus} | AI-specific security: ${aiScorePercent}% (${aiSpecificScore}/${aiSpecificMax})`,
     };
   },
 };
