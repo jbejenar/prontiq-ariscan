@@ -496,9 +496,41 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       }
     }
 
+    // Also scan barrel files for re-exports to reduce dead code false positives
+    const reExportTargets = new Set<string>();
+    const barrelFiles = tsJsFiles.filter((f) => /index\.[jt]sx?$/.test(f));
+    for (const barrel of barrelFiles.slice(0, 20)) {
+      const content = await context.readFile(barrel);
+      if (!content) continue;
+      const reExportRegex = /export\s+(?:\*|\{[^}]*\})\s+from\s+['"](.+?)['"]/g;
+      let reMatch: RegExpExecArray | null;
+      while ((reMatch = reExportRegex.exec(content)) !== null) {
+        const reExportPath = reMatch[1];
+        if (reExportPath && reExportPath.startsWith(".")) {
+          const barrelDir = barrel.split("/").slice(0, -1).join("/");
+          const segments = reExportPath.replace(/\.[jt]sx?$/, "").split("/");
+          const resolved: string[] = barrelDir ? barrelDir.split("/") : [];
+          for (const seg of segments) {
+            if (seg === "..") {
+              resolved.pop();
+            } else if (seg !== ".") {
+              resolved.push(seg);
+            }
+          }
+          reExportTargets.add(resolved.join("/"));
+        }
+      }
+    }
+
     const deadCodeCandidates: string[] = [];
     const entryPatterns =
       /index\.[jt]sx?$|main\.[jt]sx?$|app\.[jt]sx?$|mod\.rs$|__init__\.py$|server\.[jt]sx?$/;
+    // Additional exclusion patterns for files that are typically not imported but are not dead code
+    const configPatterns =
+      /\.config\.[jt]sx?$|\.d\.[jt]s$|setup\.[jt]sx?$|cli\.[jt]sx?$|bin\.[jt]sx?$/;
+    const conventionDirPatterns =
+      /commands\/|scripts\/|migrations\/|seeds\/|fixtures\/|\.storybook\//;
+
     const sampledForDead = tsJsFiles.slice(0, 30);
     for (const file of sampledForDead) {
       const fileName = file.split("/").pop() ?? "";
@@ -506,12 +538,20 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       if (entryPatterns.test(fileName)) continue;
       // Skip test files
       if (/\.test\.|\.spec\.|__tests__/.test(file)) continue;
+      // Skip config, declaration, CLI entry, and setup files
+      if (configPatterns.test(fileName)) continue;
+      // Skip files in conventional directories that are loaded dynamically
+      if (conventionDirPatterns.test(file)) continue;
 
       const fileBase = file.replace(/\.[jt]sx?$/, "");
       const isImported = [...allImportTargets].some(
         (imp) => imp === fileBase || imp === file || fileBase.endsWith("/" + imp.split("/").pop()),
       );
-      if (!isImported) {
+      // Also check barrel re-exports
+      const isReExported = [...reExportTargets].some(
+        (imp) => imp === fileBase || imp === file || fileBase.endsWith("/" + imp.split("/").pop()),
+      );
+      if (!isImported && !isReExported) {
         deadCodeCandidates.push(file);
       }
     }
@@ -713,6 +753,33 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       });
     }
 
+    // --- Threshold labels for all metrics (AC#2) ---
+    const maxFilesPerDir =
+      stuffedDirs.length > 0
+        ? Math.max(...stuffedDirs.map(([, c]) => c))
+        : Math.max(...[...dirs.values()]);
+    const dirSizeLabel: "good" | "moderate" | "poor" =
+      maxFilesPerDir <= 20 ? "good" : maxFilesPerDir <= 30 ? "moderate" : "poor";
+    const depthLabel: "good" | "moderate" | "poor" =
+      maxDepth <= 5 ? "good" : maxDepth <= 8 ? "moderate" : "poor";
+    const namingLabel: "good" | "moderate" | "poor" =
+      consistency >= 0.8 ? "good" : consistency >= 0.5 ? "moderate" : "poor";
+    const importLabel: "good" | "moderate" | "poor" =
+      heavyImportCount === 0 ? "good" : heavyImportCount <= 3 ? "moderate" : "poor";
+    const circularLabel: "good" | "poor" = circularCount === 0 ? "good" : "poor";
+    const deadCodeLabel: "good" | "moderate" | "poor" =
+      deadCodeCandidates.length <= 1
+        ? "good"
+        : deadCodeCandidates.length <= 3
+          ? "moderate"
+          : "poor";
+    const duplicationLabel: "good" | "moderate" | "poor" =
+      duplicationRatio <= 0.2 && filesWithDuplication <= 4
+        ? "good"
+        : duplicationRatio <= 0.4 && filesWithDuplication <= 8
+          ? "moderate"
+          : "poor";
+
     // Build summary with "most costly navigation paths"
     const problemAreas: string[] = [];
     if (stuffedDirs.length > 0) {
@@ -741,6 +808,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         ? ` | Top issues: ${problemAreas.join(", ")}`
         : " | No major navigation issues";
 
+    const thresholdSummary = `depth:${depthLabel} dirs:${dirSizeLabel} naming:${namingLabel} imports:${importLabel} circular:${circularLabel} dead-code:${deadCodeLabel} duplication:${duplicationLabel}`;
+
     score = Math.min(100, Math.max(0, score));
 
     return {
@@ -750,7 +819,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       weight: PILLAR_WEIGHTS[PILLAR],
       confidence: sourceFiles.length > 10 ? "medium" : "low",
       findings,
-      summary: `${sourceFiles.length} source files across ${dirs.size} directories, max depth ${maxDepth}, naming ${Math.round(consistency * 100)}% consistent${costlyPaths}`,
+      summary: `${sourceFiles.length} source files across ${dirs.size} directories, max depth ${maxDepth}, naming ${Math.round(consistency * 100)}% consistent | Thresholds: ${thresholdSummary}${costlyPaths}`,
     };
   },
 };

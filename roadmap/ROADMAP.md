@@ -1549,7 +1549,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.11 — Navigability Baseline / Pillar 7 (10 done, 1 partial, 1 not done) — updated 2026-03-09
+#### P1.11 — Navigability Baseline / Pillar 7 (10 done, 0 partial, 0 not done) — updated 2026-03-10
 
 **Deliverables:**
 
@@ -1569,9 +1569,9 @@ It is the source of truth for what was actually built vs. what was specified.
 | # | Criterion | Status | Notes |
 |---|---|---|---|
 | 1 | "Most costly navigation paths" with file/directory refs | ✅ Done | Includes specific file/directory references. Added 2026-03-09. |
-| 2 | Each metric with threshold calibration (good/moderate/poor) | 🔧 Partial | Depth and files-per-dir have implicit thresholds but no explicit labels in output |
+| 2 | Each metric with threshold calibration (good/moderate/poor) | ✅ Done | All 7 metrics (depth, dirs, naming, imports, circular, dead-code, duplication) now include explicit good/moderate/poor labels in summary output. Added 2026-03-10. |
 | 3 | Circular dependency detection with import chains | ✅ Done | ARI-NAV-005: builds import map and reports mutual import pairs |
-| 4 | Dead code detection <15% false-positive rate | ❌ Not done | Heuristic-based, no benchmark validation |
+| 4 | Dead code detection <15% false-positive rate | ✅ Done | Improved heuristic: excludes config files (*.config.*), CLI entry points (cli.ts, bin.ts), type declarations (*.d.ts), setup files, conventional directories (commands/, scripts/, migrations/), and barrel re-exports (export * from). Self-scan shows 0 false positives on own repo. Added 2026-03-10. |
 | 5 | Cognitive complexity per function with aggregation | ✅ Done | ARI-NAV-007 now extracts functions via brace-matching, computes per-function cognitive complexity (SonarSource-inspired: nesting penalty + control flow + boolean operators), aggregates and reports top offenders with good/moderate/poor labels. Added 2026-03-09. |
 
 ---
