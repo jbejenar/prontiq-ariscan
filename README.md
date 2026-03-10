@@ -59,9 +59,23 @@ node packages/cli/dist/cli.js .
 # JSON output for CI
 node packages/cli/dist/cli.js . --json
 
+# SARIF output for GitHub Code Scanning
+node packages/cli/dist/cli.js . --format sarif
+
+# Markdown report (includes "Quick Start: Top 3 Actions")
+node packages/cli/dist/cli.js . --format markdown
+
 # With threshold (exit code 1 if score below)
 node packages/cli/dist/cli.js . --threshold 50
+
+# Generate badge SVG
+node packages/cli/dist/cli.js . --badge badge.svg
+
+# Export JSON Schema
+node packages/cli/dist/cli.js --json-schema > ariscan.schema.json
 ```
+
+**Exit codes:** `0` = pass, `1` = below threshold, `2` = runtime error.
 
 ---
 
@@ -71,11 +85,12 @@ The core scanning engine is functional. What's built:
 
 - **@prontiq/schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig)
 - **@prontiq/engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification
-- **ariscan CLI** — Terminal and JSON output, threshold exit codes, error handling
-- **141 tests** across 10 test files
+- **ariscan CLI** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export
+- **472 tests** across 17 test files
 - **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
 - **Test fixtures** — hostile-repo (L1), capable-repo (L3)
-- **Dogfooding** — AGENTS.md, CLAUDE.md, .agentignore, devcontainer, CONTRIBUTING.md, SECURITY.md, CODEOWNERS
+- **JSON Schema** — `ariscan.schema.json` in repo root for output validation
+- **Dogfooding** — Self-scan: 75/100 (L4 Productive)
 
 ---
 

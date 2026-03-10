@@ -8,6 +8,25 @@ const SEVERITY_ORDER: Record<string, number> = {
   info: 4,
 };
 
+/** Impact score: higher severity + higher confidence = higher impact. */
+function impactEaseScore(finding: Finding): number {
+  const severityWeight: Record<string, number> = {
+    critical: 10,
+    high: 8,
+    medium: 5,
+    low: 3,
+    info: 1,
+  };
+  const confidenceWeight: Record<string, number> = {
+    high: 3,
+    medium: 2,
+    low: 1,
+  };
+  const impact = severityWeight[finding.severity] ?? 1;
+  const ease = finding.remediation ? (confidenceWeight[finding.remediation.confidence] ?? 1) : 0;
+  return impact * ease;
+}
+
 function severityEmoji(severity: string): string {
   switch (severity) {
     case "critical":
@@ -93,8 +112,30 @@ export function formatMarkdown(result: ScanResult): string {
     }
   }
 
-  // Remediation suggestions
-  const withRemediation = sortedFindings.filter((f) => f.remediation);
+  // Quick-start: First 3 actions (highest impact × ease)
+  const actionable = sortedFindings
+    .filter((f) => f.remediation && f.severity !== "info")
+    .sort((a, b) => impactEaseScore(b) - impactEaseScore(a));
+
+  if (actionable.length > 0) {
+    lines.push("## Quick Start: Top 3 Actions");
+    lines.push("");
+    const top3 = actionable.slice(0, 3);
+    for (const [idx, finding] of top3.entries()) {
+      if (finding.remediation) {
+        const impact = finding.remediation.estimatedImpact
+          ? ` → ${finding.remediation.estimatedImpact}`
+          : "";
+        lines.push(
+          `${idx + 1}. **\`${finding.code}\`** ${finding.remediation.description}${impact}`,
+        );
+      }
+    }
+    lines.push("");
+  }
+
+  // Remediation suggestions (ordered by impact × ease)
+  const withRemediation = actionable;
   if (withRemediation.length > 0) {
     lines.push("## Suggested Remediations");
     lines.push("");

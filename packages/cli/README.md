@@ -32,12 +32,20 @@ ariscan . --json
 # Fail CI if score is below threshold
 ariscan . --threshold 60
 
-# Markdown report
+# Markdown report (with "Quick Start: Top 3 Actions")
 ariscan . --format markdown
+
+# SARIF output for GitHub Code Scanning
+ariscan . --format sarif
 
 # Generate SVG badge
 ariscan . --badge ari-badge.svg
+
+# Export JSON Schema for output validation
+ariscan --json-schema > ariscan.schema.json
 ```
+
+**Exit codes:** `0` = pass, `1` = below threshold, `2` = runtime error.
 
 ## What It Scores
 

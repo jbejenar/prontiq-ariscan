@@ -166,10 +166,38 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
 
       // Modern build tools
       const buildCmd = scripts["build"];
-      if (/\b(tsup|esbuild|vite|swc|unbuild|turbo)\b/.test(buildCmd)) {
+      const isModernBuild = /\b(tsup|esbuild|vite|swc|unbuild|turbo)\b/.test(buildCmd);
+      const isWebpack = /\bwebpack\b/.test(buildCmd);
+      if (isModernBuild) {
         score += 10;
-      } else if (/\bwebpack\b/.test(buildCmd)) {
+        findings.push({
+          code: "ARI-BLD-010",
+          severity: "info",
+          pillar: PILLAR,
+          message:
+            "Modern build tool detected — fast, deterministic builds improve agent feedback loops",
+        });
+      } else if (isWebpack) {
         score += 5;
+        findings.push({
+          code: "ARI-BLD-010",
+          severity: "low",
+          pillar: PILLAR,
+          message:
+            "Webpack detected — consider migrating to a faster bundler (tsup, esbuild, vite, swc) for shorter agent feedback loops",
+          remediation: {
+            action: "modify-config",
+            description:
+              "Migrate from webpack to a modern bundler (tsup, esbuild, vite) for 10-50x faster builds",
+            confidence: "medium",
+          },
+          evidence: {
+            paper: "esbuild benchmark, 2024",
+            finding:
+              "esbuild/swc provide 10-100x faster builds than webpack, reducing agent wait time",
+            confidence: "medium",
+          },
+        });
       }
     }
 

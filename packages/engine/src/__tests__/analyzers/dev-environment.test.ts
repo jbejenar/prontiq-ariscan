@@ -370,6 +370,58 @@ describe("devEnvironmentAnalyzer (P4)", () => {
     });
   });
 
+  describe("time-to-first-test-pass estimate (ARI-ENV-013)", () => {
+    it("estimates fast TTFTP for simple Node project", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "vitest", build: "tsc" } }),
+        ".devcontainer/devcontainer.json": JSON.stringify({ image: "node:20" }),
+        ".env.example": "PORT=3000",
+        "tsconfig.json": "{}",
+      });
+      const result = await devEnvironmentAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-ENV-013");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("min");
+      // Should be fast or moderate with devcontainer + .env.example
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("estimates slow TTFTP when missing .env.example and devcontainer", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: {} }),
+        "src/config.ts": "const x = process.env.SECRET;",
+      });
+      const result = await devEnvironmentAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-ENV-013");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("min");
+    });
+
+    it("includes remediation for slow estimates", async () => {
+      const ctx = createMockContext({
+        "src/index.ts": "const x = process.env.DATABASE_URL;",
+      });
+      const result = await devEnvironmentAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-ENV-013");
+      expect(finding).toBeDefined();
+      // Slow: no package.json, no devcontainer, no .env.example, missing tsconfig
+      expect(finding?.message).toContain("slow");
+      expect(finding?.remediation).toBeDefined();
+    });
+
+    it("includes breakdown factors in message", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ scripts: { test: "jest", build: "tsc" } }),
+        "tsconfig.json": "{}",
+      });
+      const result = await devEnvironmentAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-ENV-013");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("Factors:");
+      expect(finding?.message).toContain("dependency install");
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.9.0] — 2026-03-10
+
+### Added
+- **CLI (P1.01):** Exit code matrix documented in `--help` output — codes 0 (pass), 1 (below threshold), 2 (runtime error). (P1.01 AC#3)
+- **Schema (P1.14):** Standalone `ariscan.schema.json` published in repo root — JSON Schema 2020-12 for scan output validation. `getJsonSchemaObject()` export for programmatic use. (P1.14 AC#1)
+- **CLI (P1.14):** CI validation tests — 5 tests verifying JSON output against schema (required fields, finding code pattern, score ranges, maturity level enum). (P1.14 AC#2)
+- **CLI (P1.15):** "Quick Start: Top 3 Actions" section in markdown output — highest-impact remediations surfaced first, ordered by impact × ease score (severity × confidence). (P1.15 quickstart)
+- **CLI (P1.15):** Remediations ordered by impact × ease — all remediation suggestions now sorted by combined severity × confidence score instead of discovery order. (P1.15 ordering)
+- **Doc Readability (P5):** Python pydantic BaseSettings detection — scans `.py` files for `from pydantic_settings import BaseSettings`, `class Foo(BaseSettings)`, and `pyproject.toml` for `pydantic-settings` dependency. (P1.09 AC#4)
+- **Build Determinism (P6):** Build tool modernity rationale finding (ARI-BLD-010) — emits info finding for modern bundlers (tsup, esbuild, vite, swc) and low-severity finding with migration advice + research evidence for webpack. (P1.10 AC#5)
+- **Dev Environment (P4):** Time-to-first-test-pass estimate (ARI-ENV-013) — estimates TTFTP in minutes based on install, build, env setup, devcontainer, and test script presence. Labels as fast/moderate/slow with breakdown factors. Medium severity + remediation for slow estimates. (P1.08)
+- 22 new tests: 3 pydantic BaseSettings, 3 build tool modernity, 4 TTFTP estimate, 6 CI schema validation, 3 markdown quick-start, 3 markdown ordering
+
+### Metrics
+- **Self-scan score:** 75/100 (L4 Productive) — no regression
+- **Tests:** 472 passing across 17 test files (28 schema + 376 engine + 68 CLI)
+- **Roadmap progress:** 8 acceptance criteria / deliverables closed this session
+
 ## [2.8.0] — 2026-03-10
 
 ### Added

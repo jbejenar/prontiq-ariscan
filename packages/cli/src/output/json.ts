@@ -15,12 +15,11 @@ export function formatJson(result: ScanResult): string {
 }
 
 /**
- * Return a hand-crafted JSON Schema document that describes the ScanResult
- * structure. Intended for use with a `--json-schema` CLI flag so external
- * tools can validate ARI scan output.
+ * Return the JSON Schema object for programmatic use, file generation,
+ * and the `--json-schema` CLI flag so external tools can validate ARI scan output.
  */
-export function formatJsonSchema(): string {
-  const schema = {
+export function getJsonSchemaObject(): Record<string, unknown> {
+  return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: SCHEMA_ID,
     title: "ARI Scan Result",
@@ -219,6 +218,9 @@ export function formatJsonSchema(): string {
       },
     },
   };
+}
 
-  return JSON.stringify(schema, null, 2) + "\n";
+/** Serialize the JSON Schema as a formatted string. */
+export function formatJsonSchema(): string {
+  return JSON.stringify(getJsonSchemaObject(), null, 2) + "\n";
 }

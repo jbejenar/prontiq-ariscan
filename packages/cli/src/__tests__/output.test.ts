@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ScanResult } from "@prontiq/schema";
-import { formatJson, formatJsonSchema } from "../output/json.js";
+import { formatJson, formatJsonSchema, getJsonSchemaObject } from "../output/json.js";
 import { formatTerminal } from "../output/terminal.js";
 import { formatMarkdown } from "../output/markdown.js";
 import { formatSarif } from "../output/sarif.js";
@@ -147,6 +147,50 @@ describe("formatJsonSchema", () => {
     expect(pillarProps.status).toBeDefined();
     expect(pillarProps.status.enum).toContain("excellent");
     expect(pillarProps.status.enum).toContain("poor");
+  });
+});
+
+describe("getJsonSchemaObject", () => {
+  it("returns the same object that formatJsonSchema serializes", () => {
+    const obj = getJsonSchemaObject();
+    const fromFormat = JSON.parse(formatJsonSchema());
+    expect(obj).toEqual(fromFormat);
+  });
+});
+
+describe("JSON output validates against schema", () => {
+  it("JSON output contains all schema-required fields", () => {
+    const schema = getJsonSchemaObject() as Record<string, unknown>;
+    const output = JSON.parse(formatJson(mockResult));
+    const required = schema["required"] as string[];
+    for (const field of required) {
+      expect(output).toHaveProperty(field);
+    }
+  });
+
+  it("finding codes match the schema pattern", () => {
+    const pattern = /^ARI-[A-Z]{3}-\d{3}$/;
+    for (const finding of mockResult.findings) {
+      expect(finding.code).toMatch(pattern);
+    }
+  });
+
+  it("pillar scores are within 0-100", () => {
+    for (const pillar of mockResult.pillars) {
+      expect(pillar.score).toBeGreaterThanOrEqual(0);
+      expect(pillar.score).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("composite score is within 0-100", () => {
+    const output = JSON.parse(formatJson(mockResult));
+    expect(output.score).toBeGreaterThanOrEqual(0);
+    expect(output.score).toBeLessThanOrEqual(100);
+  });
+
+  it("level is a valid maturity level", () => {
+    const output = JSON.parse(formatJson(mockResult));
+    expect(["L1", "L2", "L3", "L4", "L5"]).toContain(output.level);
   });
 });
 
@@ -305,6 +349,108 @@ describe("formatMarkdown", () => {
     const lowPos = output.indexOf("Low severity finding");
     expect(criticalPos).toBeLessThan(highPos);
     expect(highPos).toBeLessThan(lowPos);
+  });
+
+  it("includes Quick Start section with top 3 actions", () => {
+    const resultWithRemediations: ScanResult = {
+      ...mockResult,
+      findings: [
+        {
+          code: "ARI-CTX-001",
+          severity: "high",
+          pillar: "P1",
+          message: "No AGENTS.md found",
+          remediation: {
+            action: "create-file",
+            path: "AGENTS.md",
+            description: "Create an AGENTS.md file",
+            confidence: "high",
+          },
+        },
+        {
+          code: "ARI-BLD-001",
+          severity: "high",
+          pillar: "P6",
+          message: "TypeScript strict mode not enabled",
+          remediation: {
+            action: "modify-config",
+            description: "Enable strict: true",
+            confidence: "high",
+          },
+        },
+        {
+          code: "ARI-ENV-001",
+          severity: "medium",
+          pillar: "P4",
+          message: "No devcontainer",
+          remediation: {
+            action: "create-file",
+            description: "Add devcontainer config",
+            confidence: "medium",
+          },
+        },
+      ],
+    };
+    const output = formatMarkdown(resultWithRemediations);
+    expect(output).toContain("## Quick Start: Top 3 Actions");
+    expect(output).toContain("1.");
+    expect(output).toContain("2.");
+    expect(output).toContain("3.");
+  });
+
+  it("orders remediations by impact × ease", () => {
+    const resultWithMixed: ScanResult = {
+      ...mockResult,
+      findings: [
+        {
+          code: "ARI-CTX-002",
+          severity: "low",
+          pillar: "P1",
+          message: "Low with low confidence",
+          remediation: {
+            action: "refactor",
+            description: "Low impact action",
+            confidence: "low",
+          },
+        },
+        {
+          code: "ARI-CTX-001",
+          severity: "high",
+          pillar: "P1",
+          message: "High with high confidence",
+          remediation: {
+            action: "create-file",
+            description: "High impact action",
+            confidence: "high",
+          },
+        },
+      ],
+    };
+    const output = formatMarkdown(resultWithMixed);
+    const highPos = output.indexOf("High impact action");
+    const lowPos = output.indexOf("Low impact action");
+    expect(highPos).toBeLessThan(lowPos);
+  });
+
+  it("excludes info-severity findings from Quick Start", () => {
+    const resultWithInfo: ScanResult = {
+      ...mockResult,
+      findings: [
+        {
+          code: "ARI-ENV-005",
+          severity: "info",
+          pillar: "P4",
+          message: "Devcontainer: pass",
+          remediation: {
+            action: "create-file",
+            description: "Informational only",
+            confidence: "high",
+          },
+        },
+      ],
+    };
+    const output = formatMarkdown(resultWithInfo);
+    expect(output).not.toContain("## Quick Start: Top 3 Actions");
   });
 
   it("includes file location in findings when present", () => {
