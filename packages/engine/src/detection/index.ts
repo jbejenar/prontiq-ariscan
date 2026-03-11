@@ -1,4 +1,4 @@
-import type { DetectionResult } from "@prontiq/schema";
+import type { DetectionResult } from "@prontiq/ariscan-schema";
 import type { RepoContext } from "../analyzers/analyzer.interface.js";
 import { detectLanguages } from "./languages.js";
 import { detectFrameworks } from "./frameworks.js";

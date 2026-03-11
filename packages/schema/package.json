@@ -1,5 +1,5 @@
 {
-  "name": "@prontiq/schema",
+  "name": "@prontiq/ariscan-schema",
   "version": "0.2.0",
   "private": false,
   "type": "module",

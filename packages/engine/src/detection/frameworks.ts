@@ -1,4 +1,4 @@
-import type { DetectedFramework } from "@prontiq/schema";
+import type { DetectedFramework } from "@prontiq/ariscan-schema";
 import type { RepoContext } from "../analyzers/analyzer.interface.js";
 
 interface FrameworkSpec {

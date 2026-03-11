@@ -1,4 +1,4 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/schema";
+import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
 
 const PILLAR: PillarId = "P3";

@@ -4,7 +4,7 @@ import type {
   ContextFileInfo,
   ContextFileType,
   ParseStatus,
-} from "@prontiq/schema";
+} from "@prontiq/ariscan-schema";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { ANALYZERS } from "./analyzers/registry.js";

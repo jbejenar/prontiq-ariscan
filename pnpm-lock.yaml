@@ -41,10 +41,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@prontiq/engine':
+      '@prontiq/ariscan-engine':
         specifier: workspace:*
         version: link:../engine
-      '@prontiq/schema':
+      '@prontiq/ariscan-schema':
         specifier: workspace:*
         version: link:../schema
       citty:
@@ -75,7 +75,7 @@ importers:
 
   packages/engine:
     dependencies:
-      '@prontiq/schema':
+      '@prontiq/ariscan-schema':
         specifier: workspace:*
         version: link:../schema
       fast-glob:

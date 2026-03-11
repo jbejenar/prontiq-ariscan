@@ -1,5 +1,5 @@
 import pc from "picocolors";
-import type { ScanResult, PillarResult, MaturityLevel } from "@prontiq/schema";
+import type { ScanResult, PillarResult, MaturityLevel } from "@prontiq/ariscan-schema";
 
 interface TerminalOptions {
   verbose?: boolean;

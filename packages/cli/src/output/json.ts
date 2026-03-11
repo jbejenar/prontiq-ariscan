@@ -1,4 +1,4 @@
-import type { ScanResult } from "@prontiq/schema";
+import type { ScanResult } from "@prontiq/ariscan-schema";
 
 const SCHEMA_ID = "https://prontiq.dev/schemas/ari-scan-result/v1.json";
 

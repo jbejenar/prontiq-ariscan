@@ -1,5 +1,5 @@
 {
-  "name": "ariscan",
+  "name": "@prontiq/ariscan-cli",
   "version": "0.2.0",
   "description": "Measure and improve repository readiness for AI coding agents",
   "type": "module",
@@ -50,8 +50,8 @@
   ],
   "license": "Elastic-2.0",
   "dependencies": {
-    "@prontiq/engine": "workspace:*",
-    "@prontiq/schema": "workspace:*",
+    "@prontiq/ariscan-engine": "workspace:*",
+    "@prontiq/ariscan-schema": "workspace:*",
     "citty": "^0.2.1",
     "consola": "^3.4.0",
     "picocolors": "^1.1.0",

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { PillarResult } from "@prontiq/schema";
+import type { PillarResult } from "@prontiq/ariscan-schema";
 import {
   calculateCompositeScore,
   classifyMaturityLevel,

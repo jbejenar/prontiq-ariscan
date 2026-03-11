@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { generateFixProposals } from "../../fix/generators.js";
 import type { RepoContext } from "../../analyzers/analyzer.interface.js";
-import type { DetectionResult } from "@prontiq/schema";
+import type { DetectionResult } from "@prontiq/ariscan-schema";
 
 function createMockContext(
   fileMap: Record<string, string>,

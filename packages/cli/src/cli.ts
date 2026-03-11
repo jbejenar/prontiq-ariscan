@@ -7,8 +7,8 @@ import {
   analyzeTokenBudget,
   detect,
   generateFixProposals,
-} from "@prontiq/engine";
-import type { FixProposal } from "@prontiq/engine";
+} from "@prontiq/ariscan-engine";
+import type { FixProposal } from "@prontiq/ariscan-engine";
 import { formatTerminal } from "./output/terminal.js";
 import { formatJson, formatJsonSchema } from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
@@ -16,7 +16,7 @@ import { formatSarif } from "./output/sarif.js";
 import { generateBadgeSvg, generateBadgeSnippets } from "./output/badge.js";
 import { formatBudgetTerminal, formatBudgetJson } from "./output/budget.js";
 import { resolveConfig } from "./config-loader.js";
-import type { ScanResult } from "@prontiq/schema";
+import type { ScanResult } from "@prontiq/ariscan-schema";
 
 const main = defineCommand({
   meta: {

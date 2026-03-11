@@ -1,8 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
 import { parse as parseYaml } from "yaml";
-import { FileConfig } from "@prontiq/schema";
-import type { FileConfig as FileConfigType, ScanConfig as ScanConfigType } from "@prontiq/schema";
+import { FileConfig } from "@prontiq/ariscan-schema";
+import type {
+  FileConfig as FileConfigType,
+  ScanConfig as ScanConfigType,
+} from "@prontiq/ariscan-schema";
 
 const CONFIG_FILENAME = ".ariscan.yml";
 

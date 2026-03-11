@@ -10,7 +10,7 @@ Monorepo managed with pnpm workspaces and Turborepo:
 
 ```
 packages/
-  schema/     — Zod schemas, pillar types, score contracts (@prontiq/schema)
+  schema/     — Zod schemas, pillar types, score contracts (@prontiq/ariscan-schema)
   engine/     — 8 pillar analyzers, scoring pipeline, RepoContext abstraction
   cli/        — CLI entry point using citty, output formatting, policy execution
 ```

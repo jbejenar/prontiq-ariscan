@@ -8,7 +8,7 @@
  */
 
 import type { RepoContext } from "../analyzers/analyzer.interface.js";
-import type { DetectionResult } from "@prontiq/schema";
+import type { DetectionResult } from "@prontiq/ariscan-schema";
 
 /** A proposed file change from --fix. */
 export interface FixProposal {

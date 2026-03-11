@@ -1,4 +1,4 @@
-import type { ScanResult, Finding } from "@prontiq/schema";
+import type { ScanResult, Finding } from "@prontiq/ariscan-schema";
 
 const SEVERITY_ORDER: Record<string, number> = {
   critical: 0,

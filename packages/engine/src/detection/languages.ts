@@ -1,4 +1,4 @@
-import type { DetectedLanguage } from "@prontiq/schema";
+import type { DetectedLanguage } from "@prontiq/ariscan-schema";
 import type { RepoContext } from "../analyzers/analyzer.interface.js";
 
 interface LanguageSpec {
