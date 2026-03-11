@@ -1,6 +1,7 @@
 name: Publish
 
 on:
+  workflow_dispatch: # allow manual trigger from Actions tab
   workflow_run:
     workflows: ["CI"]
     branches: [main]
@@ -23,8 +24,10 @@ jobs:
   publish:
     name: Version or Publish
     runs-on: ubuntu-latest
-    # Only publish if CI passed
-    if: github.event.workflow_run.conclusion == 'success'
+    # Only publish if CI passed or manually triggered
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
         with:
