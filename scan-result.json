@@ -1,0 +1,706 @@
+{
+  "$schema": "https://prontiq.dev/schemas/ari-scan-result/v1.json",
+  "$id": "ari-scan-2026-03-11T09:05:04.761Z",
+  "metadata": {
+    "version": "0.1.0",
+    "timestamp": "2026-03-11T09:05:04.761Z",
+    "duration": 144,
+    "repoPath": "/home/runner/work/prontiq-ariscan/prontiq-ariscan",
+    "rubricVersion": "v1"
+  },
+  "score": 76,
+  "level": "L4",
+  "levelMeta": {
+    "level": "L4",
+    "name": "Productive",
+    "description": "Multi-file features and refactoring with light supervision"
+  },
+  "securityGateTriggered": false,
+  "pillars": [
+    {
+      "pillar": "P1",
+      "name": "Agent Context Quality",
+      "score": 100,
+      "weight": 0.15,
+      "confidence": "medium",
+      "findings": [
+        {
+          "code": "ARI-CTX-006",
+          "severity": "low",
+          "pillar": "P1",
+          "message": "AGENTS.md references 15 path(s) not found in the repo: schema/, engine/, cli/.... Content may be stale.",
+          "confidence": "medium",
+          "remediation": {
+            "action": "modify-config",
+            "path": "AGENTS.md",
+            "description": "Review and update AGENTS.md to remove or fix references to non-existent paths",
+            "confidence": "low"
+          }
+        },
+        {
+          "code": "ARI-CTX-010",
+          "severity": "info",
+          "pillar": "P1",
+          "message": "Agent context coverage: 2/5 agents covered. Missing: Cursor, GitHub Copilot, Aider.",
+          "confidence": "high",
+          "remediation": {
+            "action": "create-file",
+            "description": "Add context files for uncovered agents: Cursor, GitHub Copilot, Aider. Use AGENTS.md for vendor-neutral context that all agents can read.",
+            "confidence": "medium"
+          }
+        }
+      ],
+      "summary": "Found 3 context file(s): AGENTS.md (165 lines, 7587 bytes), CLAUDE.md (41 lines, 2586 bytes), .agentignore (18 lines, 160 bytes)"
+    },
+    {
+      "pillar": "P2",
+      "name": "Feedback Loop Speed",
+      "score": 100,
+      "weight": 0.15,
+      "confidence": "high",
+      "findings": [
+        {
+          "code": "ARI-FBK-007",
+          "severity": "low",
+          "pillar": "P2",
+          "message": "No watch mode command found",
+          "confidence": "medium",
+          "remediation": {
+            "action": "add-script",
+            "description": "Add a 'test:watch' or 'dev' script for continuous feedback during development",
+            "confidence": "high"
+          }
+        },
+        {
+          "code": "ARI-FBK-008",
+          "severity": "info",
+          "pillar": "P2",
+          "message": "Incremental build detected (turbo)",
+          "confidence": "high"
+        },
+        {
+          "code": "ARI-FBK-010",
+          "severity": "info",
+          "pillar": "P2",
+          "message": "Change-scope controls: 3/4 detected (conventional commits, package boundaries, breaking change detection). Missing: PR size limits.",
+          "confidence": "high",
+          "evidence": {
+            "paper": "DORA, 2024",
+            "finding": "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
+            "confidence": "high"
+          }
+        },
+        {
+          "code": "ARI-FBK-009",
+          "severity": "info",
+          "pillar": "P2",
+          "message": "Estimated feedback latency: unknown (confidence: unknown)",
+          "confidence": "low"
+        }
+      ],
+      "summary": "Feedback loop score: 100/100. Test: yes, Lint: yes, CI: yes"
+    },
+    {
+      "pillar": "P3",
+      "name": "Test Isolation",
+      "score": 40,
+      "weight": 0.18,
+      "confidence": "high",
+      "findings": [],
+      "summary": "22 test files found, ratio 0.46, 0 anti-patterns detected"
+    },
+    {
+      "pillar": "P4",
+      "name": "Dev Environment",
+      "score": 95,
+      "weight": 0.1,
+      "confidence": "medium",
+      "findings": [
+        {
+          "code": "ARI-ENV-004",
+          "severity": "low",
+          "pillar": "P4",
+          "message": "No doctor/health-check command found in package.json scripts",
+          "confidence": "medium",
+          "remediation": {
+            "action": "add-script",
+            "description": "Add a 'doctor' or 'health-check' script that validates the dev environment (node version, required tools, etc.)",
+            "confidence": "medium"
+          }
+        },
+        {
+          "code": "ARI-ENV-005",
+          "severity": "info",
+          "pillar": "P4",
+          "message": "Devcontainer: pass",
+          "confidence": "high"
+        },
+        {
+          "code": "ARI-ENV-006",
+          "severity": "info",
+          "pillar": "P4",
+          "message": "No obvious first-run blockers detected",
+          "confidence": "medium"
+        },
+        {
+          "code": "ARI-ENV-007",
+          "severity": "medium",
+          "pillar": "P4",
+          "message": "Environment variable completeness: 1 var(s) referenced in code but missing from .env.example: XXX",
+          "confidence": "medium",
+          "remediation": {
+            "action": "modify-config",
+            "path": ".env.example",
+            "description": "Add missing variables to .env.example: XXX",
+            "confidence": "medium"
+          }
+        },
+        {
+          "code": "ARI-ENV-013",
+          "severity": "info",
+          "pillar": "P4",
+          "message": "Estimated time-to-first-test-pass: ~4 min (fast). Factors: dependency install (~2 min), build step (~1 min), test execution (~1 min)",
+          "confidence": "low"
+        },
+        {
+          "code": "ARI-ENV-008",
+          "severity": "info",
+          "pillar": "P4",
+          "message": "Setup scripts: pass",
+          "confidence": "high"
+        },
+        {
+          "code": "ARI-ENV-009",
+          "severity": "info",
+          "pillar": "P4",
+          "message": "Version pinning: pass",
+          "confidence": "high"
+        },
+        {
+          "code": "ARI-ENV-010",
+          "severity": "info",
+          "pillar": "P4",
+          "message": "Docker Compose: fail",
+          "confidence": "high"
+        },
+        {
+          "code": "ARI-ENV-011",
+          "severity": "info",
+          "pillar": "P4",
+          "message": "Env example file: pass",
+          "confidence": "high"
+        },
+        {
+          "code": "ARI-ENV-012",
+          "severity": "info",
+          "pillar": "P4",
+          "message": "Doctor/health-check: fail",
+          "confidence": "medium"
+        }
+      ],
+      "summary": "Dev environment: devcontainer=pass, setup=true, versions=true"
+    },
+    {
+      "pillar": "P5",
+      "name": "Doc Machine-Readability",
+      "score": 45,
+      "weight": 0.1,
+      "confidence": "medium",
+      "findings": [
+        {
+          "code": "ARI-DOC-004",
+          "severity": "medium",
+          "pillar": "P5",
+          "message": "README references 10 file paths but 10 (100%) no longer exist — documentation may be stale. Rationale: stale path references cause agents to hallucinate about nonexistent files.",
+          "confidence": "medium",
+          "remediation": {
+            "action": "modify-config",
+            "path": "README.md",
+            "description": "Update README to reflect current file structure and remove stale path references",
+            "confidence": "medium"
+          }
+        }
+      ],
+      "summary": "API specs: 0, GraphQL: false, Error taxonomy: false, Runbooks: 0 machine-readable / 0 prose"
+    },
+    {
+      "pillar": "P6",
+      "name": "Build Determinism & Type Safety",
+      "score": 85,
+      "weight": 0.15,
+      "confidence": "high",
+      "findings": [
+        {
+          "code": "ARI-BLD-010",
+          "severity": "info",
+          "pillar": "P6",
+          "message": "Modern build tool detected — fast, deterministic builds improve agent feedback loops",
+          "confidence": "high"
+        },
+        {
+          "code": "ARI-BLD-006",
+          "severity": "medium",
+          "pillar": "P6",
+          "message": "Monorepo detected (Turborepo, pnpm workspaces) — consider adding TypeScript project references for faster incremental builds",
+          "confidence": "high",
+          "remediation": {
+            "action": "modify-config",
+            "path": "tsconfig.json",
+            "description": "Add project references to tsconfig.json for each workspace package",
+            "confidence": "medium"
+          }
+        }
+      ],
+      "summary": "TypeScript strict: detected, Lockfile: true, Build: yes"
+    },
+    {
+      "pillar": "P7",
+      "name": "Code Navigability",
+      "score": 60,
+      "weight": 0.12,
+      "confidence": "medium",
+      "findings": [
+        {
+          "code": "ARI-NAV-003",
+          "severity": "low",
+          "pillar": "P7",
+          "message": "Inconsistent file naming: camelCase(30), kebab-case(42), snake_case(30)",
+          "confidence": "low",
+          "remediation": {
+            "action": "refactor",
+            "description": "Standardize file naming to kebab-case",
+            "confidence": "low"
+          },
+          "evidence": {
+            "paper": "Microsoft, 2023",
+            "finding": "Consistent naming decreases defects 40%",
+            "confidence": "medium"
+          }
+        },
+        {
+          "code": "ARI-NAV-007",
+          "severity": "high",
+          "pillar": "P7",
+          "message": "6 function(s) with poor cognitive complexity (>15): packages/cli/src/output/terminal.ts:formatTerminal (323), packages/cli/src/cli.ts:run (178), packages/cli/src/output/markdown.ts:formatMarkdown (104), packages/cli/src/commands/scan.ts:runScan (44), packages/cli/src/config-loader.ts:fileConfigToScanConfig (42)",
+          "confidence": "medium",
+          "remediation": {
+            "action": "refactor",
+            "description": "Break high-complexity functions into smaller, focused units. Reduce nesting depth and extract conditional logic into helper functions.",
+            "confidence": "high"
+          },
+          "evidence": {
+            "paper": "Shippey et al., 2022",
+            "finding": "Cognitive complexity >15 correlates with 3x higher defect density and significantly slower agent comprehension",
+            "confidence": "medium"
+          }
+        },
+        {
+          "code": "ARI-NAV-008",
+          "severity": "medium",
+          "pillar": "P7",
+          "message": "Detected code duplication across 10 file(s) (50 shared block(s)): packages/engine/src/analyzers/doc-readability.ts ↔ packages/engine/src/analyzers/build-determinism.ts, packages/engine/src/analyzers/navigability.ts; packages/engine/src/analyzers/dev-environment.ts ↔ packages/engine/src/analyzers/build-determinism.ts, packages/engine/src/analyzers/doc-readability.ts; packages/engine/src/analyzers/feedback-loop.ts ↔ packages/engine/src/analyzers/build-determinism.ts, packages/engine/src/analyzers/dev-environment.ts",
+          "confidence": "low",
+          "remediation": {
+            "action": "refactor",
+            "description": "Extract duplicated code into shared utilities or base classes to reduce maintenance burden and improve agent navigability",
+            "confidence": "medium"
+          },
+          "evidence": {
+            "paper": "Fowler, 2018",
+            "finding": "Code duplication is a primary source of maintenance burden and increases defect propagation risk",
+            "confidence": "medium"
+          }
+        }
+      ],
+      "summary": "70 source files across 27 directories, max depth 6, naming 41% consistent | Thresholds: depth:moderate dirs:good naming:poor imports:good circular:good dead-code:good duplication:poor | Top issues: 6 high-complexity function(s), 10 file(s) with duplicated code"
+    },
+    {
+      "pillar": "P8",
+      "name": "Security & Governance",
+      "score": 95,
+      "weight": 0.05,
+      "confidence": "medium",
+      "findings": [
+        {
+          "code": "ARI-SEC-003",
+          "severity": "high",
+          "pillar": "P8",
+          "message": "No secrets scanning configuration found",
+          "confidence": "high",
+          "remediation": {
+            "action": "configure-tool",
+            "description": "Add gitleaks or truffleHog for secrets scanning in CI.\n\n.gitleaks.toml config:\n```toml\n[allowlist]\ndescription = \"Global allowlist\"\npaths = [\"node_modules\", \"vendor\", \"__fixtures__\"]\n```\n\nGitHub Actions workflow (.github/workflows/gitleaks.yml):\n```yaml\nname: gitleaks\non: [push, pull_request]\njobs:\n  scan:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n        with: { fetch-depth: 0 }\n      - uses: gitleaks/gitleaks-action@v2\n        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }\n```",
+            "confidence": "high"
+          },
+          "evidence": {
+            "paper": "Veracode, 2025",
+            "finding": "AI assistants hardcode credentials at 2x the human rate — secrets scanning is critical to catch AI-introduced credential leaks before they reach production",
+            "confidence": "high"
+          }
+        },
+        {
+          "code": "ARI-SEC-007",
+          "severity": "low",
+          "pillar": "P8",
+          "message": "No license compliance tooling found in CI workflows",
+          "confidence": "medium",
+          "remediation": {
+            "action": "configure-tool",
+            "description": "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks.\n\nGitHub Actions workflow (.github/workflows/license-check.yml):\n```yaml\nname: license-check\non: [push, pull_request]\njobs:\n  check:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx license-checker --production --failOn 'GPL-3.0;AGPL-3.0'\n```",
+            "confidence": "medium"
+          },
+          "evidence": {
+            "paper": "Cotroneo et al., 2025",
+            "finding": "AI agents copy code from training data without license awareness — automated license checking prevents accidental license violations in AI-generated code",
+            "confidence": "medium"
+          }
+        },
+        {
+          "code": "ARI-SEC-008",
+          "severity": "info",
+          "pillar": "P8",
+          "message": "Language-specific AI vulnerability context: typescript: 48% vulnerability rate (Veracode, 2025; TyFlow, 2025); javascript: 56% vulnerability rate (Veracode, 2025; Apiiro, 2025)",
+          "confidence": "medium",
+          "remediation": {
+            "action": "configure-tool",
+            "description": "TypeScript AI-generated code shows ~48% vulnerability rate, mitigated by strict type checking. Prioritize SAST rules and code review practices for typescript-specific vulnerability patterns.",
+            "confidence": "medium"
+          },
+          "evidence": {
+            "paper": "Veracode, 2025; TyFlow, 2025",
+            "finding": "TypeScript AI-generated code shows ~48% vulnerability rate, mitigated by strict type checking",
+            "confidence": "medium"
+          }
+        }
+      ],
+      "summary": "CODEOWNERS: configured, Secrets scanning: missing, Dep audit: configured, SAST: configured, Branch protection: configured, License compliance: missing, .gitignore: configured | AI-specific security: 100% (25/25)"
+    }
+  ],
+  "findings": [
+    {
+      "code": "ARI-CTX-006",
+      "severity": "low",
+      "pillar": "P1",
+      "message": "AGENTS.md references 15 path(s) not found in the repo: schema/, engine/, cli/.... Content may be stale.",
+      "confidence": "medium",
+      "remediation": {
+        "action": "modify-config",
+        "path": "AGENTS.md",
+        "description": "Review and update AGENTS.md to remove or fix references to non-existent paths",
+        "confidence": "low"
+      }
+    },
+    {
+      "code": "ARI-CTX-010",
+      "severity": "info",
+      "pillar": "P1",
+      "message": "Agent context coverage: 2/5 agents covered. Missing: Cursor, GitHub Copilot, Aider.",
+      "confidence": "high",
+      "remediation": {
+        "action": "create-file",
+        "description": "Add context files for uncovered agents: Cursor, GitHub Copilot, Aider. Use AGENTS.md for vendor-neutral context that all agents can read.",
+        "confidence": "medium"
+      }
+    },
+    {
+      "code": "ARI-FBK-007",
+      "severity": "low",
+      "pillar": "P2",
+      "message": "No watch mode command found",
+      "confidence": "medium",
+      "remediation": {
+        "action": "add-script",
+        "description": "Add a 'test:watch' or 'dev' script for continuous feedback during development",
+        "confidence": "high"
+      }
+    },
+    {
+      "code": "ARI-FBK-008",
+      "severity": "info",
+      "pillar": "P2",
+      "message": "Incremental build detected (turbo)",
+      "confidence": "high"
+    },
+    {
+      "code": "ARI-FBK-010",
+      "severity": "info",
+      "pillar": "P2",
+      "message": "Change-scope controls: 3/4 detected (conventional commits, package boundaries, breaking change detection). Missing: PR size limits.",
+      "confidence": "high",
+      "evidence": {
+        "paper": "DORA, 2024",
+        "finding": "AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
+        "confidence": "high"
+      }
+    },
+    {
+      "code": "ARI-FBK-009",
+      "severity": "info",
+      "pillar": "P2",
+      "message": "Estimated feedback latency: unknown (confidence: unknown)",
+      "confidence": "low"
+    },
+    {
+      "code": "ARI-ENV-004",
+      "severity": "low",
+      "pillar": "P4",
+      "message": "No doctor/health-check command found in package.json scripts",
+      "confidence": "medium",
+      "remediation": {
+        "action": "add-script",
+        "description": "Add a 'doctor' or 'health-check' script that validates the dev environment (node version, required tools, etc.)",
+        "confidence": "medium"
+      }
+    },
+    {
+      "code": "ARI-ENV-005",
+      "severity": "info",
+      "pillar": "P4",
+      "message": "Devcontainer: pass",
+      "confidence": "high"
+    },
+    {
+      "code": "ARI-ENV-006",
+      "severity": "info",
+      "pillar": "P4",
+      "message": "No obvious first-run blockers detected",
+      "confidence": "medium"
+    },
+    {
+      "code": "ARI-ENV-007",
+      "severity": "medium",
+      "pillar": "P4",
+      "message": "Environment variable completeness: 1 var(s) referenced in code but missing from .env.example: XXX",
+      "confidence": "medium",
+      "remediation": {
+        "action": "modify-config",
+        "path": ".env.example",
+        "description": "Add missing variables to .env.example: XXX",
+        "confidence": "medium"
+      }
+    },
+    {
+      "code": "ARI-ENV-013",
+      "severity": "info",
+      "pillar": "P4",
+      "message": "Estimated time-to-first-test-pass: ~4 min (fast). Factors: dependency install (~2 min), build step (~1 min), test execution (~1 min)",
+      "confidence": "low"
+    },
+    {
+      "code": "ARI-ENV-008",
+      "severity": "info",
+      "pillar": "P4",
+      "message": "Setup scripts: pass",
+      "confidence": "high"
+    },
+    {
+      "code": "ARI-ENV-009",
+      "severity": "info",
+      "pillar": "P4",
+      "message": "Version pinning: pass",
+      "confidence": "high"
+    },
+    {
+      "code": "ARI-ENV-010",
+      "severity": "info",
+      "pillar": "P4",
+      "message": "Docker Compose: fail",
+      "confidence": "high"
+    },
+    {
+      "code": "ARI-ENV-011",
+      "severity": "info",
+      "pillar": "P4",
+      "message": "Env example file: pass",
+      "confidence": "high"
+    },
+    {
+      "code": "ARI-ENV-012",
+      "severity": "info",
+      "pillar": "P4",
+      "message": "Doctor/health-check: fail",
+      "confidence": "medium"
+    },
+    {
+      "code": "ARI-DOC-004",
+      "severity": "medium",
+      "pillar": "P5",
+      "message": "README references 10 file paths but 10 (100%) no longer exist — documentation may be stale. Rationale: stale path references cause agents to hallucinate about nonexistent files.",
+      "confidence": "medium",
+      "remediation": {
+        "action": "modify-config",
+        "path": "README.md",
+        "description": "Update README to reflect current file structure and remove stale path references",
+        "confidence": "medium"
+      }
+    },
+    {
+      "code": "ARI-BLD-010",
+      "severity": "info",
+      "pillar": "P6",
+      "message": "Modern build tool detected — fast, deterministic builds improve agent feedback loops",
+      "confidence": "high"
+    },
+    {
+      "code": "ARI-BLD-006",
+      "severity": "medium",
+      "pillar": "P6",
+      "message": "Monorepo detected (Turborepo, pnpm workspaces) — consider adding TypeScript project references for faster incremental builds",
+      "confidence": "high",
+      "remediation": {
+        "action": "modify-config",
+        "path": "tsconfig.json",
+        "description": "Add project references to tsconfig.json for each workspace package",
+        "confidence": "medium"
+      }
+    },
+    {
+      "code": "ARI-NAV-003",
+      "severity": "low",
+      "pillar": "P7",
+      "message": "Inconsistent file naming: camelCase(30), kebab-case(42), snake_case(30)",
+      "confidence": "low",
+      "remediation": {
+        "action": "refactor",
+        "description": "Standardize file naming to kebab-case",
+        "confidence": "low"
+      },
+      "evidence": {
+        "paper": "Microsoft, 2023",
+        "finding": "Consistent naming decreases defects 40%",
+        "confidence": "medium"
+      }
+    },
+    {
+      "code": "ARI-NAV-007",
+      "severity": "high",
+      "pillar": "P7",
+      "message": "6 function(s) with poor cognitive complexity (>15): packages/cli/src/output/terminal.ts:formatTerminal (323), packages/cli/src/cli.ts:run (178), packages/cli/src/output/markdown.ts:formatMarkdown (104), packages/cli/src/commands/scan.ts:runScan (44), packages/cli/src/config-loader.ts:fileConfigToScanConfig (42)",
+      "confidence": "medium",
+      "remediation": {
+        "action": "refactor",
+        "description": "Break high-complexity functions into smaller, focused units. Reduce nesting depth and extract conditional logic into helper functions.",
+        "confidence": "high"
+      },
+      "evidence": {
+        "paper": "Shippey et al., 2022",
+        "finding": "Cognitive complexity >15 correlates with 3x higher defect density and significantly slower agent comprehension",
+        "confidence": "medium"
+      }
+    },
+    {
+      "code": "ARI-NAV-008",
+      "severity": "medium",
+      "pillar": "P7",
+      "message": "Detected code duplication across 10 file(s) (50 shared block(s)): packages/engine/src/analyzers/doc-readability.ts ↔ packages/engine/src/analyzers/build-determinism.ts, packages/engine/src/analyzers/navigability.ts; packages/engine/src/analyzers/dev-environment.ts ↔ packages/engine/src/analyzers/build-determinism.ts, packages/engine/src/analyzers/doc-readability.ts; packages/engine/src/analyzers/feedback-loop.ts ↔ packages/engine/src/analyzers/build-determinism.ts, packages/engine/src/analyzers/dev-environment.ts",
+      "confidence": "low",
+      "remediation": {
+        "action": "refactor",
+        "description": "Extract duplicated code into shared utilities or base classes to reduce maintenance burden and improve agent navigability",
+        "confidence": "medium"
+      },
+      "evidence": {
+        "paper": "Fowler, 2018",
+        "finding": "Code duplication is a primary source of maintenance burden and increases defect propagation risk",
+        "confidence": "medium"
+      }
+    },
+    {
+      "code": "ARI-SEC-003",
+      "severity": "high",
+      "pillar": "P8",
+      "message": "No secrets scanning configuration found",
+      "confidence": "high",
+      "remediation": {
+        "action": "configure-tool",
+        "description": "Add gitleaks or truffleHog for secrets scanning in CI.\n\n.gitleaks.toml config:\n```toml\n[allowlist]\ndescription = \"Global allowlist\"\npaths = [\"node_modules\", \"vendor\", \"__fixtures__\"]\n```\n\nGitHub Actions workflow (.github/workflows/gitleaks.yml):\n```yaml\nname: gitleaks\non: [push, pull_request]\njobs:\n  scan:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n        with: { fetch-depth: 0 }\n      - uses: gitleaks/gitleaks-action@v2\n        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }\n```",
+        "confidence": "high"
+      },
+      "evidence": {
+        "paper": "Veracode, 2025",
+        "finding": "AI assistants hardcode credentials at 2x the human rate — secrets scanning is critical to catch AI-introduced credential leaks before they reach production",
+        "confidence": "high"
+      }
+    },
+    {
+      "code": "ARI-SEC-007",
+      "severity": "low",
+      "pillar": "P8",
+      "message": "No license compliance tooling found in CI workflows",
+      "confidence": "medium",
+      "remediation": {
+        "action": "configure-tool",
+        "description": "Add license-checker, FOSSA, license-finder, or licensee to CI for automated license compliance checks.\n\nGitHub Actions workflow (.github/workflows/license-check.yml):\n```yaml\nname: license-check\non: [push, pull_request]\njobs:\n  check:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx license-checker --production --failOn 'GPL-3.0;AGPL-3.0'\n```",
+        "confidence": "medium"
+      },
+      "evidence": {
+        "paper": "Cotroneo et al., 2025",
+        "finding": "AI agents copy code from training data without license awareness — automated license checking prevents accidental license violations in AI-generated code",
+        "confidence": "medium"
+      }
+    },
+    {
+      "code": "ARI-SEC-008",
+      "severity": "info",
+      "pillar": "P8",
+      "message": "Language-specific AI vulnerability context: typescript: 48% vulnerability rate (Veracode, 2025; TyFlow, 2025); javascript: 56% vulnerability rate (Veracode, 2025; Apiiro, 2025)",
+      "confidence": "medium",
+      "remediation": {
+        "action": "configure-tool",
+        "description": "TypeScript AI-generated code shows ~48% vulnerability rate, mitigated by strict type checking. Prioritize SAST rules and code review practices for typescript-specific vulnerability patterns.",
+        "confidence": "medium"
+      },
+      "evidence": {
+        "paper": "Veracode, 2025; TyFlow, 2025",
+        "finding": "TypeScript AI-generated code shows ~48% vulnerability rate, mitigated by strict type checking",
+        "confidence": "medium"
+      }
+    }
+  ],
+  "detection": {
+    "languages": [
+      {
+        "language": "TypeScript",
+        "confidence": 1,
+        "primary": true
+      },
+      {
+        "language": "JavaScript",
+        "confidence": 0.04,
+        "primary": false
+      }
+    ],
+    "frameworks": [],
+    "monorepo": {
+      "tool": "Turborepo",
+      "workspaceRoot": ".",
+      "packages": []
+    }
+  },
+  "contextFiles": [
+    {
+      "path": ".agentignore",
+      "type": "agentignore",
+      "size": 160,
+      "lineCount": 18,
+      "parseStatus": "valid",
+      "lastModified": "2026-03-11T09:04:49.648Z"
+    },
+    {
+      "path": "AGENTS.md",
+      "type": "agents-md",
+      "size": 7693,
+      "lineCount": 165,
+      "parseStatus": "valid",
+      "lastModified": "2026-03-11T09:04:49.649Z"
+    },
+    {
+      "path": "CLAUDE.md",
+      "type": "claude-md",
+      "size": 2608,
+      "lineCount": 41,
+      "parseStatus": "valid",
+      "lastModified": "2026-03-11T09:04:49.649Z"
+    }
+  ]
+}
