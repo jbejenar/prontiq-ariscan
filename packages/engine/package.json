@@ -1,5 +1,5 @@
 {
-  "name": "@prontiq/engine",
+  "name": "@prontiq/ariscan-engine",
   "version": "0.2.0",
   "private": false,
   "type": "module",
@@ -36,7 +36,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@prontiq/schema": "workspace:*",
+    "@prontiq/ariscan-schema": "workspace:*",
     "fast-glob": "^3.3.0",
     "yaml": "^2.6.0"
   },

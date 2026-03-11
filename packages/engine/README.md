@@ -1,4 +1,4 @@
-# @prontiq/engine
+# @prontiq/ariscan-engine
 
 > Scoring engine for the [ARI (Agent Readiness Index)](https://github.com/jbejenar/prontiq-ariscan) — scan repositories programmatically and get structured readiness scores.
 
@@ -7,13 +7,13 @@ Use this package to embed ARI scanning in your own tooling, CI pipelines, or rep
 ## Install
 
 ```bash
-npm install @prontiq/engine
+npm install @prontiq/ariscan-engine
 ```
 
 ## Quick Start
 
 ```ts
-import { scan } from "@prontiq/engine";
+import { scan } from "@prontiq/ariscan-engine";
 
 const result = await scan("/path/to/repo");
 
@@ -29,8 +29,8 @@ console.log(result.pillars);        // Per-pillar scores and findings
 The primary entry point. Scans a repository and returns a full `ScanResult`.
 
 ```ts
-import { scan } from "@prontiq/engine";
-import type { ScanResult, ScanConfig } from "@prontiq/schema";
+import { scan } from "@prontiq/ariscan-engine";
+import type { ScanResult, ScanConfig } from "@prontiq/ariscan-schema";
 
 const config: Partial<ScanConfig> = {
   pillars: {
@@ -46,7 +46,7 @@ const result: ScanResult = await scan(".", config);
 Creates a read-only filesystem abstraction used by analyzers. Useful for testing or building custom analysis pipelines.
 
 ```ts
-import { createRepoContext } from "@prontiq/engine";
+import { createRepoContext } from "@prontiq/ariscan-engine";
 
 const ctx = await createRepoContext("/path/to/repo");
 const content = await ctx.readFile("package.json");
@@ -61,13 +61,13 @@ import {
   classifyMaturityLevel,   // Score -> L1..L5
   applySecurityGate,       // Enforce security gate cap
   aggregateResults,        // PillarResult[] -> ScanResult
-} from "@prontiq/engine";
+} from "@prontiq/ariscan-engine";
 ```
 
 ### Detection
 
 ```ts
-import { detect, detectLanguages, detectFrameworks, detectMonorepo } from "@prontiq/engine";
+import { detect, detectLanguages, detectFrameworks, detectMonorepo } from "@prontiq/ariscan-engine";
 
 const ctx = await createRepoContext(".");
 const detection = await detect(ctx);
@@ -79,7 +79,7 @@ const detection = await detect(ctx);
 For building custom analyzers or plugins:
 
 ```ts
-import type { PillarAnalyzer, RepoContext } from "@prontiq/engine";
+import type { PillarAnalyzer, RepoContext } from "@prontiq/ariscan-engine";
 ```
 
 A `PillarAnalyzer` must implement:
@@ -92,7 +92,7 @@ A `PillarAnalyzer` must implement:
 ### Built-in Analyzers
 
 ```ts
-import { ANALYZERS, getAnalyzer } from "@prontiq/engine";
+import { ANALYZERS, getAnalyzer } from "@prontiq/ariscan-engine";
 
 // All 8 built-in analyzers
 console.log(ANALYZERS.map(a => a.name));
@@ -104,7 +104,7 @@ const analyzer = getAnalyzer("P1"); // Agent Context Quality
 ## Related Packages
 
 - [`ariscan`](https://www.npmjs.com/package/ariscan) — CLI tool
-- [`@prontiq/schema`](https://www.npmjs.com/package/@prontiq/schema) — Type definitions and Zod schemas
+- [`@prontiq/ariscan-schema`](https://www.npmjs.com/package/@prontiq/ariscan-schema) — Type definitions and Zod schemas
 
 ## License
 

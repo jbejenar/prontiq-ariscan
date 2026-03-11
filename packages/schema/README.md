@@ -1,13 +1,13 @@
-# @prontiq/schema
+# @prontiq/ariscan-schema
 
 > Zod schemas and TypeScript types for the [ARI (Agent Readiness Index)](https://github.com/jbejenar/prontiq-ariscan) scoring framework.
 
-This package contains the shared type contracts used by `@prontiq/engine`, `ariscan`, and third-party plugins.
+This package contains the shared type contracts used by `@prontiq/ariscan-engine`, `ariscan`, and third-party plugins.
 
 ## Install
 
 ```bash
-npm install @prontiq/schema
+npm install @prontiq/ariscan-schema
 ```
 
 ## Exports
@@ -24,7 +24,7 @@ import {
   MATURITY_NAMES,     // Record<MaturityLevel, string>
   MATURITY_THRESHOLDS,// Score boundaries for each level
   SECURITY_GATE,      // Threshold below which Security caps maturity at L2
-} from "@prontiq/schema";
+} from "@prontiq/ariscan-schema";
 ```
 
 ### Scan Results
@@ -41,7 +41,7 @@ import {
   DetectedFramework,  // Framework detection result
   DetectedMonorepo,   // Monorepo tool detection result
   DetectionResult,    // Combined detection output
-} from "@prontiq/schema";
+} from "@prontiq/ariscan-schema";
 ```
 
 ### Configuration
@@ -51,7 +51,7 @@ import {
   ScanConfig,         // Runtime scan configuration
   FileConfig,         // .ariscan.yml file shape
   PillarOverride,     // Per-pillar enable/disable + weight override
-} from "@prontiq/schema";
+} from "@prontiq/ariscan-schema";
 ```
 
 ## Usage with Zod
@@ -61,7 +61,7 @@ All types are Zod-validated. You can use the schemas for runtime validation of s
 ## Related Packages
 
 - [`ariscan`](https://www.npmjs.com/package/ariscan) — CLI tool
-- [`@prontiq/engine`](https://www.npmjs.com/package/@prontiq/engine) — Scoring engine
+- [`@prontiq/ariscan-engine`](https://www.npmjs.com/package/@prontiq/ariscan-engine) — Scoring engine
 
 ## License
 

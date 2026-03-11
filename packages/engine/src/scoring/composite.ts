@@ -7,7 +7,7 @@ import {
   MATURITY_THRESHOLDS,
   MATURITY_NAMES,
   SECURITY_GATE,
-} from "@prontiq/schema";
+} from "@prontiq/ariscan-schema";
 
 /**
  * Calculate the composite ARI score from pillar results.

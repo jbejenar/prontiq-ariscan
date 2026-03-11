@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ScanResult } from "@prontiq/schema";
+import type { ScanResult } from "@prontiq/ariscan-schema";
 import { formatJson, formatJsonSchema, getJsonSchemaObject } from "../output/json.js";
 import { formatTerminal } from "../output/terminal.js";
 import { formatMarkdown } from "../output/markdown.js";

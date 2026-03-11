@@ -74,10 +74,10 @@ Security acts as a **gate**: scoring below 40% on Security & Governance caps the
 
 ## Programmatic API
 
-For programmatic use, import `scan` from `@prontiq/engine` directly:
+For programmatic use, import `scan` from `@prontiq/ariscan-engine` directly:
 
 ```ts
-import { scan } from "@prontiq/engine";
+import { scan } from "@prontiq/ariscan-engine";
 
 const result = await scan(".");
 console.log(result.score);         // 0-100
@@ -86,8 +86,8 @@ console.log(result.level);         // "L1" .. "L5"
 
 ## Related Packages
 
-- [`@prontiq/schema`](https://www.npmjs.com/package/@prontiq/schema) — Type definitions and Zod schemas
-- [`@prontiq/engine`](https://www.npmjs.com/package/@prontiq/engine) — Scoring engine for programmatic use
+- [`@prontiq/ariscan-schema`](https://www.npmjs.com/package/@prontiq/ariscan-schema) — Type definitions and Zod schemas
+- [`@prontiq/ariscan-engine`](https://www.npmjs.com/package/@prontiq/ariscan-engine) — Scoring engine for programmatic use
 
 ## License
 

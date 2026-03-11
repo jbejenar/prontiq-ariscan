@@ -173,8 +173,8 @@
 ## [2.0.0] — 2026-03-08
 
 ### Added
-- **@prontiq/schema:** Zod schemas for all core types — PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig
-- **@prontiq/engine:** All 8 pillar analyzers (context quality, feedback loop, test isolation, dev environment, doc machine-readability, build determinism/type safety, code navigability, security/governance), composite scoring with research-calibrated weights, security gate (P8 < 40% caps at L2), maturity level classification (L1-L5)
+- **@prontiq/ariscan-schema:** Zod schemas for all core types — PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig
+- **@prontiq/ariscan-engine:** All 8 pillar analyzers (context quality, feedback loop, test isolation, dev environment, doc machine-readability, build determinism/type safety, code navigability, security/governance), composite scoring with research-calibrated weights, security gate (P8 < 40% caps at L2), maturity level classification (L1-L5)
 - **ariscan CLI:** Terminal and JSON output formats, threshold-based exit codes, error handling
 - **Test suite:** 141 tests across 10 test files covering schemas, analyzers, scoring, and CLI
 - **Dogfooding artifacts:** AGENTS.md, CLAUDE.md, .agentignore, devcontainer configuration, CONTRIBUTING.md, SECURITY.md, CODEOWNERS

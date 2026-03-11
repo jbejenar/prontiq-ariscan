@@ -1,8 +1,8 @@
 import { defineCommand } from "citty";
 import { resolve } from "node:path";
 import { access } from "node:fs/promises";
-import { scan } from "@prontiq/engine";
-import type { ScanConfig, ScanResult } from "@prontiq/schema";
+import { scan } from "@prontiq/ariscan-engine";
+import type { ScanConfig, ScanResult } from "@prontiq/ariscan-schema";
 import { formatTerminal } from "../output/terminal.js";
 import { formatJson, formatJsonSchema } from "../output/json.js";
 import { formatMarkdown } from "../output/markdown.js";

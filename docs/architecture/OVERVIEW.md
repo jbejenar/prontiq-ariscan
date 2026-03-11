@@ -5,7 +5,7 @@
 ```
 prontiq/ariscan (CLI — ELv2)
   | npx ariscan .
-  | consumes @prontiq/engine
+  | consumes @prontiq/ariscan-engine
   |
   +-- prontiq/engine (Analysis Engine)
   |     AGENTS.md quality, context budget, semantic dedup,
@@ -33,7 +33,7 @@ prontiq/ariscan (CLI — ELv2)
 | Layer | Technology | Rationale |
 |---|---|---|
 | Runtime | Node.js 22 + TypeScript 5.7 (strict) | Widest install base via `npx ariscan .`, type-safe internals. Pin via `.nvmrc` + `engines`. |
-| Package Manager | pnpm 9.x + pnpm workspaces | Strict dependency management, workspace support for `@prontiq/engine`. Same as ripple-next. |
+| Package Manager | pnpm 9.x + pnpm workspaces | Strict dependency management, workspace support for `@prontiq/ariscan-engine`. Same as ripple-next. |
 | Monorepo | Turborepo | Task caching, parallel execution, workspace-aware builds. Same as ripple-next. |
 | CLI Framework | citty (UnJS) | Lightweight, TypeScript-native, zero deps. Aligns with Nuxt/Nitro ecosystem. |
 | AST Parsing | Tree-sitter (WASM) | Multi-language (20+ langs), incremental, no native compilation (`node-gyp`). |
@@ -88,7 +88,7 @@ The open-source CLI and the public face of the project. Runs entirely locally wi
 - `ariscan.yml` policy evaluation
 - GitHub Action and CI templates
 
-**Depends on:** `@prontiq/engine` for advanced analysis capabilities. The CLI ships with baseline analysers; the engine provides semantic depth.
+**Depends on:** `@prontiq/ariscan-engine` for advanced analysis capabilities. The CLI ships with baseline analysers; the engine provides semantic depth.
 
 **Key constraint:** Must remain genuinely useful without the engine. Free tier is not artificially limited.
 
@@ -269,7 +269,7 @@ Every scan (CLI + SaaS)
 ## Shared Package Architecture
 
 ```
-@prontiq/engine   -- Core scoring intelligence (consumed by all services)
+@prontiq/ariscan-engine   -- Core scoring intelligence (consumed by all services)
 @prontiq/db       -- Shared data model, Drizzle ORM, tenancy controls
 @prontiq/auth     -- AuthN/AuthZ primitives, Lucia session management
 @prontiq/queue    -- Inngest workflow definitions, retry/DLQ policies
@@ -279,13 +279,13 @@ Every scan (CLI + SaaS)
 ### Package Dependency Graph
 
 ```
-ariscan -> @prontiq/engine
-cloud   -> @prontiq/engine, @prontiq/db, @prontiq/auth, @prontiq/queue, @prontiq/github
-remediate -> @prontiq/engine, @prontiq/db, @prontiq/queue, @prontiq/github
-fleet   -> @prontiq/engine, @prontiq/db, @prontiq/auth, @prontiq/queue
-api     -> @prontiq/engine, @prontiq/db, @prontiq/auth
+ariscan -> @prontiq/ariscan-engine
+cloud   -> @prontiq/ariscan-engine, @prontiq/db, @prontiq/auth, @prontiq/queue, @prontiq/github
+remediate -> @prontiq/ariscan-engine, @prontiq/db, @prontiq/queue, @prontiq/github
+fleet   -> @prontiq/ariscan-engine, @prontiq/db, @prontiq/auth, @prontiq/queue
+api     -> @prontiq/ariscan-engine, @prontiq/db, @prontiq/auth
 data    -> @prontiq/db, @prontiq/queue
-sim     -> @prontiq/engine, @prontiq/queue
+sim     -> @prontiq/ariscan-engine, @prontiq/queue
 ```
 
 ---

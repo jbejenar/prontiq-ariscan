@@ -1,4 +1,4 @@
-import type { ScanResult, Finding } from "@prontiq/schema";
+import type { ScanResult, Finding } from "@prontiq/ariscan-schema";
 
 const SARIF_SCHEMA =
   "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json";

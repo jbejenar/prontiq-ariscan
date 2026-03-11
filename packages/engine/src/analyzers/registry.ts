@@ -1,5 +1,5 @@
 import type { PillarAnalyzer } from "./analyzer.interface.js";
-import type { PillarId } from "@prontiq/schema";
+import type { PillarId } from "@prontiq/ariscan-schema";
 import { contextQualityAnalyzer } from "./context-quality.js";
 import { feedbackLoopAnalyzer } from "./feedback-loop.js";
 import { testIsolationAnalyzer } from "./test-isolation.js";

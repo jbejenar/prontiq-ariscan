@@ -42,21 +42,21 @@ pnpm typecheck
 ### Running Tests for a Single Package
 
 ```bash
-pnpm --filter @prontiq/engine test
-pnpm --filter @prontiq/schema test
+pnpm --filter @prontiq/ariscan-engine test
+pnpm --filter @prontiq/ariscan-schema test
 ```
 
 ### Running a Single Test File
 
 ```bash
-pnpm --filter @prontiq/engine test -- --run context-quality
+pnpm --filter @prontiq/ariscan-engine test -- --run context-quality
 ```
 
 ## Project Structure
 
 ```
 packages/
-  schema/    — Types, Zod schemas, pillar definitions (@prontiq/schema)
+  schema/    — Types, Zod schemas, pillar definitions (@prontiq/ariscan-schema)
   engine/    — 8 pillar analyzers and scoring pipeline
   cli/       — CLI entry point (citty), output formatters
 ```
@@ -68,7 +68,7 @@ Dependencies are one-directional: `cli -> engine -> schema`.
 1. **Define the pillar** in `packages/schema/src/pillar.ts` — add a new `PillarId`, name, and weight (weights must sum to 1.0).
 
 2. **Create the analyzer** at `packages/engine/src/analyzers/{name}.ts`:
-   - Import from `@prontiq/schema` and `./analyzer.interface.js`
+   - Import from `@prontiq/ariscan-schema` and `./analyzer.interface.js`
    - Implement the `PillarAnalyzer` interface
    - Export as `const {name}Analyzer: PillarAnalyzer`
    - Use `RepoContext` for all file access (never import `fs` directly)

@@ -1,6 +1,6 @@
 import pc from "picocolors";
-import type { TokenBudgetResult } from "@prontiq/engine";
-import { formatTokenCount } from "@prontiq/engine";
+import type { TokenBudgetResult } from "@prontiq/ariscan-engine";
+import { formatTokenCount } from "@prontiq/ariscan-engine";
 
 /** Format a token budget result for terminal output. */
 export function formatBudgetTerminal(result: TokenBudgetResult): string {

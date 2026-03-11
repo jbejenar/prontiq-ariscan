@@ -1,4 +1,4 @@
-import type { PillarId, PillarResult, Confidence } from "@prontiq/schema";
+import type { PillarId, PillarResult, Confidence } from "@prontiq/ariscan-schema";
 
 /**
  * Context provided to each analyzer about the repository being scanned.

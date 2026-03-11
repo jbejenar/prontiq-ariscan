@@ -1,4 +1,4 @@
-import type { DetectedMonorepo } from "@prontiq/schema";
+import type { DetectedMonorepo } from "@prontiq/ariscan-schema";
 import type { RepoContext } from "../analyzers/analyzer.interface.js";
 
 interface MonorepoSpec {

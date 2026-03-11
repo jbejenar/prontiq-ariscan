@@ -1,4 +1,4 @@
-import type { ScanResult } from "@prontiq/schema";
+import type { ScanResult } from "@prontiq/ariscan-schema";
 
 function levelColor(level: string): string {
   switch (level) {

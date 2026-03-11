@@ -290,7 +290,7 @@ packages:
     "doctor": "node packages/cli/dist/cli.js doctor",
     "doctor:json": "node packages/cli/dist/cli.js doctor --json",
     "scan": "node packages/cli/dist/cli.js scan",
-    "generate:schema": "turbo --filter=@prontiq/schema generate",
+    "generate:schema": "turbo --filter=@prontiq/ariscan-schema generate",
     "prepare": "husky"
   }
 }
@@ -514,7 +514,7 @@ export type ScanResult = z.infer<typeof ScanResult>;
 
 **`packages/engine/src/analyzers/analyzer.interface.ts`:**
 ```typescript
-import type { PillarId, PillarName, PillarResult, Confidence } from '@prontiq/schema';
+import type { PillarId, PillarName, PillarResult, Confidence } from '@prontiq/ariscan-schema';
 
 export interface RepoContext {
   rootPath: string;
@@ -1151,7 +1151,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
   - [x] Schema includes: language/framework detection results. *(in `ScanResult.detection` field with `DetectedLanguage[]`, `DetectedFramework[]`, `DetectedMonorepo | null`)*
   - [x] Schema includes: context file inventory. *(ContextFileInfo type with path, type, size, lineCount added to ScanResult 2026-03-09)*
   - [ ] Semver impact rules: patch = new optional fields only, minor = new pillar/criterion, major = breaking schema changes.
-  - [ ] Schema file published in repo and npm package. *(partial: Zod schemas in @prontiq/schema. formatJsonSchema() function added 2026-03-09 but no standalone JSON Schema file.)*
+  - [ ] Schema file published in repo and npm package. *(partial: Zod schemas in @prontiq/ariscan-schema. formatJsonSchema() function added 2026-03-09 but no standalone JSON Schema file.)*
   - [x] `--json-schema` flag that outputs the schema itself for validation tooling. *(wired 2026-03-09: `--jsonSchema` flag outputs JSON Schema and exits)*
   - [x] All findings use `ARI-*` taxonomy codes. *(Finding.code regex enforces `^ARI-[A-Z]{3}-\d{3}$`)*
   - [ ] Structured remediation data (action, generator command, estimated impact). *(partial: has action, description, estimatedImpact, confidence, path. EstimatedImpact enum type added 2026-03-09. No generator command. remediation/evidence optional — spec says required.)*
@@ -1267,7 +1267,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 | Decision | Spec | Implementation | Rationale |
 |---|---|---|---|
-| Package naming | `@prontiq/core` | `@prontiq/schema` | Clearer purpose; "core" was overloaded. `schema` is Zod schemas only. |
+| Package naming | `@prontiq/core` | `@prontiq/ariscan-schema` | Clearer purpose; "core" was overloaded. `schema` is Zod schemas only. |
 | Tree-sitter WASM | Required for P1 | **Deferred to P2/P3** | All P1 analyzers use regex/heuristic detection. AST analysis needed for P1.07 (order-sensitive assertions), P3.07 (advanced navigability), and deep anti-pattern detection. Regex is sufficient for baseline scoring. |
 | RepoContext interface | Includes `languages`, `frameworks`, `monorepo`, `contextFiles`, `config` | Only `rootPath`, `files`, `readFile()`, `fileExists()`, `readJson()` | Language/framework detection (P1.02) not yet a standalone module. Simpler interface was sufficient for all 8 analyzers. Expand when P1.02 is fully built. |
 | Analyzer execution | `Promise.all()` parallel | `Promise.all()` parallel (fixed from initial sequential) | RFC-0003 specifies parallel. Initial build was sequential; fixed during audit. |
@@ -1640,7 +1640,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 6 | Language/framework detection results | ✅ Done | `ScanResult.detection` field with `languages`, `frameworks`, `monorepo` |
 | 7 | Context file inventory | ✅ Done | `ContextFileInfo` type with path, type, size, lineCount added to ScanResult. Added 2026-03-09. |
 | 8 | Semver impact rules | ❌ Not done | No versioning policy |
-| 9 | Schema published in repo + npm | ✅ Done | `ariscan.schema.json` published in repo root. `getJsonSchemaObject()` exported for programmatic use. Zod schemas in `@prontiq/schema`. Added 2026-03-10. |
+| 9 | Schema published in repo + npm | ✅ Done | `ariscan.schema.json` published in repo root. `getJsonSchemaObject()` exported for programmatic use. Zod schemas in `@prontiq/ariscan-schema`. Added 2026-03-10. |
 | 10 | `--json-schema` flag for schema export | ✅ Done | `--jsonSchema` CLI flag wired (2026-03-09). Outputs full JSON Schema and exits. |
 
 **AI-first design:**
@@ -1791,8 +1791,8 @@ To maximise adoption across end users, plugin authors, and programmatic consumer
 | Package | npm Name | Scope | Target Audience | Status |
 |---|---|---|---|---|
 | `packages/cli` | `ariscan` | Public (unscoped) | End users running `npx ariscan .` | `private: false` — ready to publish |
-| `packages/schema` | `@prontiq/schema` | Public (scoped) | Plugin authors, CI integrations, anyone importing types (`PillarId`, `Finding`, `ScanResult`) | `private: false` — ready to publish |
-| `packages/engine` | `@prontiq/engine` | Public (scoped) | Programmatic consumers embedding scanning in their own tooling | `private: false` — ready to publish |
+| `packages/schema` | `@prontiq/ariscan-schema` | Public (scoped) | Plugin authors, CI integrations, anyone importing types (`PillarId`, `Finding`, `ScanResult`) | `private: false` — ready to publish |
+| `packages/engine` | `@prontiq/ariscan-engine` | Public (scoped) | Programmatic consumers embedding scanning in their own tooling | `private: false` — ready to publish |
 
 #### Pre-Publish Checklist
 
@@ -1802,7 +1802,7 @@ To maximise adoption across end users, plugin authors, and programmatic consumer
 - [x] Add `publishConfig`, `repository`, `homepage`, and `bugs` fields to all three `package.json` files.
 - [x] Add `files` whitelist (`["dist", "README.md"]`) to each package to avoid publishing source/test files.
 - [x] Ensure `workspace:*` dependencies are resolved to real version ranges at publish time (pnpm handles this automatically with `pnpm publish`).
-- [x] Add per-package `README.md` for all three packages (`ariscan`, `@prontiq/schema`, `@prontiq/engine`) with API docs and usage examples.
+- [x] Add per-package `README.md` for all three packages (`ariscan`, `@prontiq/ariscan-schema`, `@prontiq/ariscan-engine`) with API docs and usage examples.
 - [x] Integrate `@changesets/cli` for coordinated versioning across all three packages (see CI.07).
 - [x] Enable npm provenance attestation (`--provenance`) in the publish workflow.
 
@@ -1810,15 +1810,15 @@ To maximise adoption across end users, plugin authors, and programmatic consumer
 
 Build and publish order must follow the dependency graph:
 
-1. `@prontiq/schema` (no internal deps)
-2. `@prontiq/engine` (depends on `@prontiq/schema`)
+1. `@prontiq/ariscan-schema` (no internal deps)
+2. `@prontiq/ariscan-engine` (depends on `@prontiq/ariscan-schema`)
 3. `ariscan` (depends on both)
 
 Changesets will coordinate version bumps so that a schema change triggers engine and CLI releases as needed.
 
 #### Plugin Ecosystem (P3.08)
 
-Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plugin authors will depend on `@prontiq/schema` for type contracts (`PillarAnalyzer`, `Finding`, `PillarResult`) and optionally on `@prontiq/engine` for utilities like `RepoContext`.
+Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plugin authors will depend on `@prontiq/ariscan-schema` for type contracts (`PillarAnalyzer`, `Finding`, `PillarResult`) and optionally on `@prontiq/ariscan-engine` for utilities like `RepoContext`.
 
 ---
 
