@@ -1,4 +1,4 @@
-# ariscan
+# @prontiq/ariscan-cli
 
 > Measure and improve how ready your codebase is for AI coding agents.
 
@@ -7,13 +7,13 @@
 ## Install
 
 ```bash
-npx ariscan .
+npx @prontiq/ariscan-cli .
 ```
 
 Or install globally:
 
 ```bash
-npm install -g ariscan
+npm install -g @prontiq/ariscan-cli
 ariscan .
 ```
 
