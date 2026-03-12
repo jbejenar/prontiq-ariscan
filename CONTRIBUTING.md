@@ -80,6 +80,20 @@ Dependencies are one-directional: `cli -> engine -> schema`.
 
 5. **Update documentation** — add the pillar to the rubric table in `README.md` and `AGENTS.md`.
 
+6. **Update scaffold presets** if the new analyzer or finding affects scaffolded project scores. Run `ariscan init --preset bare && ariscan .` locally to verify preset output still passes the dogfood gate (≥ L3).
+
+## How to Update Scaffold Presets
+
+When scanner changes (new findings, weight adjustments, new criteria) affect what `ariscan init` produces:
+
+1. Modify templates in the preset directory for each affected preset
+2. Run `ariscan init --preset <name>` to scaffold a test project
+3. Run `ariscan .` on the scaffolded output — must score ≥ L3 (46+)
+4. Update AGENTS.md generation if architecture patterns changed
+5. Add tests for new template content
+
+> **Why:** The scaffolder and scanner share the same rubric. If the scanner evolves but templates don't, `ariscan init` output will fail its own dogfood gate. CI enforces this — but catching it locally is faster.
+
 ## Pull Request Guidelines
 
 - **One concern per PR** — keep changes focused
