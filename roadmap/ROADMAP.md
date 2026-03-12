@@ -43,6 +43,7 @@ This roadmap exists to do three things at once:
 ### In Scope
 
 - Open CLI scanning, scoring, and report generation.
+- Project scaffolding (`ariscan init`) with framework-specific presets and dogfood gate.
 - CI integrations and policy docs.
 - Scoring spec versioning and changelog transparency.
 - Reproducible benchmark methodology and topline publishing.
@@ -2507,6 +2508,107 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 
 ---
 
+## Phase P3.5 — Scaffolder: `ariscan init` (Weeks 20–28)
+
+**Goal:** front-load agent readiness into new projects. The scanner diagnoses; the scaffolder prevents. Same npm package, same rubric definitions, same finding codes. No separate brand, no separate install.
+
+### Core Scaffolder Features
+
+| # | Feature | Pri | Description |
+|---|---------|-----|-------------|
+| S.01 | `ariscan init` command | 🔴 P0 | Interactive project scaffolder — prompts for stack, framework, name. Single entry point for new projects |
+| S.02 | Preset: Bare TypeScript | 🔴 P0 | Framework-agnostic foundation — provider interfaces, memory test doubles, AGENTS.md, `.agentignore`, devcontainer, CI pipeline, pre-commit hooks, error taxonomy stub, TypeScript strict, vitest, lockfile |
+| S.03 | Preset: Next.js | 🔴 P0 | Extends Bare TS — App Router conventions, server action patterns, framework-specific test wiring, Tailwind, recommended project structure |
+| S.04 | Dogfood gate | 🔴 P0 | `ariscan init` runs `ariscan .` on its own output as final step. Scaffolded project must score ≥ L3 (46+) or init fails |
+| S.05 | Provider pattern scaffolding | 🔴 P0 | Every preset emits provider interfaces for external dependencies (storage, queue, email, auth) with memory test doubles |
+| S.06 | AGENTS.md generation | 🔴 P0 | Generated from scaffold choices — architecture overview, module map, bootstrap commands, contribution patterns, error taxonomy reference |
+| S.07 | `.agentignore` generation | 🔴 P0 | Tuned to stack — excludes build artefacts, generated files, coverage, dist |
+| S.08 | Devcontainer scaffolding | 🟠 P1 | `.devcontainer/` with Dockerfile, docker-compose for local services, `postCreateCommand` that runs bootstrap |
+| S.09 | CI pipeline scaffolding | 🟠 P1 | GitHub Actions workflow — lint, typecheck, test, ariscan score check |
+| S.10 | Non-interactive mode | 🟠 P1 | `ariscan init --preset nextjs --name my-app` — skip prompts for CI/automation |
+| S.11 | Preset API | 🟠 P1 | Documented interface for community-contributed presets — a preset is a directory of templates + a manifest |
+
+### Acceptance Criteria — Scaffolder MVP
+
+- [ ] `ariscan init` scaffolds Bare TypeScript project scoring ≥ 50 on `ariscan .`
+- [ ] `ariscan init --preset nextjs` scaffolds Next.js project scoring ≥ 50
+- [ ] Dogfood gate: init fails if output scores below L3
+- [ ] Provider interfaces generated for at least storage, queue, and email with memory implementations
+- [ ] AGENTS.md generated from choices includes architecture overview, bootstrap commands, and module map
+
+### Scaffold Presets — Full Registry
+
+#### Launch (P1)
+
+| Preset | Stack | Notes |
+|--------|-------|-------|
+| `bare` | TypeScript (no framework) | Foundation. Every other preset extends this |
+| `nextjs` | Next.js + App Router + Tailwind | Largest addressable market |
+
+#### Near-term (P2)
+
+| Preset | Pri | Stack | Notes |
+|--------|-----|-------|-------|
+| `nuxt` | 🟠 P1 | Nuxt 3 + Nitro | Extract from ripple-next. Home turf, reference quality |
+| `express` | 🟡 P2 | Express + TypeScript | API-only projects, Lambda backends |
+
+#### Mid-term (P3)
+
+| Preset | Pri | Stack | Notes |
+|--------|-----|-------|-------|
+| `astro` | 🟡 P2 | Astro + island architecture | Growing SSG/SSR hybrid market |
+| `remix` | 🟡 P2 | Remix + Vite | React alternative to Next.js |
+| `hono` | 🟡 P2 | Hono + TypeScript | Edge-first API framework, rising fast |
+| `python-bare` | 🟡 P2 | Python + uv + pytest + mypy | Python foundation preset — equivalent of bare TS |
+| `fastapi` | 🟡 P2 | FastAPI + Python | AI/ML ecosystem standard API framework |
+
+#### Community-driven (P3+)
+
+| Preset | Pri | Stack | Notes |
+|--------|-----|-------|-------|
+| `django` | 🟣 P3 | Django + Python | Via community contribution |
+| `flask` | 🟣 P3 | Flask + Python | Via community contribution |
+| `go-bare` | 🟣 P3 | Go + standard library | Go foundation preset |
+| `gin` | 🟣 P3 | Gin + Go | Via community contribution |
+| `rust-bare` | 🟣 P3 | Rust + Cargo | Rust foundation preset |
+| `axum` | 🟣 P3 | Axum + Rust | Via community contribution |
+| `sveltekit` | 🟣 P3 | SvelteKit | Via community contribution |
+| `angular` | 🟣 P3 | Angular + TypeScript | Via community contribution |
+| `vue-bare` | 🟣 P3 | Vue 3 + Vite (no Nuxt) | Via community contribution |
+| `rails` | 🟣 P3 | Ruby on Rails | Via community contribution |
+| `spring` | 🟣 P3 | Spring Boot + Java/Kotlin | Via community contribution |
+| `dotnet` | 🟣 P3 | .NET + C# | Via community contribution |
+| `elixir-phoenix` | 🟣 P3 | Phoenix + Elixir | Via community contribution |
+| `community/*` | 🟣 P3 | Any | `ariscan init --preset community/<name>` — fetch from registry |
+
+### Preset Design Principles
+
+1. Every preset extends its language foundation (`bare` for TS, `python-bare` for Python, `go-bare` for Go, etc.)
+2. Every preset must pass the dogfood gate — `ariscan .` on output must score ≥ L3
+3. Opinionated about the **pillars** (provider patterns, test isolation, AGENTS.md, devcontainer, type safety). Agnostic about everything else
+4. Zero cloud infrastructure opinions — provider interfaces have slots, wiring is developer's choice
+5. Community presets follow the same preset API and must pass the same dogfood gate
+
+### Scanner ↔ Scaffolder Sync Protocol
+
+The scaffolder and scanner share the same rubric, finding codes, and scoring logic. They must co-evolve:
+
+| Trigger | Required scaffolder update |
+|---------|--------------------------|
+| New analyzer or finding code | Update preset templates to satisfy new criteria |
+| Scoring weight change | Verify all presets still pass dogfood gate |
+| New pillar criterion | Add corresponding scaffolding (e.g., new config file, pattern) |
+| New `--fix` generator | Align with scaffold template for same concern |
+
+**Enforcement:**
+
+- CI runs `ariscan init --preset bare && ariscan . --exit-code` on every build
+- CI runs `ariscan init --preset nextjs && ariscan . --exit-code` on every build
+- PR checklist includes scaffold sync verification
+- CONTRIBUTING.md documents the co-evolution workflow
+
+---
+
 ## Cross-Pillar Workstream Matrix
 
 | Pillar | P1 Baseline | P2 Upgrade | P3 Upgrade |
@@ -2547,6 +2649,56 @@ These are the key messages, grounded in research, that should appear in document
 - `.agentignore` adoption advocacy with agent vendors (Claude Code, Copilot, Cursor).
 - **`@prontiq/ai-first-toolkit` extraction (RFC-0003):** Extract validated AI-first patterns (error taxonomy scaffolding, AGENTS.md/CLAUDE.md templates, machine-readable runbook runtime, provider pattern base classes, conformance harness) into a standalone package. Enables any project to adopt the patterns validated in both ripple-next and ariscan without depending on either.
 
+#### Framework Ecosystem Integrations
+
+Ariscan does not compete with workflow frameworks. It grades what they produce. The integration model: ariscan runs as a verification step *within* each framework's existing workflow.
+
+**Strategic Context:**
+
+| Framework | Stars | What it does | How ariscan integrates |
+|-----------|-------|--------------|----------------------|
+| GSD | 27k+ | Spec-driven dev with fresh subagent contexts | Verification gate in `/gsd:verify-work` |
+| Superpowers | 28k+ | Auto-triggering skills library, TDD enforcement | Post-implementation skill, pre-branch-completion |
+| PAUL | 137 | Plan-Apply-Unify loop, in-session context | Check during `/paul:unify` reconciliation |
+| GitHub Spec Kit | GitHub | Constitution-based spec-driven development | ariscan thresholds as constitution rules |
+| BMAD-METHOD | — | Role-based agent personas (PM, Architect, Dev, QA) | QA agent persona between implementation and merge |
+| CARL | 132 | Dynamic just-in-time rule injection | Domain file that loads ariscan rules in monitored projects |
+| Kiro | Amazon | EARS requirements → design → tasks → code | Post-task verification via CLI hook |
+
+**Integration Features:**
+
+| # | Feature | Pri | Description |
+|---|---------|-----|-------------|
+| FW.01 | Generic hook API | 🔴 P0 | `ariscan . --format json --exit-code --baseline .ariscan-baseline.json` — any framework can call this |
+| FW.02 | Baseline diffing | 🔴 P0 | `ariscan baseline` saves current scores. `ariscan . --baseline` reports per-pillar regressions. "Did this build cycle make readiness worse?" |
+| FW.03 | GSD verification gate | 🟠 P1 | ariscan in `/gsd:verify-work` — score after each phase, findings into STATE.md |
+| FW.04 | Superpowers skill | 🟠 P1 | Auto-triggering skill — activates after implementation, blocks merge on regression |
+| FW.05 | PAUL unify check | 🟡 P2 | Score delta logged into SUMMARY.md during `/paul:unify` |
+| FW.06 | Spec Kit constitution rule | 🟡 P2 | ariscan thresholds as engineering principles in constitution format |
+| FW.07 | BMAD quality agent | 🟡 P2 | QA persona between Devon (Developer) and merge |
+| FW.08 | CARL domain | 🟡 P2 | Domain file for ariscan rules in monitored projects |
+| FW.09 | Claude Code plugin | 🟠 P1 | Publish to Anthropic marketplace — `/ariscan` slash command |
+| FW.10 | Integration docs + examples | 🔴 P0 | Working configs for GSD, Superpowers, PAUL, Spec Kit, and custom workflows |
+
+**Acceptance Criteria — Framework Ecosystem:**
+
+- [ ] `ariscan baseline` + `ariscan . --baseline` correctly identifies per-pillar regressions
+- [ ] Generic hook API documented with examples for at least 3 frameworks
+- [ ] GSD integration tested end-to-end with `/gsd:verify-work`
+- [ ] Claude Code plugin submitted to Anthropic marketplace
+- [ ] Integration guide published with working configs for top 4 frameworks
+
+**Competitive Positioning:**
+
+Workflow frameworks answer: *"How should the agent work?"*
+Ariscan answers: *"What should the codebase look like when the agent arrives?"*
+
+`ariscan init` front-loads readiness into new projects.
+`ariscan .` verifies readiness hasn't regressed after each build cycle.
+Prontiq SaaS monitors readiness continuously across the fleet.
+
+The scaffolder and framework integrations together make ariscan the **infrastructure layer beneath every workflow framework** — not a competitor to any of them.
+
 ### P5 — Advanced Tooling (2027)
 
 - CI template expansion (Bitbucket Pipelines, Azure DevOps, CircleCI).
@@ -2563,7 +2715,8 @@ These are the key messages, grounded in research, that should appear in document
 P1 deterministic scoring foundation
   └─> P2 high-signal context intelligence + remediation + telemetry
         └─> P3 policy-as-code and ecosystem integrations
-              └─> P4/P5 standards and community scale
+              ├─> P3.5 scaffolder: ariscan init (depends on P1 scoring engine)
+              └─> P4/P5 standards, framework integrations, and community scale
 ```
 
 ## Risk Register
@@ -2580,6 +2733,10 @@ P1 deterministic scoring foundation
   - **Mitigation:** strictly opt-in (defaults OFF), fully documented, payload inspectable, no PII, easy to disable. Removable without affecting any other functionality.
 - **Risk:** `.agentignore` standard fails to gain adoption.
   - **Mitigation:** publish parser as MIT-licensed library. Advocate with agent vendors. Include in `--fix` output.
+- **Risk:** dogfood gate creates false confidence — scaffolded project scores well on static checks but may not reflect real-world readiness.
+  - **Mitigation:** simulation verification (P3.05) validates scaffolded projects actually work end-to-end. Score threshold rises as simulation coverage improves.
+- **Risk:** scaffold templates drift as scanner evolves — new findings/criteria cause scaffolded output to fail dogfood gate.
+  - **Mitigation:** CI runs scaffold→scan loop on every build. PR checklist and CONTRIBUTING.md enforce co-evolution. Template drift caught before merge.
 
 ## CI/CD & Build Pipeline — AI-First Design (added 2026-03-09)
 

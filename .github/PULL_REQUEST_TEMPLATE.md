@@ -24,6 +24,7 @@
 - [ ] No new `console.log` (use CLI formatters)
 - [ ] Finding codes follow `ARI-XXX-NNN` pattern and don't renumber existing codes
 - [ ] Pillar weights still sum to 1.0 (if changed)
+- [ ] Scaffold presets updated if scanner changes affect `ariscan init` output scores
 
 ---
 

@@ -153,6 +153,17 @@ packages/cli/src/
 3. Scores are clamped to [0, 100] at the analyzer level
 4. The security gate logic is in `packages/engine/src/scoring/composite.ts`
 
+### Updating Scaffold Presets
+
+When scanner changes affect what `ariscan init` produces (new findings, weight changes, new criteria):
+
+1. Update affected preset templates to satisfy the new criteria
+2. Run `ariscan init --preset <name>` and then `ariscan .` on the output — must score ≥ L3 (46+)
+3. If a new `--fix` generator was added, align the scaffold template for the same concern
+4. Update AGENTS.md generation logic if architecture patterns changed
+
+The scaffolder and scanner share the same rubric and must co-evolve. CI runs the scaffold→scan loop on every build to catch drift.
+
 ## Do NOT
 
 - **Don't execute target repo code** — analyzers only read files, never run scripts from the scanned repository
