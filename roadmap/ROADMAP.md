@@ -1671,7 +1671,7 @@ It is the source of truth for what was actually built vs. what was specified.
 |---|---|---|
 | P1.15 — Markdown Report v1 | ✅ Done | Implemented in `output/markdown.ts` with badge header, pillar table, severity-sorted findings, remediations, "Quick Start: Top 3 Actions" section, and impact×ease remediation ordering. Enhanced 2026-03-10. |
 | P1.16 — README Badge Support | ✅ Done | `--badge <path>` flag generates SVG badge + embed snippets. `generateBadgeSvg()` and `generateBadgeSnippets()` in `output/badge.ts`. Added 2026-03-08. |
-| P1.17 — Safe `--fix` Starter | ✅ Done | AGENTS.md, .agentignore, .devcontainer generation + provider pattern skeleton (StorageProvider interface for TS/Python/Go with cloud SDK detection). All done with --dry-run. Updated 2026-03-10. Extended by P2.07 (tsconfig strictness generator, 2026-03-14). |
+| P1.17 — Safe `--fix` Starter | ✅ Done | AGENTS.md, .agentignore, .devcontainer generation + provider pattern skeleton (StorageProvider interface for TS/Python/Go with cloud SDK detection). All done with --dry-run. Updated 2026-03-10. Extended by P2.07 (tsconfig strictness, .nvmrc, pre-commit hooks, CODEOWNERS generators + confidence classification, 2026-03-14). |
 | P1.18 — Benchmark Cohort v1 | ⬜ Not Started | |
 
 ---
@@ -1996,7 +1996,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Template creation, testing, documentation, rollback guidance.
 - **Out of scope:** Automated application (--fix handles simple cases; complex templates require manual review).
 
-### Ticket P2.07 — Risk-aware `--fix` Expansion (🟠) 🔧 Partial
+### Ticket P2.07 — Risk-aware `--fix` Expansion (🟠) 🔧 Near-Complete
 
 - **User story:** As a developer, I want `--fix` to handle more issue types while being transparent about what's safe to auto-apply vs what needs my review.
 - **Problem statement:** P1.17 established safe, non-destructive fixes. This ticket expands coverage to more issue types while introducing a confidence threshold that separates "safe to auto-apply" from "suggestion only — requires human review."

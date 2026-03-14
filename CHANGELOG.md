@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.3.0] — 2026-03-14
+
+### Added
+- **Engine (P2.07):** `.nvmrc` `--fix` generator — detects Node.js version from `engines.node` in package.json, falls back to LTS (v22). Pins runtime version for reproducible builds. Criterion: ARI-ENV-003. 5 new tests.
+- **Engine (P2.07):** Pre-commit hooks `--fix` generator — generates `.husky/pre-commit` with lint + typecheck commands using detected package manager. Medium confidence (suggest). Criterion: ARI-SEC-003. 5 new tests.
+- **Engine (P2.07):** CODEOWNERS template `--fix` generator — generates `.github/CODEOWNERS` with default ownership, security-sensitive paths, and monorepo-aware sections. Low confidence (manual review). Criterion: ARI-SEC-001. 4 new tests.
+- **Engine (P2.07):** `confidence` field on `FixProposal` interface — every proposal now carries `high`/`medium`/`low` confidence for classification. Core generators (AGENTS.md, .agentignore, devcontainer) = high; provider skeleton = medium; CODEOWNERS = low. 4 new tests.
+- **CLI (P2.07):** `--fix --dry-run` confidence-based classification display — proposals grouped by AUTO-APPLY (high), SUGGEST (medium), MANUAL (low), and SKIPPED (already exists) with summary counts.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Tests:** 571 passing across 22 test files (28 schema + 475 engine + 68 CLI), up from 553
+- **Roadmap progress:** P2.07 substantially complete (4 items shipped)
+
 ## [3.2.0] — 2026-03-14
 
 ### Added

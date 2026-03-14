@@ -10,6 +10,9 @@
 import type { RepoContext } from "../analyzers/analyzer.interface.js";
 import type { DetectionResult } from "@prontiq/ariscan-schema";
 
+/** Fix confidence level — determines auto-apply vs suggest-only classification. */
+export type FixConfidence = "high" | "medium" | "low";
+
 /** A proposed file change from --fix. */
 export interface FixProposal {
   /** Relative path within the repo. */
@@ -22,6 +25,8 @@ export interface FixProposal {
   criterion: string;
   /** Whether the file already exists (skip if true). */
   alreadyExists: boolean;
+  /** Confidence level: high = auto-apply, medium = suggest, low = manual review. */
+  confidence: FixConfidence;
 }
 
 /**
@@ -34,19 +39,33 @@ export async function generateFixProposals(
 ): Promise<FixProposal[]> {
   const proposals: FixProposal[] = [];
 
-  const [agentsMd, agentignore, devcontainer, providerSkeleton, tsconfigFix] = await Promise.all([
+  const [
+    agentsMd,
+    agentignore,
+    devcontainer,
+    providerSkeleton,
+    tsconfigFix,
+    nvmrc,
+    preCommit,
+    codeowners,
+  ] = await Promise.all([
     generateAgentsMd(context, detection),
     generateAgentignore(context, detection),
     generateDevcontainer(context, detection),
     generateProviderSkeleton(context, detection),
     generateTsconfigStrictness(context, detection),
+    generateNvmrc(context, detection),
+    generatePreCommitHooks(context, detection),
+    generateCodeowners(context),
   ]);
 
   proposals.push(agentsMd, agentignore, devcontainer, providerSkeleton);
 
   // Conditional proposals: only include if applicable
-  if (tsconfigFix) {
-    proposals.push(tsconfigFix);
+  for (const fix of [tsconfigFix, nvmrc, preCommit, codeowners]) {
+    if (fix) {
+      proposals.push(fix);
+    }
   }
 
   return proposals;
@@ -182,6 +201,7 @@ async function generateAgentsMd(
         "Provides agent-specific context not discoverable from code. TODOs guide human review.",
       criterion: "ARI-CTX-001",
       alreadyExists: exists,
+      confidence: "high" as FixConfidence,
     };
   }
 
@@ -192,6 +212,7 @@ async function generateAgentsMd(
       "Provides agent-specific context not discoverable from code. TODOs guide human review.",
     criterion: "ARI-CTX-001",
     alreadyExists: exists,
+    confidence: "high" as FixConfidence,
   };
 }
 
@@ -294,6 +315,7 @@ async function generateAgentignore(
     rationale: "Excludes high-token, low-value files from agent context to reduce inference cost.",
     criterion: "ARI-CTX-004",
     alreadyExists: exists,
+    confidence: "high" as FixConfidence,
   };
 }
 
@@ -333,6 +355,7 @@ async function generateDevcontainer(
     rationale: "Reproducible dev environment reduces onboarding time for both humans and agents.",
     criterion: "ARI-ENV-001",
     alreadyExists: exists,
+    confidence: "high" as FixConfidence,
   };
 }
 
@@ -397,6 +420,7 @@ async function generateProviderSkeleton(
       "Agents can swap real implementations for mocks without modifying business logic.",
     criterion: "ARI-TST-001",
     alreadyExists: exists,
+    confidence: "medium" as FixConfidence,
   };
 }
 
@@ -588,6 +612,7 @@ async function generateTsconfigStrictness(
           "Review and merge manually.",
         criterion: "ARI-BLD-001",
         alreadyExists: true,
+        confidence: "low" as FixConfidence,
       };
     }
 
@@ -618,6 +643,7 @@ async function generateTsconfigStrictness(
         "Do NOT auto-apply: modifying existing tsconfig may break builds.",
       criterion: "ARI-BLD-001",
       alreadyExists: true,
+      confidence: "low" as FixConfidence,
     };
   }
 
@@ -630,6 +656,176 @@ async function generateTsconfigStrictness(
       "and gives AI agents higher confidence in type information.",
     criterion: "ARI-BLD-001",
     alreadyExists: false,
+    confidence: "high" as FixConfidence,
+  };
+}
+
+/**
+ * Generate a .nvmrc file pinning the Node.js version.
+ * Reads `engines.node` from package.json; falls back to LTS (22).
+ * Only applicable to Node/TypeScript/JavaScript projects.
+ */
+async function generateNvmrc(
+  context: RepoContext,
+  detection: DetectionResult | undefined,
+): Promise<FixProposal | null> {
+  const primaryLang = detection?.languages.find((l) => l.primary);
+  if (!primaryLang) return null;
+  if (primaryLang.language !== "typescript" && primaryLang.language !== "javascript") return null;
+
+  // Check if any version pinning file already exists
+  const versionFiles = [".nvmrc", ".node-version", ".tool-versions"];
+  let anyExists = false;
+  for (const f of versionFiles) {
+    if (await context.fileExists(f)) {
+      anyExists = true;
+      break;
+    }
+  }
+
+  // Extract Node version from engines field
+  let nodeVersion = "22";
+  const pkgJson = await context.readJson<Record<string, unknown>>("package.json");
+  if (pkgJson && typeof pkgJson === "object" && "engines" in pkgJson) {
+    const engines = pkgJson.engines as Record<string, string> | undefined;
+    if (engines?.node) {
+      // Extract major version from patterns like ">=22.0.0", "^22", "22.x", "22"
+      const match = /(\d+)/.exec(engines.node);
+      if (match?.[1]) {
+        nodeVersion = match[1];
+      }
+    }
+  }
+
+  return {
+    path: ".nvmrc",
+    content: `${nodeVersion}\n`,
+    rationale:
+      "Pins Node.js version for reproducible builds. Agents and CI use this to select the correct runtime.",
+    criterion: "ARI-ENV-003",
+    alreadyExists: anyExists,
+    confidence: "high" as FixConfidence,
+  };
+}
+
+/**
+ * Generate a .husky/pre-commit hook for lint + typecheck.
+ * Only applicable to Node.js projects with package.json.
+ */
+async function generatePreCommitHooks(
+  context: RepoContext,
+  detection: DetectionResult | undefined,
+): Promise<FixProposal | null> {
+  // Only for Node ecosystem projects
+  const hasPackageJson = await context.fileExists("package.json");
+  if (!hasPackageJson) return null;
+
+  const primaryLang = detection?.languages.find((l) => l.primary);
+  if (primaryLang && primaryLang.language !== "typescript" && primaryLang.language !== "javascript")
+    return null;
+
+  const exists = await context.fileExists(".husky/pre-commit");
+
+  const pm = getPackageManager(context);
+  const pkgJson = await context.readJson<Record<string, unknown>>("package.json");
+  const scripts =
+    pkgJson && typeof pkgJson === "object" && "scripts" in pkgJson
+      ? (pkgJson.scripts as Record<string, string>)
+      : {};
+
+  const commands: string[] = [];
+  if (scripts.lint) commands.push(`${pm} lint`);
+  if (scripts.typecheck) commands.push(`${pm} typecheck`);
+  if (commands.length === 0) {
+    // No lint/typecheck scripts — not useful to generate
+    return null;
+  }
+
+  const content = [
+    "#!/usr/bin/env sh",
+    '. "$(dirname -- "$0")/_/husky.sh"',
+    "",
+    "# Pre-commit checks: lint and typecheck",
+    "# Generated by ariscan --fix. Customize for your project.",
+    "# TODO(ARI-SEC-003): Add project-specific pre-commit checks.",
+    "",
+    ...commands.map((c) => c),
+    "",
+  ].join("\n");
+
+  return {
+    path: ".husky/pre-commit",
+    content,
+    rationale:
+      "Pre-commit hooks catch lint and type errors before they enter the codebase. " +
+      "Reduces review burden for both human and AI-generated code.",
+    criterion: "ARI-SEC-003",
+    alreadyExists: exists,
+    confidence: "medium" as FixConfidence,
+  };
+}
+
+/**
+ * Generate a .github/CODEOWNERS template.
+ * Template-based (not git-blame) since RepoContext is read-only filesystem.
+ */
+async function generateCodeowners(context: RepoContext): Promise<FixProposal | null> {
+  const codeownersLocations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"];
+
+  let anyExists = false;
+  for (const loc of codeownersLocations) {
+    if (await context.fileExists(loc)) {
+      anyExists = true;
+      break;
+    }
+  }
+
+  // Detect common paths to suggest ownership for
+  const hasGithub = context.files.some((f) => f.startsWith(".github/"));
+  const hasSrc = context.files.some((f) => f.startsWith("src/"));
+  const hasPackages = context.files.some((f) => f.startsWith("packages/"));
+
+  const lines: string[] = [];
+  lines.push("# CODEOWNERS — Define code review ownership");
+  lines.push("# Generated by ariscan --fix. Customize with your team's GitHub usernames.");
+  lines.push(
+    "# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners",
+  );
+  lines.push("");
+  lines.push("# TODO(ARI-SEC-001): Replace @TODO-add-default-owner with your team/user.");
+  lines.push("");
+  lines.push("# Default owner for everything");
+  lines.push("* @TODO-add-default-owner");
+  lines.push("");
+  lines.push("# Security-sensitive paths — require security team review");
+  if (hasGithub) {
+    lines.push(".github/ @TODO-add-security-owner");
+  }
+  lines.push("*.lock @TODO-add-default-owner");
+  lines.push(".env* @TODO-add-security-owner");
+  lines.push("");
+
+  if (hasSrc) {
+    lines.push("# Source code");
+    lines.push("src/ @TODO-add-default-owner");
+    lines.push("");
+  }
+
+  if (hasPackages) {
+    lines.push("# Packages (monorepo)");
+    lines.push("packages/ @TODO-add-default-owner");
+    lines.push("");
+  }
+
+  return {
+    path: ".github/CODEOWNERS",
+    content: lines.join("\n"),
+    rationale:
+      "CODEOWNERS ensures critical paths get reviewed by the right people. " +
+      "Prevents AI-generated code from merging without appropriate oversight.",
+    criterion: "ARI-SEC-001",
+    alreadyExists: anyExists,
+    confidence: "low" as FixConfidence,
   };
 }
 
