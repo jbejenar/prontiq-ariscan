@@ -1,17 +1,16 @@
 # Next Session Guide
 
-## Session: 2026-03-14 (thirteenth session)
+## Session: 2026-03-14 (fourteenth session)
 **Phase:** P2 — Context Intelligence (continued)
 **Self-scan:** 76/100 (L4 Productive) — holding steady
-**Tests:** 581 passing across 22 test files (28 schema + 485 engine + 68 CLI)
+**Tests:** 506 engine + 28 schema + 68 CLI = 602 passing across 22 test files
 **Quality gate:** typecheck, lint, test, build — all green
-**Roadmap progress:** 4 items shipped this session
+**Roadmap progress:** 3 items shipped this session
 
 ## Items Completed This Session
-- Engine (P2.07): Env var documentation `--fix` generator — scans process.env/os.environ/os.Getenv usage, generates `.env.example` with required/optional classification. 5 new tests.
-- CLI (P2.07): `--fix --force` flag — overwrite existing files with explicit opt-in. Dry-run and apply modes updated.
-- Engine (P2.06): ADR template generator — `docs/decisions/000-template.md` with standard sections. 3 new tests.
-- Engine (P2.06): Changelog template generator — `CHANGELOG.md` with Keep a Changelog format. 2 new tests.
+- Engine (P2.06): Docker-compose `--fix` generator — detects PostgreSQL, Redis, MySQL, MongoDB, RabbitMQ from package deps across Node.js, Python, Go. Generates `docker-compose.yml` with healthchecks + named volumes. 9 new tests.
+- Engine (P2.06): PR template `--fix` generator — `.github/pull_request_template.md` with AI-Code Review Checklist (8-point human-oversight checklist). 6 new tests.
+- Engine (P2.06): DI wiring example `--fix` generators — NestJS, FastAPI, Spring Boot, Go interface-based DI patterns with in-memory test doubles. 6 new tests.
 
 ## Items Deferred
 - P2.01: Context quality generator (requires semantic deduplication — NLP analysis, deferred)
@@ -25,18 +24,18 @@
 ## Next Session Should Start With
 
 ### Priority 1: P2.06 remaining templates
-- Docker-compose template for common services (PostgreSQL, Redis, etc.)
-- DI wiring example templates per framework (NestJS, FastAPI, Spring Boot, Go wire)
-- PR template with AI-code review checklist
+- Guided remediation validation (test templates against real repos, verify ARI impact estimates)
+- Additional docker-compose service templates (Elasticsearch, Kafka, MinIO)
 
 ### Priority 2: Remaining P2 items
-- P2.06: Guided remediation validation (test templates against real repos)
-- P1.01 AC#5: Streaming output for large repos
+- P1.01 AC#5: Streaming output for large repos (progress callback during scan)
+- P2.05: `.agentignore` spec v1 completion (partial)
 
 ### Priority 3: Polish & DX
 - Confidence-adjusted composite score (`--confidence-adjusted` flag)
 - P1.04: Semantic additionality engine
 - P1.18: Benchmark cohort v1
+- ARI-NAV-007: Reduce cognitive complexity in CLI formatters (formatTerminal=323, run=194)
 
 ## Blockers
 - None. All quality gates pass.

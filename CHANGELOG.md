@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.5.0] — 2026-03-14
+
+### Added
+- **Engine (P2.06):** Docker-compose `--fix` generator — detects service dependencies (PostgreSQL, Redis, MySQL, MongoDB, RabbitMQ) from package.json, requirements.txt, pyproject.toml, and go.mod. Generates `docker-compose.yml` with healthchecks, named volumes, and environment variables. Medium confidence (suggest). Criterion: ARI-ENV-003. 9 new tests.
+- **Engine (P2.06):** PR template `--fix` generator — generates `.github/pull_request_template.md` with Summary, Changes, Test Plan, AI-Code Review Checklist (8-point human-oversight checklist for AI-generated code), and Rollback Plan sections. Medium confidence (suggest). Criterion: ARI-SEC-003. 6 new tests.
+- **Engine (P2.06):** DI wiring example `--fix` generators — framework-specific dependency injection examples for NestJS (TypeScript), FastAPI (Python), Spring Boot (Java), and Go (plain interfaces). Shows interface→real impl→in-memory test double→wiring pattern. Low confidence (manual review). Criterion: ARI-TST-001. 6 new tests.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Tests:** 506 engine tests passing (up from 485), 22 test files
+- **Roadmap progress:** P2.06 docker-compose, PR template, and DI wiring templates shipped
+
 ## [3.4.0] — 2026-03-14
 
 ### Added
