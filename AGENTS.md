@@ -113,7 +113,7 @@ packages/engine/src/
     budget-analyzer.ts    — budget analysis, hotspots, compression recommendations
     index.ts              — barrel export
   fix/
-    generators.ts         — safe --fix generators (12 files: AGENTS.md, .agentignore, .devcontainer, tsconfig, .nvmrc, pre-commit, CODEOWNERS, PR template, ADR, CHANGELOG, docker-compose, .gitleaks.toml)
+    generators.ts         — safe --fix generators (up to 15 files: AGENTS.md, .agentignore, .devcontainer, tsconfig, .nvmrc, pre-commit, CODEOWNERS, PR template, ADR, CHANGELOG, docker-compose, .gitleaks.toml, provider skeleton, env var docs, DI wiring examples)
     index.ts              — barrel export
   agentignore/
     parser.ts             — .agentignore parser (gitignore-compatible patterns)

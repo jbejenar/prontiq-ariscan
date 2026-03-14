@@ -306,7 +306,7 @@ async function generateAgentignore(
   // Language-specific patterns
   const primaryLang = detection?.languages.find((l) => l.primary);
   if (primaryLang) {
-    switch (primaryLang.language) {
+    switch (normalizeLang(primaryLang.language)) {
       case "python":
         lines.push("# Python-specific");
         lines.push("*.pyc");
@@ -1198,14 +1198,7 @@ async function generateDockerCompose(
   const existsComposeAlt = await context.fileExists("compose.yaml");
 
   if (exists || existsAlt || existsCompose || existsComposeAlt) {
-    return {
-      path: "docker-compose.yml",
-      content: "",
-      rationale: "Docker Compose file already exists.",
-      criterion: "ARI-ENV-003",
-      alreadyExists: true,
-      confidence: "medium" as FixConfidence,
-    };
+    return null;
   }
 
   // Detect which services the project likely needs from deps/config
@@ -1905,14 +1898,7 @@ async function generateGitleaksConfig(context: RepoContext): Promise<FixProposal
   const existsTrufflehog = await context.fileExists(".trufflehog.yml");
 
   if (exists || existsTrufflehog) {
-    return {
-      path: ".gitleaks.toml",
-      content: "",
-      rationale: "Secrets scanning config already exists.",
-      criterion: "ARI-SEC-003",
-      alreadyExists: true,
-      confidence: "high" as FixConfidence,
-    };
+    return null;
   }
 
   const content = [

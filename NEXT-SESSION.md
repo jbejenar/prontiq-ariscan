@@ -3,10 +3,10 @@
 ## Session: 2026-03-14 (fourteenth session)
 **Phase:** P2 — Context Intelligence (continued)
 **Self-scan:** 76/100 (L4 Productive) — holding steady
-**Tests:** 515 engine + 28 schema + 68 CLI = 611 passing across 22 test files
+**Tests:** 517 engine + 28 schema + 68 CLI = 613 passing across 22 test files
 **Quality gate:** typecheck, lint, test, build, selftest — all green
 **Scaffold score:** 61/100 (L3 Capable) — up from 52 (L2), gated in CI at 46+
-**Roadmap progress:** 5 items shipped this session
+**Roadmap progress:** 6 items shipped this session
 
 ## Items Completed This Session
 - Engine (P2.06): Docker-compose `--fix` generator — detects PostgreSQL, Redis, MySQL, MongoDB, RabbitMQ from package deps across Node.js, Python, Go. Generates `docker-compose.yml` with healthchecks + named volumes. 12 new tests.

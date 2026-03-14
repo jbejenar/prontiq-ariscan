@@ -813,7 +813,7 @@ describe("generateFixProposals", () => {
       expect(compose).toBeUndefined();
     });
 
-    it("marks as alreadyExists when docker-compose.yml exists", async () => {
+    it("skips when docker-compose.yml already exists", async () => {
       const ctx = createMockContext({
         "package.json": JSON.stringify({
           name: "test",
@@ -825,10 +825,10 @@ describe("generateFixProposals", () => {
       const proposals = await generateFixProposals(ctx, nodeDetection);
       const compose = proposals.find((p) => p.path === "docker-compose.yml");
 
-      expect(compose?.alreadyExists).toBe(true);
+      expect(compose).toBeUndefined();
     });
 
-    it("marks as alreadyExists when compose.yml exists", async () => {
+    it("skips when compose.yml already exists", async () => {
       const ctx = createMockContext({
         "package.json": JSON.stringify({
           name: "test",
@@ -840,7 +840,7 @@ describe("generateFixProposals", () => {
       const proposals = await generateFixProposals(ctx, nodeDetection);
       const compose = proposals.find((p) => p.path === "docker-compose.yml");
 
-      expect(compose?.alreadyExists).toBe(true);
+      expect(compose).toBeUndefined();
     });
 
     it("detects Python service deps from requirements.txt", async () => {
@@ -1160,7 +1160,7 @@ describe("generateFixProposals", () => {
       expect(gitleaks?.content).toContain("node_modules");
     });
 
-    it("marks as alreadyExists when .gitleaks.toml exists", async () => {
+    it("skips when .gitleaks.toml already exists", async () => {
       const ctx = createMockContext({
         "package.json": JSON.stringify({ name: "test" }),
         ".gitleaks.toml": "[allowlist]",
@@ -1169,10 +1169,10 @@ describe("generateFixProposals", () => {
       const proposals = await generateFixProposals(ctx, nodeDetection);
       const gitleaks = proposals.find((p) => p.path === ".gitleaks.toml");
 
-      expect(gitleaks?.alreadyExists).toBe(true);
+      expect(gitleaks).toBeUndefined();
     });
 
-    it("marks as alreadyExists when .trufflehog.yml exists", async () => {
+    it("skips when .trufflehog.yml already exists", async () => {
       const ctx = createMockContext({
         "package.json": JSON.stringify({ name: "test" }),
         ".trufflehog.yml": "detectors: []",
@@ -1181,7 +1181,47 @@ describe("generateFixProposals", () => {
       const proposals = await generateFixProposals(ctx, nodeDetection);
       const gitleaks = proposals.find((p) => p.path === ".gitleaks.toml");
 
-      expect(gitleaks?.alreadyExists).toBe(true);
+      expect(gitleaks).toBeUndefined();
+    });
+  });
+
+  describe("PascalCase language normalization", () => {
+    it("generates tsconfig and .nvmrc when detection returns PascalCase TypeScript", async () => {
+      const pascalDetection: DetectionResult = {
+        languages: [{ language: "TypeScript", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      };
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          scripts: { lint: "eslint .", typecheck: "tsc --noEmit" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, pascalDetection);
+      const paths = proposals.map((p) => p.path);
+
+      expect(paths).toContain("tsconfig.json");
+      expect(paths).toContain(".nvmrc");
+      expect(paths).toContain(".husky/pre-commit");
+    });
+
+    it("generates Python-specific .agentignore patterns with PascalCase Python", async () => {
+      const pascalDetection: DetectionResult = {
+        languages: [{ language: "Python", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      };
+      const ctx = createMockContext({
+        "pyproject.toml": "[project]\nname = 'test'",
+      });
+
+      const proposals = await generateFixProposals(ctx, pascalDetection);
+      const agentignore = proposals.find((p) => p.path === ".agentignore");
+
+      expect(agentignore?.content).toContain("*.pyc");
+      expect(agentignore?.content).toContain(".mypy_cache/");
     });
   });
 });
