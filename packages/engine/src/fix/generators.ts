@@ -34,14 +34,20 @@ export async function generateFixProposals(
 ): Promise<FixProposal[]> {
   const proposals: FixProposal[] = [];
 
-  const [agentsMd, agentignore, devcontainer, providerSkeleton] = await Promise.all([
+  const [agentsMd, agentignore, devcontainer, providerSkeleton, tsconfigFix] = await Promise.all([
     generateAgentsMd(context, detection),
     generateAgentignore(context, detection),
     generateDevcontainer(context, detection),
     generateProviderSkeleton(context, detection),
+    generateTsconfigStrictness(context, detection),
   ]);
 
   proposals.push(agentsMd, agentignore, devcontainer, providerSkeleton);
+
+  // Conditional proposals: only include if applicable
+  if (tsconfigFix) {
+    proposals.push(tsconfigFix);
+  }
 
   return proposals;
 }
@@ -547,6 +553,125 @@ function generateProviderContent(
     "}",
     "",
   ].join("\n");
+}
+
+/**
+ * Generate a tsconfig.json with strict settings if none exists,
+ * or suggest strictness improvements for existing configs.
+ * P2.07: Risk-aware --fix expansion.
+ *
+ * Classification:
+ * - No tsconfig.json: Auto-apply (high confidence) — creates new file.
+ * - Existing tsconfig.json without strict: Suggest-only — marks alreadyExists.
+ */
+async function generateTsconfigStrictness(
+  context: RepoContext,
+  detection: DetectionResult | undefined,
+): Promise<FixProposal | null> {
+  // Only applicable to TypeScript/JavaScript projects
+  const primaryLang = detection?.languages.find((l) => l.primary);
+  if (!primaryLang) return null;
+  if (primaryLang.language !== "typescript" && primaryLang.language !== "javascript") return null;
+
+  const exists = await context.fileExists("tsconfig.json");
+
+  if (exists) {
+    // Read existing config to check strictness
+    const existing = await context.readJson<TsconfigShape>("tsconfig.json");
+    if (!existing?.compilerOptions) {
+      // Can't parse — suggest only
+      return {
+        path: "tsconfig.json",
+        content: generateStrictTsconfig(),
+        rationale:
+          "Existing tsconfig.json could not be parsed. Suggested strict config for reference. " +
+          "Review and merge manually.",
+        criterion: "ARI-BLD-001",
+        alreadyExists: true,
+      };
+    }
+
+    const opts = existing.compilerOptions;
+    const missingStrict: string[] = [];
+
+    if (opts.strict !== true) missingStrict.push('"strict": true');
+    if (opts.strictNullChecks !== true && opts.strict !== true)
+      missingStrict.push('"strictNullChecks": true');
+    if (opts.noImplicitAny !== true && opts.strict !== true)
+      missingStrict.push('"noImplicitAny": true');
+    if (opts.noUncheckedIndexedAccess !== true)
+      missingStrict.push('"noUncheckedIndexedAccess": true');
+    if (opts.exactOptionalPropertyTypes !== true)
+      missingStrict.push('"exactOptionalPropertyTypes": true');
+
+    if (missingStrict.length === 0) {
+      // Already fully strict — no fix needed
+      return null;
+    }
+
+    return {
+      path: "tsconfig.json",
+      content: generateStrictTsconfig(),
+      rationale:
+        `Existing tsconfig.json is missing: ${missingStrict.join(", ")}. ` +
+        "Suggested strict config for reference — review and merge manually. " +
+        "Do NOT auto-apply: modifying existing tsconfig may break builds.",
+      criterion: "ARI-BLD-001",
+      alreadyExists: true,
+    };
+  }
+
+  // No tsconfig.json exists — safe to auto-apply (high confidence)
+  return {
+    path: "tsconfig.json",
+    content: generateStrictTsconfig(),
+    rationale:
+      "Creates a strict TypeScript config. Strict mode catches more errors at compile time " +
+      "and gives AI agents higher confidence in type information.",
+    criterion: "ARI-BLD-001",
+    alreadyExists: false,
+  };
+}
+
+interface TsconfigShape {
+  compilerOptions?: {
+    strict?: boolean;
+    strictNullChecks?: boolean;
+    noImplicitAny?: boolean;
+    noUncheckedIndexedAccess?: boolean;
+    exactOptionalPropertyTypes?: boolean;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+function generateStrictTsconfig(): string {
+  const config = {
+    compilerOptions: {
+      strict: true,
+      noUncheckedIndexedAccess: true,
+      exactOptionalPropertyTypes: true,
+      noEmit: true,
+      target: "ES2022",
+      module: "Node16",
+      moduleResolution: "Node16",
+      esModuleInterop: true,
+      skipLibCheck: true,
+      forceConsistentCasingInFileNames: true,
+      resolveJsonModule: true,
+      isolatedModules: true,
+      declaration: true,
+      declarationMap: true,
+      sourceMap: true,
+    },
+    include: ["src"],
+    exclude: ["node_modules", "dist"],
+    "// generated-by": "ariscan --fix",
+    "// TODO(ARI-BLD-001)":
+      "Review and customize compiler options for your project. strict: true enables all strict type checks.",
+  };
+
+  return JSON.stringify(config, null, 2) + "\n";
 }
 
 // Helper functions

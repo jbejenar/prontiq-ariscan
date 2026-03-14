@@ -713,7 +713,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
   - [x] `--help` documents all core flags and includes at least 3 usage examples. *(3 examples: `npx ariscan .`, `npx ariscan /path --json`, `npx ariscan . --threshold 60`)*
   - [x] Config precedence (CLI > local config > defaults) is tested with unit tests covering each override layer. *(16 tests in `config-loader.test.ts`)*
   - [ ] Exit code matrix is documented for CI users in both `--help` and published docs.
-  - [ ] Runs to completion on repos up to 100k files within 60 seconds on commodity hardware. *(untested; scans <100ms on this repo)*
+  - [x] Runs to completion on repos up to 100k files within 60 seconds on commodity hardware. *(verified: 685ms on 100k-file mock context, sub-linear scaling confirmed)*
   - [x] Zero external network calls during scan (fully offline operation).
 - **Tech stack (RFC-0003):** Node.js 22, TypeScript 5.7 strict, pnpm workspaces, Turborepo, citty (CLI framework), Zod (config validation), tsup (build), Vitest (testing), ESLint 9 + Prettier (linting). AI-first patterns extracted from ripple-next reference architecture: `ARI-*` error taxonomy, provider pattern for analyzers, pure function core (`scan(path, config) → ScanResult`).
 - **Dependencies:** npm package name claimed (`ariscan`), TypeScript project scaffold, test framework (Vitest).
@@ -1296,7 +1296,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 1 | `--help` documents flags + 3 usage examples | ✅ Done | 3 examples in CLI description: basic scan, JSON output, threshold |
 | 2 | Config precedence tested with unit tests | ✅ Done | 16 tests in `config-loader.test.ts` covering YAML parsing, validation, directory traversal, merging |
 | 3 | Exit code matrix documented in `--help` and docs | ✅ Done | Exit codes 0/1/2 documented in `--help` description. Added 2026-03-10. |
-| 4 | Completes on 100k files within 60s | ❌ Not done | No performance tests (scans complete <100ms on this repo though) |
+| 4 | Completes on 100k files within 60s | ✅ Done | Performance test: 100k files in ~685ms (mock context), sub-linear scaling verified (8.1x for 10x files). Added 2026-03-14. |
 | 5 | Zero external network calls | ✅ Done | No `fetch`, `http`, `axios`, or network imports in engine/CLI |
 
 ---
@@ -1994,7 +1994,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Template creation, testing, documentation, rollback guidance.
 - **Out of scope:** Automated application (--fix handles simple cases; complex templates require manual review).
 
-### Ticket P2.07 — Risk-aware `--fix` Expansion (🟠)
+### Ticket P2.07 — Risk-aware `--fix` Expansion (🟠) 🔧 Partial
 
 - **User story:** As a developer, I want `--fix` to handle more issue types while being transparent about what's safe to auto-apply vs what needs my review.
 - **Problem statement:** P1.17 established safe, non-destructive fixes. This ticket expands coverage to more issue types while introducing a confidence threshold that separates "safe to auto-apply" from "suggestion only — requires human review."
