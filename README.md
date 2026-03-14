@@ -71,7 +71,7 @@ node packages/cli/dist/cli.js . --threshold 50
 # Token budget analysis
 node packages/cli/dist/cli.js . --budget
 
-# Safe fix generation (AGENTS.md, .agentignore, .devcontainer, tsconfig.json)
+# Safe fix generation — scaffold a new repo to L3 Capable (61/100)
 node packages/cli/dist/cli.js . --fix --dry-run   # preview changes
 node packages/cli/dist/cli.js . --fix              # apply changes
 
@@ -86,14 +86,50 @@ node packages/cli/dist/cli.js --json-schema > ariscan.schema.json
 
 ---
 
+## Scaffold a New Repo to L3 in One Command
+
+Running `--fix` on any project generates up to 12 best-practice files — enough to jump from L2 Fragile (~35) to **L3 Capable (61/100)** in a single pass, even on an empty TypeScript project with just a `package.json` and one source file.
+
+```bash
+# Start with a fresh project
+mkdir my-project && cd my-project
+npm init -y
+# Run the scaffold
+npx @prontiq/ariscan-cli . --fix
+# Verify the score
+npx @prontiq/ariscan-cli .
+#  → Score: 61/100 — L3 Capable
+```
+
+**What gets generated:**
+
+| File | Pillar | Purpose |
+|---|---|---|
+| `AGENTS.md` | P1 Context | Agent-specific context with build commands, constraints, TODOs |
+| `.agentignore` | P1 Context | Excludes high-token, low-value files from agent context |
+| `.devcontainer/devcontainer.json` | P4 Environment | Language-appropriate dev container config |
+| `tsconfig.json` | P6 Build | Strict TypeScript config (TS projects only) |
+| `.nvmrc` | P4 Environment | Pins Node.js version (Node projects only) |
+| `.husky/pre-commit` | P8 Security | Pre-commit hooks for lint + typecheck |
+| `.github/CODEOWNERS` | P8 Security | Code ownership template |
+| `.github/pull_request_template.md` | P8 Security | PR template with AI-Code Review Checklist |
+| `docs/decisions/000-template.md` | P5 Docs | ADR template for architecture decisions |
+| `CHANGELOG.md` | P5 Docs | Keep-a-Changelog template |
+| `docker-compose.yml` | P3 Isolation | Service dependencies (when detected) |
+| `.gitleaks.toml` | P8 Security | Secrets scanning config |
+
+All generated files are **additive-only** — existing files are never overwritten. Running `--fix` twice is idempotent. Review the generated files and customize for your project; the TODO comments indicate where project-specific details should be added.
+
+---
+
 ## Current Status
 
 The core scanning engine is functional. What's built:
 
 - **@prontiq/ariscan-schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig, Confidence)
-- **@prontiq/ariscan-engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification, context budget analyzer, `.agentignore` parser, safe `--fix` generators
+- **@prontiq/ariscan-engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification, context budget analyzer, `.agentignore` parser, safe `--fix` generators (12 files: AGENTS.md, .agentignore, .devcontainer, tsconfig, .nvmrc, pre-commit hooks, CODEOWNERS, PR template, ADR template, CHANGELOG, docker-compose, .gitleaks.toml)
 - **@prontiq/ariscan-cli** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export; `--budget` token analysis; `--fix`/`--dry-run` safe file generation
-- **553 tests** across 22 test files
+- **611 tests** across 22 test files
 - **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
 - **Test fixtures** — hostile-repo (L1), capable-repo (L3)
 - **JSON Schema** — `ariscan.schema.json` in repo root for output validation
