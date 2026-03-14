@@ -118,6 +118,25 @@ jobs:
           fi
           echo "✓ ARI composite score $SCORE meets floor $FLOOR"
 
+      # ── Scaffold→scan gate: verify --fix output scores L3+ ──
+      - name: ARI scaffold gate
+        run: |
+          TMPDIR=$(mktemp -d)
+          mkdir -p "$TMPDIR/.git" "$TMPDIR/src"
+          echo '{"name":"scaffold-test","version":"1.0.0","type":"module","scripts":{"build":"tsc","test":"vitest run","lint":"eslint src/","typecheck":"tsc --noEmit"}}' > "$TMPDIR/package.json"
+          echo 'export function hello(): string { return "world"; }' > "$TMPDIR/src/index.ts"
+          echo 'import { it, expect } from "vitest"; it("works", () => { expect(1).toBe(1); });' > "$TMPDIR/src/index.test.ts"
+          node packages/cli/dist/cli.js "$TMPDIR" --fix 2>&1
+          node packages/cli/dist/cli.js "$TMPDIR" --json > scaffold-scan.json
+          SCAFFOLD_SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('scaffold-scan.json','utf8')).score)")
+          echo "### Scaffold score: $SCAFFOLD_SCORE/100" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SCAFFOLD_SCORE" -lt 46 ]; then
+            echo "::error::Scaffold score $SCAFFOLD_SCORE is below L3 floor (46)"
+            exit 1
+          fi
+          echo "✓ Scaffold scores $SCAFFOLD_SCORE (L3+ verified)"
+          rm -rf "$TMPDIR"
+
       # ── Per-pillar floor gate ──
       - name: ARI pillar floor gate
         run: |

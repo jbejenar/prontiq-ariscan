@@ -1,6 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { resolve } from "node:path";
+import { mkdtemp, writeFile, mkdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { scan } from "../scan.js";
+import { createRepoContext } from "../context/repo-context.js";
+import { detect } from "../detection/index.js";
+import { generateFixProposals } from "../fix/index.js";
 
 // Path to test fixtures
 const FIXTURES = resolve(import.meta.dirname, "../../../../packages/testing/fixtures");
@@ -61,4 +67,85 @@ describe("integration: scan", () => {
     expect(result.pillars).toHaveLength(8);
     expect(result.metadata.duration).toBeLessThan(60000);
   }, 60000);
+});
+
+describe("integration: scaffold→scan gate", () => {
+  let scaffoldDir: string;
+
+  beforeAll(async () => {
+    // Create a minimal TypeScript project
+    scaffoldDir = await mkdtemp(join(tmpdir(), "ari-scaffold-"));
+    await mkdir(join(scaffoldDir, ".git"), { recursive: true });
+    await mkdir(join(scaffoldDir, "src"), { recursive: true });
+
+    await writeFile(
+      join(scaffoldDir, "package.json"),
+      JSON.stringify({
+        name: "scaffold-test",
+        version: "1.0.0",
+        type: "module",
+        scripts: {
+          build: "tsc",
+          test: "vitest run",
+          lint: "eslint src/",
+          typecheck: "tsc --noEmit",
+        },
+      }),
+    );
+    await writeFile(
+      join(scaffoldDir, "src/index.ts"),
+      'export function hello(): string { return "world"; }\n',
+    );
+    await writeFile(
+      join(scaffoldDir, "src/index.test.ts"),
+      [
+        'import { describe, it, expect } from "vitest";',
+        'import { hello } from "./index.js";',
+        'describe("hello", () => {',
+        '  it("returns world", () => { expect(hello()).toBe("world"); });',
+        "});",
+        "",
+      ].join("\n"),
+    );
+
+    // Generate scaffold via --fix
+    const ctx = await createRepoContext(scaffoldDir);
+    const detection = await detect(ctx);
+    const proposals = await generateFixProposals(ctx, detection);
+
+    // Write all non-existing proposals
+    for (const p of proposals) {
+      if (!p.alreadyExists && p.content) {
+        const filePath = join(scaffoldDir, p.path);
+        await mkdir(join(filePath, ".."), { recursive: true });
+        await writeFile(filePath, p.content);
+      }
+    }
+  }, 30000);
+
+  afterAll(async () => {
+    if (scaffoldDir) {
+      await rm(scaffoldDir, { recursive: true, force: true });
+    }
+  });
+
+  it("scaffold scores at least L3 (46+)", async () => {
+    const result = await scan(scaffoldDir);
+    expect(result.score).toBeGreaterThanOrEqual(46);
+    expect(["L3", "L4", "L5"]).toContain(result.level);
+  }, 30000);
+
+  it("scaffold has no pillar below 10", async () => {
+    const result = await scan(scaffoldDir);
+    for (const pillar of result.pillars) {
+      expect(pillar.score).toBeGreaterThanOrEqual(10);
+    }
+  }, 30000);
+
+  it("scaffold P8 security is above gate threshold (40+)", async () => {
+    const result = await scan(scaffoldDir);
+    const p8 = result.pillars.find((p) => p.pillar === "P8");
+    expect(p8).toBeDefined();
+    expect(p8?.score).toBeGreaterThanOrEqual(40);
+  }, 30000);
 });

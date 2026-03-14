@@ -54,6 +54,7 @@ export async function generateFixProposals(
     dockerCompose,
     prTemplate,
     diWiring,
+    gitleaks,
   ] = await Promise.all([
     generateAgentsMd(context, detection),
     generateAgentignore(context, detection),
@@ -69,6 +70,7 @@ export async function generateFixProposals(
     generateDockerCompose(context, detection),
     generatePrTemplate(context),
     generateDiWiringExample(context, detection),
+    generateGitleaksConfig(context),
   ]);
 
   proposals.push(agentsMd, agentignore, devcontainer, providerSkeleton);
@@ -85,6 +87,7 @@ export async function generateFixProposals(
     dockerCompose,
     prTemplate,
     diWiring,
+    gitleaks,
   ]) {
     if (fix) {
       proposals.push(fix);
@@ -352,7 +355,7 @@ async function generateDevcontainer(
   const exists = await context.fileExists(".devcontainer/devcontainer.json");
 
   const primaryLang = detection?.languages.find((l) => l.primary);
-  const langName = primaryLang?.language ?? "universal";
+  const langName = normalizeLang(primaryLang?.language) || "universal";
 
   const image = getDevcontainerImage(langName);
   const features = getDevcontainerFeatures(langName, detection);
@@ -391,7 +394,7 @@ async function generateProviderSkeleton(
   detection: DetectionResult | undefined,
 ): Promise<FixProposal> {
   const primaryLang = detection?.languages.find((l) => l.primary);
-  const langName = primaryLang?.language ?? "typescript";
+  const langName = normalizeLang(primaryLang?.language) || "typescript";
 
   // Detect cloud SDK usage to determine which providers to scaffold
   const sdkPatterns = [
@@ -618,7 +621,8 @@ async function generateTsconfigStrictness(
   // Only applicable to TypeScript/JavaScript projects
   const primaryLang = detection?.languages.find((l) => l.primary);
   if (!primaryLang) return null;
-  if (primaryLang.language !== "typescript" && primaryLang.language !== "javascript") return null;
+  const lang = normalizeLang(primaryLang.language);
+  if (lang !== "typescript" && lang !== "javascript") return null;
 
   const exists = await context.fileExists("tsconfig.json");
 
@@ -694,7 +698,8 @@ async function generateNvmrc(
 ): Promise<FixProposal | null> {
   const primaryLang = detection?.languages.find((l) => l.primary);
   if (!primaryLang) return null;
-  if (primaryLang.language !== "typescript" && primaryLang.language !== "javascript") return null;
+  const nvmrcLang = normalizeLang(primaryLang.language);
+  if (nvmrcLang !== "typescript" && nvmrcLang !== "javascript") return null;
 
   // Check if any version pinning file already exists
   const versionFiles = [".nvmrc", ".node-version", ".tool-versions"];
@@ -744,8 +749,8 @@ async function generatePreCommitHooks(
   if (!hasPackageJson) return null;
 
   const primaryLang = detection?.languages.find((l) => l.primary);
-  if (primaryLang && primaryLang.language !== "typescript" && primaryLang.language !== "javascript")
-    return null;
+  const hookLang = normalizeLang(primaryLang?.language);
+  if (hookLang && hookLang !== "typescript" && hookLang !== "javascript") return null;
 
   const exists = await context.fileExists(".husky/pre-commit");
 
@@ -975,7 +980,7 @@ async function generateEnvVarDocumentation(
 
   // Scan source files for process.env.* / os.environ / os.Getenv patterns
   const primaryLang = detection?.languages.find((l) => l.primary);
-  const langName = primaryLang?.language ?? "unknown";
+  const langName = normalizeLang(primaryLang?.language) || "unknown";
 
   const envVars = new Map<string, { files: string[]; hasDefault: boolean }>();
 
@@ -1431,7 +1436,11 @@ async function detectRequiredServices(
 
   // Also check for framework-specific hints
   const primaryLang = detection?.languages.find((l) => l.primary);
-  if (primaryLang?.language === "python" && combined.includes("celery") && !seen.has("redis")) {
+  if (
+    normalizeLang(primaryLang?.language) === "python" &&
+    combined.includes("celery") &&
+    !seen.has("redis")
+  ) {
     seen.add("redis");
     services.push({
       name: "redis",
@@ -1467,11 +1476,7 @@ async function generatePrTemplate(context: RepoContext): Promise<FixProposal | n
     }
   }
 
-  // Only generate if repo uses git (virtually all do) and has no template yet
-  const hasGithubDir = context.files.some((f) => f.startsWith(".github/"));
-  if (!hasGithubDir && !context.files.some((f) => f === ".git" || f.startsWith(".git/"))) {
-    return null;
-  }
+  // Generate for any project — .github/ dir will be created by CODEOWNERS generator if needed
 
   const content = [
     "## Summary",
@@ -1539,12 +1544,12 @@ async function generateDiWiringExample(
 ): Promise<FixProposal | null> {
   if (!detection) return null;
 
-  const framework = detection.frameworks[0]?.framework;
+  const framework = detection.frameworks[0]?.framework?.toLowerCase();
   const primaryLang = detection.languages.find((l) => l.primary);
-  const lang = primaryLang?.language;
+  const lang = normalizeLang(primaryLang?.language);
 
   // Only generate for frameworks with well-known DI patterns
-  const template = getDiTemplate(framework, lang);
+  const template = getDiTemplate(framework, lang || undefined);
   if (!template) return null;
 
   const exists = await context.fileExists(template.path);
@@ -1891,7 +1896,62 @@ function getDiTemplate(framework: string | undefined, lang: string | undefined):
   return null;
 }
 
+/**
+ * Generate a .gitleaks.toml secrets scanning configuration.
+ * P2.06: Guided remediation template for security governance (P8).
+ */
+async function generateGitleaksConfig(context: RepoContext): Promise<FixProposal | null> {
+  const exists = await context.fileExists(".gitleaks.toml");
+  const existsTrufflehog = await context.fileExists(".trufflehog.yml");
+
+  if (exists || existsTrufflehog) {
+    return {
+      path: ".gitleaks.toml",
+      content: "",
+      rationale: "Secrets scanning config already exists.",
+      criterion: "ARI-SEC-003",
+      alreadyExists: true,
+      confidence: "high" as FixConfidence,
+    };
+  }
+
+  const content = [
+    "# .gitleaks.toml — Secrets scanning configuration",
+    "# Generated by ariscan --fix. Customize for your project.",
+    "# See: https://github.com/gitleaks/gitleaks",
+    "",
+    "[allowlist]",
+    '  description = "Global allowlist"',
+    "  paths = [",
+    '    "node_modules",',
+    '    "vendor",',
+    '    "__fixtures__",',
+    '    "*.test.ts",',
+    '    "*.test.js",',
+    '    "*.spec.ts",',
+    '    "*.spec.js"',
+    "  ]",
+    "",
+  ].join("\n");
+
+  return {
+    path: ".gitleaks.toml",
+    content,
+    rationale:
+      "Secrets scanning prevents accidental credential leaks. " +
+      "Gitleaks is lightweight and integrates with CI via GitHub Actions.",
+    criterion: "ARI-SEC-003",
+    alreadyExists: false,
+    confidence: "high" as FixConfidence,
+  };
+}
+
 // Helper functions
+
+/** Normalize detected language name to lowercase for comparison. */
+function normalizeLang(lang: string | undefined): string {
+  return (lang ?? "").toLowerCase();
+}
 
 function getPackageManager(context: RepoContext): string {
   if (context.files.some((f) => f === "pnpm-lock.yaml" || f === "pnpm-workspace.yaml"))

@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.7.0] — 2026-03-14
+
+### Added
+- **Engine (P2.06/P2.14):** `.gitleaks.toml` `--fix` generator — generates secrets scanning config with sensible allowlist for node_modules, vendor, test files. High confidence (auto-apply). Criterion: ARI-SEC-003. 3 new tests.
+- **Engine (P2.14):** Scaffold→scan integration test — generates scaffold in temp dir via `generateFixProposals`, then scans and asserts L3+ (46+), no pillar below 10, P8 security above gate (40+). 3 new tests.
+- **CI (P2.14):** Scaffold→scan gate in CI pipeline — creates a minimal TS repo, applies `--fix`, scans, and fails build if scaffold scores below L3 (46).
+
+### Fixed
+- **Engine:** Case-sensitivity bug in fix generators — language detection returns PascalCase (`"TypeScript"`) but generators compared lowercase (`"typescript"`). This caused tsconfig, .nvmrc, and pre-commit hook generators to silently return null for real repos. Added `normalizeLang()` helper. **Impact: scaffold jumped from 52→61 (L2→L3).**
+- **Engine:** PR template generator now generates for all projects (not just repos with existing `.github/` dir), enabling single-pass scaffold completeness.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Scaffold score:** 61/100 (L3 Capable) — up from 52 (was stuck at L2)
+- **Tests:** 515 engine tests passing (up from 509), 22 test files
+- **Roadmap progress:** Scaffold quality gate shipped, case-sensitivity P0 bug fixed
+
 ## [3.6.0] — 2026-03-14
 
 ### Added

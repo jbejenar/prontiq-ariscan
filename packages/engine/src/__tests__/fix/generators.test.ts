@@ -52,7 +52,7 @@ describe("generateFixProposals", () => {
 
     const proposals = await generateFixProposals(ctx, nodeDetection);
 
-    expect(proposals.length).toBeGreaterThanOrEqual(8);
+    expect(proposals.length).toBeGreaterThanOrEqual(9);
     const paths = proposals.map((p) => p.path);
     expect(paths).toContain("AGENTS.md");
     expect(paths).toContain(".agentignore");
@@ -64,6 +64,7 @@ describe("generateFixProposals", () => {
     expect(paths).toContain(".github/CODEOWNERS");
     expect(paths).toContain("docs/decisions/000-template.md");
     expect(paths).toContain("CHANGELOG.md");
+    expect(paths).toContain(".gitleaks.toml");
   });
 
   it("marks existing files as alreadyExists", async () => {
@@ -219,6 +220,7 @@ describe("generateFixProposals", () => {
         ".husky/pre-commit",
         ".github/CODEOWNERS",
         ".github/pull_request_template.md",
+        ".gitleaks.toml",
         ".env.example",
         "docs/decisions/001-something.md",
       ],
@@ -1011,7 +1013,7 @@ describe("generateFixProposals", () => {
       expect(pr?.alreadyExists).toBe(true);
     });
 
-    it("skips PR template when no .github dir exists", async () => {
+    it("generates PR template even when no .github dir exists yet", async () => {
       const ctx = createMockContext({
         "package.json": JSON.stringify({ name: "test" }),
       });
@@ -1019,7 +1021,8 @@ describe("generateFixProposals", () => {
       const proposals = await generateFixProposals(ctx, nodeDetection);
       const pr = proposals.find((p) => p.path === ".github/pull_request_template.md");
 
-      expect(pr).toBeUndefined();
+      expect(pr).toBeDefined();
+      expect(pr?.alreadyExists).toBe(false);
     });
   });
 
@@ -1138,6 +1141,47 @@ describe("generateFixProposals", () => {
       const di = proposals.find((p) => p.path === "src/providers/storage.module.example.ts");
 
       expect(di?.alreadyExists).toBe(true);
+    });
+  });
+
+  describe("gitleaks config generator", () => {
+    it("generates .gitleaks.toml for repos without secrets scanning", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const gitleaks = proposals.find((p) => p.path === ".gitleaks.toml");
+
+      expect(gitleaks).toBeDefined();
+      expect(gitleaks?.alreadyExists).toBe(false);
+      expect(gitleaks?.confidence).toBe("high");
+      expect(gitleaks?.content).toContain("[allowlist]");
+      expect(gitleaks?.content).toContain("node_modules");
+    });
+
+    it("marks as alreadyExists when .gitleaks.toml exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        ".gitleaks.toml": "[allowlist]",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const gitleaks = proposals.find((p) => p.path === ".gitleaks.toml");
+
+      expect(gitleaks?.alreadyExists).toBe(true);
+    });
+
+    it("marks as alreadyExists when .trufflehog.yml exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        ".trufflehog.yml": "detectors: []",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const gitleaks = proposals.find((p) => p.path === ".gitleaks.toml");
+
+      expect(gitleaks?.alreadyExists).toBe(true);
     });
   });
 });
