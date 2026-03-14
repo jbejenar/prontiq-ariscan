@@ -231,30 +231,78 @@ Exit codes:
   },
 });
 
-/** Format dry-run output showing what would be created. */
+/** Classify a fix proposal for dry-run display. */
+function classifyFix(p: FixProposal): "AUTO-APPLY" | "SUGGEST" | "MANUAL" | "SKIPPED" {
+  if (p.alreadyExists) return "SKIPPED";
+  switch (p.confidence) {
+    case "high":
+      return "AUTO-APPLY";
+    case "medium":
+      return "SUGGEST";
+    case "low":
+      return "MANUAL";
+    default:
+      return "SUGGEST";
+  }
+}
+
+/** Format dry-run output showing what would be created with confidence classification. */
 function formatDryRun(actionable: FixProposal[], skipped: FixProposal[]): string {
   const lines: string[] = [];
   lines.push("\n--- Dry Run: Proposed Changes ---\n");
 
-  for (const p of actionable) {
-    lines.push(`CREATE  ${p.path}`);
-    lines.push(`  Criterion: ${p.criterion}`);
-    lines.push(`  Rationale: ${p.rationale}`);
-    lines.push(`  Size: ${p.content.length} bytes`);
-    lines.push("");
-  }
+  // Group actionable by classification
+  const autoApply = actionable.filter((p) => classifyFix(p) === "AUTO-APPLY");
+  const suggest = actionable.filter((p) => classifyFix(p) === "SUGGEST");
+  const manual = actionable.filter((p) => classifyFix(p) === "MANUAL");
 
-  if (skipped.length > 0) {
-    lines.push("--- Skipped (already exist) ---\n");
-    for (const p of skipped) {
-      lines.push(`SKIP    ${p.path}`);
+  if (autoApply.length > 0) {
+    lines.push("[AUTO-APPLY · high confidence]");
+    for (const p of autoApply) {
+      lines.push(`  CREATE  ${p.path}`);
+      lines.push(`  |-- ${p.criterion}: ${truncateRationale(p.rationale)}`);
     }
     lines.push("");
   }
 
-  lines.push(`Total: ${actionable.length} file(s) to create, ${skipped.length} skipped\n`);
+  if (suggest.length > 0) {
+    lines.push("[SUGGEST · medium confidence]");
+    for (const p of suggest) {
+      lines.push(`  CREATE  ${p.path}`);
+      lines.push(`  |-- ${p.criterion}: ${truncateRationale(p.rationale)}`);
+    }
+    lines.push("");
+  }
+
+  if (manual.length > 0) {
+    lines.push("[MANUAL · low confidence]");
+    for (const p of manual) {
+      lines.push(`  CREATE  ${p.path}`);
+      lines.push(`  |-- ${p.criterion}: ${truncateRationale(p.rationale)}`);
+    }
+    lines.push("");
+  }
+
+  if (skipped.length > 0) {
+    lines.push("[SKIPPED -- already exists]");
+    for (const p of skipped) {
+      lines.push(`  SKIP    ${p.path}`);
+    }
+    lines.push("");
+  }
+
+  lines.push(
+    `Total: ${autoApply.length} auto-apply, ${suggest.length} suggest, ${manual.length} manual, ${skipped.length} skipped\n`,
+  );
   lines.push("Run without --dry-run to apply changes.\n");
   return lines.join("\n");
+}
+
+/** Truncate rationale to first sentence for dry-run display. */
+function truncateRationale(rationale: string): string {
+  const firstSentence = rationale.split(". ")[0];
+  if (!firstSentence) return rationale;
+  return firstSentence.endsWith(".") ? firstSentence : firstSentence + ".";
 }
 
 /** Apply fix proposals by writing files to disk. */

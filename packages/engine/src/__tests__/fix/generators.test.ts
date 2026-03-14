@@ -42,20 +42,26 @@ const pythonDetection: DetectionResult = {
 };
 
 describe("generateFixProposals", () => {
-  it("proposes AGENTS.md, .agentignore, devcontainer, provider, and tsconfig for empty TS repo", async () => {
+  it("proposes all fix files for empty TS repo with lint+typecheck", async () => {
     const ctx = createMockContext({
-      "package.json": JSON.stringify({ name: "test", scripts: { build: "tsc", test: "vitest" } }),
+      "package.json": JSON.stringify({
+        name: "test",
+        scripts: { build: "tsc", test: "vitest", lint: "eslint .", typecheck: "tsc --noEmit" },
+      }),
     });
 
     const proposals = await generateFixProposals(ctx, nodeDetection);
 
-    expect(proposals.length).toBe(5);
+    expect(proposals.length).toBe(8);
     const paths = proposals.map((p) => p.path);
     expect(paths).toContain("AGENTS.md");
     expect(paths).toContain(".agentignore");
     expect(paths).toContain(".devcontainer/devcontainer.json");
     expect(paths).toContain("src/providers/storage.provider.ts");
     expect(paths).toContain("tsconfig.json");
+    expect(paths).toContain(".nvmrc");
+    expect(paths).toContain(".husky/pre-commit");
+    expect(paths).toContain(".github/CODEOWNERS");
   });
 
   it("marks existing files as alreadyExists", async () => {
@@ -191,6 +197,11 @@ describe("generateFixProposals", () => {
       {
         "AGENTS.md": "# exists",
         ".agentignore": "dist/",
+        ".nvmrc": "22",
+        "package.json": JSON.stringify({
+          name: "test",
+          scripts: { lint: "eslint .", typecheck: "tsc --noEmit" },
+        }),
         "tsconfig.json": JSON.stringify({
           compilerOptions: {
             strict: true,
@@ -199,7 +210,12 @@ describe("generateFixProposals", () => {
           },
         }),
       },
-      [".devcontainer/devcontainer.json", "src/providers/storage.provider.ts"],
+      [
+        ".devcontainer/devcontainer.json",
+        "src/providers/storage.provider.ts",
+        ".husky/pre-commit",
+        ".github/CODEOWNERS",
+      ],
     );
 
     const proposals = await generateFixProposals(ctx, nodeDetection);
@@ -314,6 +330,259 @@ describe("generateFixProposals", () => {
       expect(tsconfig).toBeDefined();
       expect(tsconfig?.alreadyExists).toBe(true);
       expect(tsconfig?.rationale).toContain("could not be parsed");
+    });
+  });
+
+  describe(".nvmrc generator (P2.07)", () => {
+    it("generates .nvmrc for TS repo without one", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const nvmrc = proposals.find((p) => p.path === ".nvmrc");
+
+      expect(nvmrc).toBeDefined();
+      expect(nvmrc?.alreadyExists).toBe(false);
+      expect(nvmrc?.criterion).toBe("ARI-ENV-003");
+      expect(nvmrc?.confidence).toBe("high");
+      expect(nvmrc?.content.trim()).toBe("22");
+    });
+
+    it("reads Node version from engines field", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          engines: { node: ">=20.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const nvmrc = proposals.find((p) => p.path === ".nvmrc");
+
+      expect(nvmrc?.content.trim()).toBe("20");
+    });
+
+    it("marks alreadyExists if .nvmrc present", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        ".nvmrc": "20",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const nvmrc = proposals.find((p) => p.path === ".nvmrc");
+
+      expect(nvmrc?.alreadyExists).toBe(true);
+    });
+
+    it("marks alreadyExists if .node-version present", async () => {
+      const ctx = createMockContext({ "package.json": JSON.stringify({ name: "test" }) }, [
+        ".node-version",
+      ]);
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const nvmrc = proposals.find((p) => p.path === ".nvmrc");
+
+      expect(nvmrc?.alreadyExists).toBe(true);
+    });
+
+    it("skips .nvmrc for Python projects", async () => {
+      const ctx = createMockContext({
+        "pyproject.toml": "[project]\nname = 'test'",
+      });
+
+      const proposals = await generateFixProposals(ctx, pythonDetection);
+      const nvmrc = proposals.find((p) => p.path === ".nvmrc");
+
+      expect(nvmrc).toBeUndefined();
+    });
+  });
+
+  describe("pre-commit hooks generator (P2.07)", () => {
+    it("generates .husky/pre-commit for TS repo with lint+typecheck", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          scripts: { lint: "eslint .", typecheck: "tsc --noEmit" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const preCommit = proposals.find((p) => p.path === ".husky/pre-commit");
+
+      expect(preCommit).toBeDefined();
+      expect(preCommit?.alreadyExists).toBe(false);
+      expect(preCommit?.criterion).toBe("ARI-SEC-002");
+      expect(preCommit?.confidence).toBe("medium");
+      expect(preCommit?.content).toContain("npm lint");
+      expect(preCommit?.content).toContain("npm typecheck");
+      expect(preCommit?.content).toContain("#!/usr/bin/env sh");
+    });
+
+    it("uses pnpm when pnpm lockfile present", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          scripts: { lint: "eslint ." },
+        }),
+        "pnpm-lock.yaml": "lockfileVersion: '9.0'",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const preCommit = proposals.find((p) => p.path === ".husky/pre-commit");
+
+      expect(preCommit?.content).toContain("pnpm lint");
+    });
+
+    it("skips when no lint or typecheck scripts", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          scripts: { build: "tsc", test: "vitest" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const preCommit = proposals.find((p) => p.path === ".husky/pre-commit");
+
+      expect(preCommit).toBeUndefined();
+    });
+
+    it("marks alreadyExists if .husky/pre-commit present", async () => {
+      const ctx = createMockContext(
+        {
+          "package.json": JSON.stringify({
+            name: "test",
+            scripts: { lint: "eslint ." },
+          }),
+        },
+        [".husky/pre-commit"],
+      );
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const preCommit = proposals.find((p) => p.path === ".husky/pre-commit");
+
+      expect(preCommit?.alreadyExists).toBe(true);
+    });
+
+    it("skips for Python projects", async () => {
+      const ctx = createMockContext({
+        "pyproject.toml": "[project]\nname = 'test'",
+      });
+
+      const proposals = await generateFixProposals(ctx, pythonDetection);
+      const preCommit = proposals.find((p) => p.path === ".husky/pre-commit");
+
+      expect(preCommit).toBeUndefined();
+    });
+  });
+
+  describe("CODEOWNERS generator (P2.07)", () => {
+    it("generates .github/CODEOWNERS for repo without one", async () => {
+      const ctx = createMockContext(
+        {
+          "package.json": JSON.stringify({ name: "test" }),
+        },
+        ["src/index.ts"],
+      );
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const codeowners = proposals.find((p) => p.path === ".github/CODEOWNERS");
+
+      expect(codeowners).toBeDefined();
+      expect(codeowners?.alreadyExists).toBe(false);
+      expect(codeowners?.criterion).toBe("ARI-SEC-001");
+      expect(codeowners?.confidence).toBe("low");
+      expect(codeowners?.content).toContain("@TODO-add-default-owner");
+      expect(codeowners?.content).toContain("src/");
+    });
+
+    it("marks alreadyExists if CODEOWNERS in root", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        CODEOWNERS: "* @team",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const codeowners = proposals.find((p) => p.path === ".github/CODEOWNERS");
+
+      expect(codeowners?.alreadyExists).toBe(true);
+    });
+
+    it("marks alreadyExists if CODEOWNERS in .github/", async () => {
+      const ctx = createMockContext({ "package.json": JSON.stringify({ name: "test" }) }, [
+        ".github/CODEOWNERS",
+      ]);
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const codeowners = proposals.find((p) => p.path === ".github/CODEOWNERS");
+
+      expect(codeowners?.alreadyExists).toBe(true);
+    });
+
+    it("includes packages/ section for monorepo-like repos", async () => {
+      const ctx = createMockContext({ "package.json": JSON.stringify({ name: "test" }) }, [
+        "packages/core/index.ts",
+      ]);
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const codeowners = proposals.find((p) => p.path === ".github/CODEOWNERS");
+
+      expect(codeowners?.content).toContain("packages/");
+    });
+  });
+
+  describe("confidence field (P2.07)", () => {
+    it("every proposal has a valid confidence field", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          scripts: { lint: "eslint .", typecheck: "tsc --noEmit" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+
+      for (const p of proposals) {
+        expect(["high", "medium", "low"]).toContain(p.confidence);
+      }
+    });
+
+    it("file-creation proposals have high confidence for core generators", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const agentsMd = proposals.find((p) => p.path === "AGENTS.md");
+      const agentignore = proposals.find((p) => p.path === ".agentignore");
+      const devcontainer = proposals.find((p) => p.path === ".devcontainer/devcontainer.json");
+
+      expect(agentsMd?.confidence).toBe("high");
+      expect(agentignore?.confidence).toBe("high");
+      expect(devcontainer?.confidence).toBe("high");
+    });
+
+    it("provider skeleton has medium confidence", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const provider = proposals.find((p) => p.path === "src/providers/storage.provider.ts");
+
+      expect(provider?.confidence).toBe("medium");
+    });
+
+    it("CODEOWNERS has low confidence", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const codeowners = proposals.find((p) => p.path === ".github/CODEOWNERS");
+
+      expect(codeowners?.confidence).toBe("low");
     });
   });
 });
