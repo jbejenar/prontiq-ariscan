@@ -66,8 +66,11 @@ pnpm lint             # Lint all packages (eslint)
 pnpm typecheck        # Type-check all packages (tsc --noEmit)
 pnpm format           # Format with prettier
 pnpm format:check     # Check formatting
+pnpm selftest         # Self-scan dogfood gate (score must be >= 70)
 pnpm clean            # Remove dist/ and build artifacts
 ```
+
+**Quality gate:** This repo dogfoods its own scanner. `pnpm selftest` runs `ariscan` against the repo itself and fails if the score drops below 70 (L4 Productive). CI also enforces a per-pillar floor of 35. Run `pnpm selftest` after any change that could affect the score.
 
 ## Code Conventions
 

@@ -2222,6 +2222,23 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Consent flow, payload definition, transmission, documentation, privacy policy.
 - **Out of scope:** Analytics dashboard (internal tooling), real-time processing, user-facing aggregates.
 
+### Ticket P2.14 — Dogfood Quality Gate (🔴) ✅ Done (2026-03-14)
+
+- **User story:** As a contributor, I need the CI pipeline to enforce a high self-scan score so the repo that ships a readiness scanner is itself pristine.
+- **Problem statement:** The repo ships a tool that measures agent readiness. If the repo itself doesn't score high, credibility is lost. A hard quality gate ensures every merge maintains the standard.
+- **Deliverables:**
+  - CI composite score floor raised from 55 → 70 (L4 Productive minimum).
+  - Per-pillar floor gate: no single pillar allowed below 35 (prevents single-pillar collapse).
+  - `.ariscan.yml` policy file with `threshold: 70` for local dogfooding.
+  - `pnpm selftest` / `pnpm selftest:json` scripts for local quality verification.
+- **Acceptance criteria:**
+  - CI build fails if composite ARI score drops below 70.
+  - CI build fails if any individual pillar drops below 35.
+  - `pnpm selftest` exits non-zero if score < 70.
+  - `.ariscan.yml` is checked in and loaded by the scanner when run locally.
+- **Verification:** `pnpm selftest` exits 0 with current score 76/100 (L4). All pillars ≥ 40.
+- **Dependencies:** P1.01 (CLI), P1.13 (composite scoring).
+
 ### P2 Exit Criteria
 
 - Context audit and budget outputs are stable across repeated runs.

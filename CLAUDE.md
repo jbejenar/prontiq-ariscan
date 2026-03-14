@@ -11,6 +11,7 @@ pnpm test             # run all tests
 pnpm lint             # lint all packages
 pnpm typecheck        # type-check (tsc --noEmit)
 pnpm format:check     # check formatting
+pnpm selftest         # self-scan dogfood gate (must score >= 70)
 ```
 
 Build order matters: `schema` -> `engine` -> `cli`. Turborepo handles this automatically.

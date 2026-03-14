@@ -15,7 +15,8 @@ concurrency:
 
 env:
   NODE_VERSION: 22
-  ARI_SCORE_FLOOR: 55
+  ARI_SCORE_FLOOR: 70
+  ARI_PILLAR_FLOOR: 35
 
 jobs:
   # ─── Fast checks (no build needed) ────────────────────────────
@@ -106,16 +107,31 @@ jobs:
           path: scan-result.json
           retention-days: 90
 
-      # ── Score floor gate ──
-      - name: ARI score gate
+      # ── Composite score floor gate ──
+      - name: ARI composite score gate
         run: |
           SCORE=${{ steps.ari.outputs.score }}
           FLOOR=${{ env.ARI_SCORE_FLOOR }}
           if [ "$SCORE" -lt "$FLOOR" ]; then
-            echo "::error::ARI score $SCORE is below floor $FLOOR"
+            echo "::error::ARI composite score $SCORE is below floor $FLOOR"
             exit 1
           fi
-          echo "ARI score $SCORE meets floor $FLOOR"
+          echo "✓ ARI composite score $SCORE meets floor $FLOOR"
+
+      # ── Per-pillar floor gate ──
+      - name: ARI pillar floor gate
+        run: |
+          PILLAR_FLOOR=${{ env.ARI_PILLAR_FLOOR }}
+          FAILED=$(node -e "
+            const r = JSON.parse(require('fs').readFileSync('scan-result.json','utf8'));
+            const floor = ${PILLAR_FLOOR};
+            const failed = (r.pillars||[]).filter(p => p.score < floor);
+            if (failed.length > 0) {
+              failed.forEach(p => console.error('::error::' + p.pillar + ' ' + p.name + ' score ' + p.score + ' is below pillar floor ' + floor));
+              process.exit(1);
+            }
+            (r.pillars||[]).forEach(p => console.log('✓ ' + p.pillar + ' ' + p.name + ': ' + p.score + '/100'));
+          ")
 
   # ─── Dependency review (PRs only) ─────────────────────────────
   dependency-review:

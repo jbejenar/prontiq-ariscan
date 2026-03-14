@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.6.0] — 2026-03-14
+
+### Added
+- **CI (P2.14):** Dogfood quality gate — CI composite score floor raised from 55 → 70 (L4 minimum). New per-pillar floor gate (35 minimum per pillar, fails build if any pillar collapses). Ensures the repo that ships a readiness scanner is itself pristine.
+- **Repo (P2.14):** `.ariscan.yml` policy file — `threshold: 70` for local dogfooding via the scanner's own config system.
+- **Repo (P2.14):** `pnpm selftest` / `pnpm selftest:json` scripts — one-command local quality verification. Exits non-zero if score < 70.
+- **Docs (P2.14):** AGENTS.md and CLAUDE.md updated with `pnpm selftest` command and quality gate explanation.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Tests:** 509 engine tests passing, 22 test files
+- **Roadmap progress:** P2.14 dogfood quality gate shipped
+
 ## [3.5.0] — 2026-03-14
 
 ### Added
@@ -7,9 +20,12 @@
 - **Engine (P2.06):** PR template `--fix` generator — generates `.github/pull_request_template.md` with Summary, Changes, Test Plan, AI-Code Review Checklist (8-point human-oversight checklist for AI-generated code), and Rollback Plan sections. Medium confidence (suggest). Criterion: ARI-SEC-003. 6 new tests.
 - **Engine (P2.06):** DI wiring example `--fix` generators — framework-specific dependency injection examples for NestJS (TypeScript), FastAPI (Python), Spring Boot (Java), and Go (plain interfaces). Shows interface→real impl→in-memory test double→wiring pattern. Low confidence (manual review). Criterion: ARI-TST-001. 6 new tests.
 
+### Fixed
+- **Engine:** Docker-compose environment entries now use correct YAML list syntax (`- KEY=value`).
+
 ### Metrics
 - **Self-scan score:** 76/100 (L4 Productive) — no regression
-- **Tests:** 506 engine tests passing (up from 485), 22 test files
+- **Tests:** 509 engine tests passing (up from 485), 22 test files
 - **Roadmap progress:** P2.06 docker-compose, PR template, and DI wiring templates shipped
 
 ## [3.4.0] — 2026-03-14
