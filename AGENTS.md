@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Prontiq ARI (Agent Readiness Index) is a CLI tool that scores repositories (0-100) on how ready they are for AI coding agents. Run `npx ariscan .` to scan a repo. The score is derived from 8 research-calibrated pillars. This is an open-core product: the CLI is licensed under the Elastic License 2.0 (ELv2) — free to use, modify, and redistribute, but cannot be offered as a managed service or resold; future SaaS layers add longitudinal tracking and remediation.
+Prontiq ARI (Agent Readiness Index) is a CLI tool that scores repositories (0-100) on how ready they are for AI coding agents. Run `npx @prontiq/ariscan-cli .` to scan a repo. The score is derived from 8 research-calibrated pillars. This is an open-core product: the CLI is licensed under the Elastic License 2.0 (ELv2) — free to use, modify, and redistribute, but cannot be offered as a managed service or resold; future SaaS layers add longitudinal tracking and remediation.
 
 ## Architecture
 

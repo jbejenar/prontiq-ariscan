@@ -1815,7 +1815,7 @@ Build and publish order must follow the dependency graph:
 
 1. `@prontiq/ariscan-schema` (no internal deps)
 2. `@prontiq/ariscan-engine` (depends on `@prontiq/ariscan-schema`)
-3. `ariscan` (depends on both)
+3. `@prontiq/ariscan-cli` (depends on both)
 
 Changesets will coordinate version bumps so that a schema change triggers engine and CLI releases as needed.
 
@@ -2852,7 +2852,7 @@ P1 deterministic scoring foundation
 
 | Package | Status | Purpose |
 |---|---|---|
-| `ariscan` | Core | CLI scan, scoring, reporting, policy execution |
+| `@prontiq/ariscan-cli` | Core | CLI scan, scoring, reporting, policy execution |
 | `@prontiq/core` | Planned | Shared rubric models, score contracts, policy schemas |
 | `@prontiq/sdk` | Planned | Programmatic integration for reporting/workflow automation |
 | `@prontiq/agentignore` | Planned | `.agentignore` parser (MIT, reusable by agent vendors) |
