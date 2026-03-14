@@ -33,6 +33,7 @@ Examples:
   npx ariscan . --budget           # Analyze token budget
   npx ariscan . --fix              # Generate missing config files
   npx ariscan . --fix --dry-run   # Preview changes without writing
+  npx ariscan . --fix --force     # Overwrite existing files
 
 Exit codes:
   0  Score meets or exceeds threshold (default: 0)
@@ -101,6 +102,11 @@ Exit codes:
       description: "Preview --fix changes without writing files",
       default: false,
     },
+    force: {
+      type: "boolean",
+      description: "With --fix: overwrite existing files (requires explicit opt-in)",
+      default: false,
+    },
   },
   async run({ args }) {
     if (args.jsonSchema) {
@@ -148,18 +154,27 @@ Exit codes:
         const detection = await detect(context);
         const proposals = await generateFixProposals(context, detection);
 
-        const actionable = proposals.filter((p) => !p.alreadyExists);
-        const skipped = proposals.filter((p) => p.alreadyExists);
+        const forceMode = args.force === true;
 
-        if (actionable.length === 0) {
+        // In force mode, alreadyExists proposals become overwrites instead of skips
+        const actionable = forceMode
+          ? proposals.filter((p) => !p.alreadyExists)
+          : proposals.filter((p) => !p.alreadyExists);
+        const overwrites = forceMode ? proposals.filter((p) => p.alreadyExists) : [];
+        const skipped = forceMode ? [] : proposals.filter((p) => p.alreadyExists);
+
+        if (actionable.length === 0 && overwrites.length === 0) {
           process.stderr.write("\nAll files already exist. Nothing to generate.\n");
+          if (!forceMode && proposals.some((p) => p.alreadyExists)) {
+            process.stderr.write("Use --fix --force to overwrite existing files.\n");
+          }
           return;
         }
 
         if (args.dryRun) {
-          process.stdout.write(formatDryRun(actionable, skipped));
+          process.stdout.write(formatDryRun(actionable, skipped, overwrites));
         } else {
-          await applyProposals(repoPath, actionable, skipped, args.quiet);
+          await applyProposals(repoPath, actionable, skipped, args.quiet, overwrites);
         }
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
@@ -247,7 +262,11 @@ function classifyFix(p: FixProposal): "AUTO-APPLY" | "SUGGEST" | "MANUAL" | "SKI
 }
 
 /** Format dry-run output showing what would be created with confidence classification. */
-function formatDryRun(actionable: FixProposal[], skipped: FixProposal[]): string {
+function formatDryRun(
+  actionable: FixProposal[],
+  skipped: FixProposal[],
+  overwrites: FixProposal[] = [],
+): string {
   const lines: string[] = [];
   lines.push("\n--- Dry Run: Proposed Changes ---\n");
 
@@ -283,6 +302,15 @@ function formatDryRun(actionable: FixProposal[], skipped: FixProposal[]): string
     lines.push("");
   }
 
+  if (overwrites.length > 0) {
+    lines.push("[OVERWRITE · --force]");
+    for (const p of overwrites) {
+      lines.push(`  OVERWRITE  ${p.path}`);
+      lines.push(`  |-- ${p.criterion}: ${truncateRationale(p.rationale)}`);
+    }
+    lines.push("");
+  }
+
   if (skipped.length > 0) {
     lines.push("[SKIPPED -- already exists]");
     for (const p of skipped) {
@@ -291,8 +319,9 @@ function formatDryRun(actionable: FixProposal[], skipped: FixProposal[]): string
     lines.push("");
   }
 
+  const totalNew = autoApply.length + suggest.length + manual.length;
   lines.push(
-    `Total: ${autoApply.length} auto-apply, ${suggest.length} suggest, ${manual.length} manual, ${skipped.length} skipped\n`,
+    `Total: ${totalNew} create, ${overwrites.length} overwrite, ${skipped.length} skipped\n`,
   );
   lines.push("Run without --dry-run to apply changes.\n");
   return lines.join("\n");
@@ -311,6 +340,7 @@ async function applyProposals(
   actionable: FixProposal[],
   skipped: FixProposal[],
   quiet: boolean,
+  overwrites: FixProposal[] = [],
 ): Promise<void> {
   const { mkdir } = await import("node:fs/promises");
   const { dirname, join } = await import("node:path");
@@ -325,15 +355,29 @@ async function applyProposals(
     }
   }
 
+  for (const p of overwrites) {
+    const fullPath = join(repoPath, p.path);
+    const dir = dirname(fullPath);
+    await mkdir(dir, { recursive: true });
+    await writeFile(fullPath, p.content, "utf-8");
+    if (!quiet) {
+      process.stderr.write(`  OVERWRITE  ${p.path}  (${p.criterion}, --force)\n`);
+    }
+  }
+
   for (const p of skipped) {
     if (!quiet) {
       process.stderr.write(`  SKIP    ${p.path}  (already exists)\n`);
     }
   }
 
+  const totalWritten = actionable.length + overwrites.length;
   if (!quiet) {
+    const parts: string[] = [];
+    if (actionable.length > 0) parts.push(`${actionable.length} created`);
+    if (overwrites.length > 0) parts.push(`${overwrites.length} overwritten`);
     process.stderr.write(
-      `\n${actionable.length} file(s) created. Review and customize the generated files.\n`,
+      `\n${totalWritten} file(s) written (${parts.join(", ")}). Review and customize the generated files.\n`,
     );
   }
 }
