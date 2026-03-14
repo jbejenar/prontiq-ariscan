@@ -157,9 +157,7 @@ Exit codes:
         const forceMode = args.force === true;
 
         // In force mode, alreadyExists proposals become overwrites instead of skips
-        const actionable = forceMode
-          ? proposals.filter((p) => !p.alreadyExists)
-          : proposals.filter((p) => !p.alreadyExists);
+        const actionable = proposals.filter((p) => !p.alreadyExists);
         const overwrites = forceMode ? proposals.filter((p) => p.alreadyExists) : [];
         const skipped = forceMode ? [] : proposals.filter((p) => p.alreadyExists);
 
