@@ -884,6 +884,55 @@ describe("generateFixProposals", () => {
       expect(compose?.content).toContain("pg_isready");
       expect(compose?.content).toContain("redis-cli");
     });
+
+    it("detects MySQL from mysql2 dependency", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { mysql2: "^3.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("mysql:");
+      expect(compose?.content).toContain("mysql:8.0");
+      expect(compose?.content).toContain("3306");
+      expect(compose?.content).toContain("MYSQL_DATABASE=app_dev");
+    });
+
+    it("detects MongoDB from mongoose dependency", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { mongoose: "^8.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("mongo:");
+      expect(compose?.content).toContain("mongo:7");
+      expect(compose?.content).toContain("27017");
+    });
+
+    it("generates environment entries with list syntax (- prefix)", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { pg: "^8.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose?.content).toContain("      - POSTGRES_USER=dev");
+    });
   });
 
   describe("PR template generator", () => {

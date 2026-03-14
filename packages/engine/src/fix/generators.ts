@@ -1227,7 +1227,7 @@ async function generateDockerCompose(
     if (svc.environment.length > 0) {
       lines.push("    environment:");
       for (const env of svc.environment) {
-        lines.push(`      ${env}`);
+        lines.push(`      - ${env}`);
       }
     }
     if (svc.volumes.length > 0) {
