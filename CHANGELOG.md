@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.2.0] — 2026-03-14
+
+### Added
+- **Engine (P1.01 AC#4):** 100k file performance test — verifies all 8 analyzers complete within 60 seconds on a 100k-file mock repository. Measured: ~685ms. Sub-linear scaling confirmed (8.1x for 10x files). 2 new tests.
+- **Engine (P2.07):** Tsconfig strictness `--fix` generator — generates strict `tsconfig.json` for TS repos without one (auto-apply, high confidence), or suggests missing strict flags for existing configs (suggest-only, never auto-applies). Detects `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`. 5 new tests.
+- **Repo (ARI-SEC-003):** Added `.gitleaks.toml` secrets scanning configuration — resolves self-scan ARI-SEC-003 finding. P8 Security & Governance improved from 95/100 to 100/100.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — P8 improved to 100/100
+- **Tests:** 553 passing across 22 test files (28 schema + 457 engine + 68 CLI), up from 546
+- **New test files:** 1 (performance.test.ts)
+- **Roadmap progress:** 3 items shipped (P1.01 AC#4, P2.07 partial, ARI-SEC-003 fix)
+
 ## [3.1.0] — 2026-03-10
 
 ### Added

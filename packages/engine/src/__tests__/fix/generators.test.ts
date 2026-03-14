@@ -42,19 +42,20 @@ const pythonDetection: DetectionResult = {
 };
 
 describe("generateFixProposals", () => {
-  it("proposes AGENTS.md, .agentignore, and devcontainer for empty repo", async () => {
+  it("proposes AGENTS.md, .agentignore, devcontainer, provider, and tsconfig for empty TS repo", async () => {
     const ctx = createMockContext({
       "package.json": JSON.stringify({ name: "test", scripts: { build: "tsc", test: "vitest" } }),
     });
 
     const proposals = await generateFixProposals(ctx, nodeDetection);
 
-    expect(proposals.length).toBe(4);
+    expect(proposals.length).toBe(5);
     const paths = proposals.map((p) => p.path);
     expect(paths).toContain("AGENTS.md");
     expect(paths).toContain(".agentignore");
     expect(paths).toContain(".devcontainer/devcontainer.json");
     expect(paths).toContain("src/providers/storage.provider.ts");
+    expect(paths).toContain("tsconfig.json");
   });
 
   it("marks existing files as alreadyExists", async () => {
@@ -190,12 +191,21 @@ describe("generateFixProposals", () => {
       {
         "AGENTS.md": "# exists",
         ".agentignore": "dist/",
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: {
+            strict: true,
+            noUncheckedIndexedAccess: true,
+            exactOptionalPropertyTypes: true,
+          },
+        }),
       },
       [".devcontainer/devcontainer.json", "src/providers/storage.provider.ts"],
     );
 
     const proposals = await generateFixProposals(ctx, nodeDetection);
-    expect(proposals.every((p) => p.alreadyExists)).toBe(true);
+    // tsconfig is fully strict, so no tsconfig proposal is generated
+    const nonTsconfigProposals = proposals.filter((p) => p.path !== "tsconfig.json");
+    expect(nonTsconfigProposals.every((p) => p.alreadyExists)).toBe(true);
   });
 
   it("generates for repo with no package.json (Go project)", async () => {
@@ -228,5 +238,82 @@ describe("generateFixProposals", () => {
 
     expect(agentsMd?.content).toContain("typescript");
     expect(agentsMd?.content).toContain("express");
+  });
+
+  describe("tsconfig strictness generator (P2.07)", () => {
+    it("generates tsconfig.json for TS repo without one", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const tsconfig = proposals.find((p) => p.path === "tsconfig.json");
+
+      expect(tsconfig).toBeDefined();
+      expect(tsconfig?.alreadyExists).toBe(false);
+      expect(tsconfig?.criterion).toBe("ARI-BLD-001");
+
+      const parsed = JSON.parse(tsconfig?.content ?? "{}");
+      expect(parsed.compilerOptions.strict).toBe(true);
+      expect(parsed.compilerOptions.noUncheckedIndexedAccess).toBe(true);
+    });
+
+    it("suggests improvements for non-strict existing tsconfig", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "commonjs" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const tsconfig = proposals.find((p) => p.path === "tsconfig.json");
+
+      expect(tsconfig).toBeDefined();
+      expect(tsconfig?.alreadyExists).toBe(true);
+      expect(tsconfig?.rationale).toContain("strict");
+      expect(tsconfig?.rationale).toContain("Do NOT auto-apply");
+    });
+
+    it("skips tsconfig fix when already fully strict", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: {
+            strict: true,
+            noUncheckedIndexedAccess: true,
+            exactOptionalPropertyTypes: true,
+          },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const tsconfig = proposals.find((p) => p.path === "tsconfig.json");
+      expect(tsconfig).toBeUndefined();
+    });
+
+    it("skips tsconfig for non-TypeScript projects", async () => {
+      const ctx = createMockContext({
+        "pyproject.toml": "[project]\nname = 'test'",
+      });
+
+      const proposals = await generateFixProposals(ctx, pythonDetection);
+      const tsconfig = proposals.find((p) => p.path === "tsconfig.json");
+      expect(tsconfig).toBeUndefined();
+    });
+
+    it("handles unparseable tsconfig gracefully", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "tsconfig.json": "{ invalid json",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const tsconfig = proposals.find((p) => p.path === "tsconfig.json");
+
+      expect(tsconfig).toBeDefined();
+      expect(tsconfig?.alreadyExists).toBe(true);
+      expect(tsconfig?.rationale).toContain("could not be parsed");
+    });
   });
 });

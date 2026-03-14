@@ -110,7 +110,7 @@ packages/engine/src/
     budget-analyzer.ts    — budget analysis, hotspots, compression recommendations
     index.ts              — barrel export
   fix/
-    generators.ts         — safe --fix generators (AGENTS.md, .agentignore, .devcontainer)
+    generators.ts         — safe --fix generators (AGENTS.md, .agentignore, .devcontainer, tsconfig.json)
     index.ts              — barrel export
   agentignore/
     parser.ts             — .agentignore parser (gitignore-compatible patterns)

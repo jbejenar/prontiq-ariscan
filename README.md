@@ -71,7 +71,7 @@ node packages/cli/dist/cli.js . --threshold 50
 # Token budget analysis
 node packages/cli/dist/cli.js . --budget
 
-# Safe fix generation (AGENTS.md, .agentignore, .devcontainer)
+# Safe fix generation (AGENTS.md, .agentignore, .devcontainer, tsconfig.json)
 node packages/cli/dist/cli.js . --fix --dry-run   # preview changes
 node packages/cli/dist/cli.js . --fix              # apply changes
 
@@ -93,7 +93,7 @@ The core scanning engine is functional. What's built:
 - **@prontiq/ariscan-schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig, Confidence)
 - **@prontiq/ariscan-engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification, context budget analyzer, `.agentignore` parser, safe `--fix` generators
 - **ariscan CLI** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export; `--budget` token analysis; `--fix`/`--dry-run` safe file generation
-- **546 tests** across 21 test files
+- **553 tests** across 22 test files
 - **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
 - **Test fixtures** — hostile-repo (L1), capable-repo (L3)
 - **JSON Schema** — `ariscan.schema.json` in repo root for output validation
