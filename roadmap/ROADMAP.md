@@ -1671,7 +1671,7 @@ It is the source of truth for what was actually built vs. what was specified.
 |---|---|---|
 | P1.15 — Markdown Report v1 | ✅ Done | Implemented in `output/markdown.ts` with badge header, pillar table, severity-sorted findings, remediations, "Quick Start: Top 3 Actions" section, and impact×ease remediation ordering. Enhanced 2026-03-10. |
 | P1.16 — README Badge Support | ✅ Done | `--badge <path>` flag generates SVG badge + embed snippets. `generateBadgeSvg()` and `generateBadgeSnippets()` in `output/badge.ts`. Added 2026-03-08. |
-| P1.17 — Safe `--fix` Starter | ✅ Done | AGENTS.md, .agentignore, .devcontainer generation + provider pattern skeleton (StorageProvider interface for TS/Python/Go with cloud SDK detection). All done with --dry-run. Updated 2026-03-10. |
+| P1.17 — Safe `--fix` Starter | ✅ Done | AGENTS.md, .agentignore, .devcontainer generation + provider pattern skeleton (StorageProvider interface for TS/Python/Go with cloud SDK detection). All done with --dry-run. Updated 2026-03-10. Extended by P2.07 (tsconfig strictness generator, 2026-03-14). |
 | P1.18 — Benchmark Cohort v1 | ⬜ Not Started | |
 
 ---
@@ -1694,6 +1694,8 @@ Self-scan on this repo (2026-03-08): **66/100, L4 Productive** (after v2.1.0 enh
 **Known P3 false positive:** `test-isolation.test.ts` contains anti-pattern strings as mock data. Tree-sitter AST analysis would resolve this.
 
 Self-scan on this repo (2026-03-09): **62/100, L3 Capable** (after v2.2.0 enhancements). Score decreased from 66 to 62 because new, more rigorous checks (front-loading, staleness, conciseness, env var completeness, devcontainer validation, cognitive complexity, dead code) penalize gaps that were previously invisible. Scan completes in 40ms.
+
+Self-scan on this repo (2026-03-14): **76/100, L4 Productive** (after v3.2.0). P8 improved from 95→100 after adding `.gitleaks.toml`. Current pillar scores: P1=100, P2=100, P3=40, P4=95, P5=45, P6=85, P7=60, P8=100. Scan completes in 142ms.
 
 #### Deferred to P2/P3
 
