@@ -51,6 +51,10 @@ export async function generateFixProposals(
     envVarDoc,
     adrTemplate,
     changelogTemplate,
+    dockerCompose,
+    prTemplate,
+    diWiring,
+    gitleaks,
   ] = await Promise.all([
     generateAgentsMd(context, detection),
     generateAgentignore(context, detection),
@@ -63,6 +67,10 @@ export async function generateFixProposals(
     generateEnvVarDocumentation(context, detection),
     generateAdrTemplate(context),
     generateChangelogTemplate(context),
+    generateDockerCompose(context, detection),
+    generatePrTemplate(context),
+    generateDiWiringExample(context, detection),
+    generateGitleaksConfig(context),
   ]);
 
   proposals.push(agentsMd, agentignore, devcontainer, providerSkeleton);
@@ -76,6 +84,10 @@ export async function generateFixProposals(
     envVarDoc,
     adrTemplate,
     changelogTemplate,
+    dockerCompose,
+    prTemplate,
+    diWiring,
+    gitleaks,
   ]) {
     if (fix) {
       proposals.push(fix);
@@ -294,7 +306,7 @@ async function generateAgentignore(
   // Language-specific patterns
   const primaryLang = detection?.languages.find((l) => l.primary);
   if (primaryLang) {
-    switch (primaryLang.language) {
+    switch (normalizeLang(primaryLang.language)) {
       case "python":
         lines.push("# Python-specific");
         lines.push("*.pyc");
@@ -343,7 +355,7 @@ async function generateDevcontainer(
   const exists = await context.fileExists(".devcontainer/devcontainer.json");
 
   const primaryLang = detection?.languages.find((l) => l.primary);
-  const langName = primaryLang?.language ?? "universal";
+  const langName = normalizeLang(primaryLang?.language) || "universal";
 
   const image = getDevcontainerImage(langName);
   const features = getDevcontainerFeatures(langName, detection);
@@ -382,7 +394,7 @@ async function generateProviderSkeleton(
   detection: DetectionResult | undefined,
 ): Promise<FixProposal> {
   const primaryLang = detection?.languages.find((l) => l.primary);
-  const langName = primaryLang?.language ?? "typescript";
+  const langName = normalizeLang(primaryLang?.language) || "typescript";
 
   // Detect cloud SDK usage to determine which providers to scaffold
   const sdkPatterns = [
@@ -609,7 +621,8 @@ async function generateTsconfigStrictness(
   // Only applicable to TypeScript/JavaScript projects
   const primaryLang = detection?.languages.find((l) => l.primary);
   if (!primaryLang) return null;
-  if (primaryLang.language !== "typescript" && primaryLang.language !== "javascript") return null;
+  const lang = normalizeLang(primaryLang.language);
+  if (lang !== "typescript" && lang !== "javascript") return null;
 
   const exists = await context.fileExists("tsconfig.json");
 
@@ -685,7 +698,8 @@ async function generateNvmrc(
 ): Promise<FixProposal | null> {
   const primaryLang = detection?.languages.find((l) => l.primary);
   if (!primaryLang) return null;
-  if (primaryLang.language !== "typescript" && primaryLang.language !== "javascript") return null;
+  const nvmrcLang = normalizeLang(primaryLang.language);
+  if (nvmrcLang !== "typescript" && nvmrcLang !== "javascript") return null;
 
   // Check if any version pinning file already exists
   const versionFiles = [".nvmrc", ".node-version", ".tool-versions"];
@@ -735,8 +749,8 @@ async function generatePreCommitHooks(
   if (!hasPackageJson) return null;
 
   const primaryLang = detection?.languages.find((l) => l.primary);
-  if (primaryLang && primaryLang.language !== "typescript" && primaryLang.language !== "javascript")
-    return null;
+  const hookLang = normalizeLang(primaryLang?.language);
+  if (hookLang && hookLang !== "typescript" && hookLang !== "javascript") return null;
 
   const exists = await context.fileExists(".husky/pre-commit");
 
@@ -966,7 +980,7 @@ async function generateEnvVarDocumentation(
 
   // Scan source files for process.env.* / os.environ / os.Getenv patterns
   const primaryLang = detection?.languages.find((l) => l.primary);
-  const langName = primaryLang?.language ?? "unknown";
+  const langName = normalizeLang(primaryLang?.language) || "unknown";
 
   const envVars = new Map<string, { files: string[]; hasDefault: boolean }>();
 
@@ -1170,7 +1184,760 @@ function generateStrictTsconfig(): string {
   return JSON.stringify(config, null, 2) + "\n";
 }
 
+/**
+ * Generate a docker-compose.yml for common services based on detected stack.
+ * P2.06: Guided remediation template for dev environment (P4).
+ */
+async function generateDockerCompose(
+  context: RepoContext,
+  detection: DetectionResult | undefined,
+): Promise<FixProposal | null> {
+  const exists = await context.fileExists("docker-compose.yml");
+  const existsAlt = await context.fileExists("docker-compose.yaml");
+  const existsCompose = await context.fileExists("compose.yml");
+  const existsComposeAlt = await context.fileExists("compose.yaml");
+
+  if (exists || existsAlt || existsCompose || existsComposeAlt) {
+    return null;
+  }
+
+  // Detect which services the project likely needs from deps/config
+  const services = await detectRequiredServices(context, detection);
+  if (services.length === 0) return null;
+
+  const lines: string[] = [];
+  lines.push("# docker-compose.yml — Local development services");
+  lines.push("# Generated by ariscan --fix. Customize for your project.");
+  lines.push("# TODO(ARI-ENV-003): Adjust ports, credentials, and volumes for your environment.");
+  lines.push("");
+  lines.push("services:");
+
+  for (const svc of services) {
+    lines.push("");
+    lines.push(`  ${svc.name}:`);
+    lines.push(`    image: ${svc.image}`);
+    if (svc.ports.length > 0) {
+      lines.push("    ports:");
+      for (const port of svc.ports) {
+        lines.push(`      - "${port}:${port}"`);
+      }
+    }
+    if (svc.environment.length > 0) {
+      lines.push("    environment:");
+      for (const env of svc.environment) {
+        lines.push(`      - ${env}`);
+      }
+    }
+    if (svc.volumes.length > 0) {
+      lines.push("    volumes:");
+      for (const vol of svc.volumes) {
+        lines.push(`      - ${vol}`);
+      }
+    }
+    if (svc.healthcheck) {
+      lines.push("    healthcheck:");
+      lines.push(`      test: ${svc.healthcheck}`);
+      lines.push("      interval: 10s");
+      lines.push("      timeout: 5s");
+      lines.push("      retries: 5");
+    }
+  }
+
+  // Add volumes section if any services use named volumes
+  const namedVolumes = services
+    .flatMap((s) => s.volumes)
+    .filter((v) => !v.startsWith("./") && v.includes(":"))
+    .map((v) => v.split(":")[0] ?? "");
+  if (namedVolumes.length > 0) {
+    lines.push("");
+    lines.push("volumes:");
+    for (const vol of namedVolumes) {
+      if (vol) lines.push(`  ${vol}:`);
+    }
+  }
+
+  lines.push("");
+
+  return {
+    path: "docker-compose.yml",
+    content: lines.join("\n"),
+    rationale:
+      "A docker-compose.yml for local development services reduces environment setup time. " +
+      "Agents can start dependent services with a single command.",
+    criterion: "ARI-ENV-003",
+    alreadyExists: false,
+    confidence: "medium" as FixConfidence,
+  };
+}
+
+interface ServiceDef {
+  name: string;
+  image: string;
+  ports: string[];
+  environment: string[];
+  volumes: string[];
+  healthcheck: string | null;
+}
+
+async function detectRequiredServices(
+  context: RepoContext,
+  detection: DetectionResult | undefined,
+): Promise<ServiceDef[]> {
+  const services: ServiceDef[] = [];
+  const seen = new Set<string>();
+
+  // Check package.json dependencies for DB/service clients
+  const pkgJson = await context.readJson<{
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  }>("package.json");
+  const allDeps = {
+    ...pkgJson?.dependencies,
+    ...pkgJson?.devDependencies,
+  };
+
+  // Check Python requirements/pyproject for service clients
+  const pyproject = await context.readFile("pyproject.toml");
+  const requirements = await context.readFile("requirements.txt");
+  const pyDeps = (pyproject ?? "") + (requirements ?? "");
+
+  // Check Go go.mod for service clients
+  const goMod = await context.readFile("go.mod");
+
+  const combined = Object.keys(allDeps).join(" ") + " " + pyDeps + " " + (goMod ?? "");
+
+  // PostgreSQL
+  if (
+    allDeps["pg"] ||
+    allDeps["postgres"] ||
+    allDeps["@prisma/client"] ||
+    allDeps["typeorm"] ||
+    allDeps["sequelize"] ||
+    allDeps["knex"] ||
+    allDeps["drizzle-orm"] ||
+    combined.includes("psycopg") ||
+    combined.includes("asyncpg") ||
+    combined.includes("sqlalchemy") ||
+    combined.includes("pgx") ||
+    combined.includes("lib/pq") ||
+    combined.includes("jackc/pgx")
+  ) {
+    if (!seen.has("postgres")) {
+      seen.add("postgres");
+      services.push({
+        name: "postgres",
+        image: "postgres:16-alpine",
+        ports: ["5432"],
+        environment: ["POSTGRES_USER=dev", "POSTGRES_PASSWORD=dev", "POSTGRES_DB=app_dev"],
+        volumes: ["pgdata:/var/lib/postgresql/data"],
+        healthcheck: '["CMD-SHELL", "pg_isready -U dev"]',
+      });
+    }
+  }
+
+  // Redis
+  if (
+    allDeps["redis"] ||
+    allDeps["ioredis"] ||
+    allDeps["@redis/client"] ||
+    allDeps["bullmq"] ||
+    combined.includes("redis") ||
+    combined.includes("aioredis") ||
+    combined.includes("go-redis")
+  ) {
+    if (!seen.has("redis")) {
+      seen.add("redis");
+      services.push({
+        name: "redis",
+        image: "redis:7-alpine",
+        ports: ["6379"],
+        environment: [],
+        volumes: [],
+        healthcheck: '["CMD", "redis-cli", "ping"]',
+      });
+    }
+  }
+
+  // MySQL / MariaDB
+  if (
+    allDeps["mysql2"] ||
+    allDeps["mysql"] ||
+    combined.includes("pymysql") ||
+    combined.includes("mysql-connector") ||
+    combined.includes("go-sql-driver/mysql")
+  ) {
+    if (!seen.has("mysql")) {
+      seen.add("mysql");
+      services.push({
+        name: "mysql",
+        image: "mysql:8.0",
+        ports: ["3306"],
+        environment: [
+          "MYSQL_ROOT_PASSWORD=dev",
+          "MYSQL_DATABASE=app_dev",
+          "MYSQL_USER=dev",
+          "MYSQL_PASSWORD=dev",
+        ],
+        volumes: ["mysqldata:/var/lib/mysql"],
+        healthcheck: '["CMD", "mysqladmin", "ping", "-h", "localhost"]',
+      });
+    }
+  }
+
+  // MongoDB
+  if (
+    allDeps["mongodb"] ||
+    allDeps["mongoose"] ||
+    combined.includes("pymongo") ||
+    combined.includes("motor") ||
+    combined.includes("mongo-driver")
+  ) {
+    if (!seen.has("mongo")) {
+      seen.add("mongo");
+      services.push({
+        name: "mongo",
+        image: "mongo:7",
+        ports: ["27017"],
+        environment: ["MONGO_INITDB_ROOT_USERNAME=dev", "MONGO_INITDB_ROOT_PASSWORD=dev"],
+        volumes: ["mongodata:/data/db"],
+        healthcheck: '["CMD", "mongosh", "--eval", "db.adminCommand({ping:1})"]',
+      });
+    }
+  }
+
+  // RabbitMQ
+  if (
+    allDeps["amqplib"] ||
+    allDeps["amqp-connection-manager"] ||
+    combined.includes("pika") ||
+    combined.includes("aio-pika") ||
+    combined.includes("amqp091-go") ||
+    combined.includes("rabbitmq")
+  ) {
+    if (!seen.has("rabbitmq")) {
+      seen.add("rabbitmq");
+      services.push({
+        name: "rabbitmq",
+        image: "rabbitmq:3-management-alpine",
+        ports: ["5672", "15672"],
+        environment: ["RABBITMQ_DEFAULT_USER=dev", "RABBITMQ_DEFAULT_PASS=dev"],
+        volumes: [],
+        healthcheck: '["CMD", "rabbitmq-diagnostics", "check_running"]',
+      });
+    }
+  }
+
+  // Also check for framework-specific hints
+  const primaryLang = detection?.languages.find((l) => l.primary);
+  if (
+    normalizeLang(primaryLang?.language) === "python" &&
+    combined.includes("celery") &&
+    !seen.has("redis")
+  ) {
+    seen.add("redis");
+    services.push({
+      name: "redis",
+      image: "redis:7-alpine",
+      ports: ["6379"],
+      environment: [],
+      volumes: [],
+      healthcheck: '["CMD", "redis-cli", "ping"]',
+    });
+  }
+
+  return services;
+}
+
+/**
+ * Generate a PR template with AI-code review checklist.
+ * P2.06: Guided remediation template for security governance (P8).
+ */
+async function generatePrTemplate(context: RepoContext): Promise<FixProposal | null> {
+  // Check common PR template locations
+  const prTemplateLocations = [
+    ".github/pull_request_template.md",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    "docs/pull_request_template.md",
+    ".github/PULL_REQUEST_TEMPLATE/default.md",
+  ];
+
+  let exists = false;
+  for (const loc of prTemplateLocations) {
+    if (await context.fileExists(loc)) {
+      exists = true;
+      break;
+    }
+  }
+
+  // Generate for any project — .github/ dir will be created by CODEOWNERS generator if needed
+
+  const content = [
+    "## Summary",
+    "",
+    "<!-- Describe what this PR does and why. Link to relevant issues. -->",
+    "",
+    "## Changes",
+    "",
+    "<!-- Bullet-point list of what changed. -->",
+    "",
+    "- ",
+    "",
+    "## Test Plan",
+    "",
+    "<!-- How was this tested? Include commands, screenshots, or links. -->",
+    "",
+    "- [ ] Unit tests pass",
+    "- [ ] Manual testing done",
+    "",
+    "## AI-Code Review Checklist",
+    "",
+    "<!-- If AI tools (Copilot, Claude, Codex, etc.) were used, verify: -->",
+    "",
+    "- [ ] AI-generated code has been reviewed line-by-line by a human",
+    "- [ ] No hallucinated imports, APIs, or dependencies were introduced",
+    "- [ ] No secrets, credentials, or PII were hardcoded",
+    "- [ ] Error handling is correct (not overly broad catch-all or swallowed errors)",
+    "- [ ] Security-sensitive logic was verified against documentation (auth, crypto, input validation)",
+    '- [ ] Tests actually assert meaningful behavior (not just "it doesn\'t throw")',
+    "- [ ] License compatibility checked for any new dependencies",
+    "- [ ] AI-suggested patterns are consistent with existing codebase conventions",
+    "",
+    "## Rollback Plan",
+    "",
+    "<!-- How to revert if something goes wrong? -->",
+    "",
+    "Revert this PR via `git revert <merge-commit>`.",
+    "",
+    "---",
+    "",
+    "<!-- Template generated by ariscan --fix. -->",
+    "<!-- TODO(ARI-SEC-003): Customize this template for your team's review process. -->",
+    "",
+  ].join("\n");
+
+  return {
+    path: ".github/pull_request_template.md",
+    content,
+    rationale:
+      "A PR template with AI-code review checklist ensures human oversight of AI-generated code. " +
+      "This improves security governance and code quality by standardizing review expectations.",
+    criterion: "ARI-SEC-003",
+    alreadyExists: exists,
+    confidence: "medium" as FixConfidence,
+  };
+}
+
+/**
+ * Generate a DI wiring example based on detected framework.
+ * P2.06: Guided remediation template for test isolation (P3).
+ */
+async function generateDiWiringExample(
+  context: RepoContext,
+  detection: DetectionResult | undefined,
+): Promise<FixProposal | null> {
+  if (!detection) return null;
+
+  const framework = detection.frameworks[0]?.framework?.toLowerCase();
+  const primaryLang = detection.languages.find((l) => l.primary);
+  const lang = normalizeLang(primaryLang?.language);
+
+  // Only generate for frameworks with well-known DI patterns
+  const template = getDiTemplate(framework, lang || undefined);
+  if (!template) return null;
+
+  const exists = await context.fileExists(template.path);
+
+  return {
+    path: template.path,
+    content: template.content,
+    rationale:
+      "A DI wiring example demonstrates how to swap real services for test doubles. " +
+      "This improves test isolation by showing the recommended dependency injection pattern.",
+    criterion: "ARI-TST-001",
+    alreadyExists: exists,
+    confidence: "low" as FixConfidence,
+  };
+}
+
+interface DiTemplate {
+  path: string;
+  content: string;
+}
+
+function getDiTemplate(framework: string | undefined, lang: string | undefined): DiTemplate | null {
+  // NestJS
+  if (framework === "nestjs" || framework === "nest") {
+    return {
+      path: "src/providers/storage.module.example.ts",
+      content: [
+        "// DI wiring example for NestJS — Generated by ariscan --fix",
+        "// TODO(ARI-TST-001): Copy and adapt this pattern for your services.",
+        "//",
+        "// This shows how to swap a real storage provider for a test double",
+        "// using NestJS dependency injection.",
+        "",
+        'import { Module, Injectable, Inject } from "@nestjs/common";',
+        "",
+        "// 1. Define the interface (port)",
+        'export const STORAGE_PROVIDER = Symbol("STORAGE_PROVIDER");',
+        "",
+        "export interface StorageProvider {",
+        "  get(key: string): Promise<Buffer | null>;",
+        "  put(key: string, data: Buffer): Promise<void>;",
+        "  delete(key: string): Promise<void>;",
+        "}",
+        "",
+        "// 2. Real implementation",
+        "@Injectable()",
+        "export class S3StorageProvider implements StorageProvider {",
+        "  async get(key: string): Promise<Buffer | null> {",
+        "    // TODO: Implement with @aws-sdk/client-s3",
+        "    throw new Error(`Not implemented: get(${key})`);",
+        "  }",
+        "  async put(key: string, data: Buffer): Promise<void> {",
+        "    throw new Error(`Not implemented: put(${key}, ${data.length} bytes)`);",
+        "  }",
+        "  async delete(key: string): Promise<void> {",
+        "    throw new Error(`Not implemented: delete(${key})`);",
+        "  }",
+        "}",
+        "",
+        "// 3. In-memory test double",
+        "@Injectable()",
+        "export class InMemoryStorageProvider implements StorageProvider {",
+        "  private store = new Map<string, Buffer>();",
+        "  async get(key: string): Promise<Buffer | null> {",
+        "    return this.store.get(key) ?? null;",
+        "  }",
+        "  async put(key: string, data: Buffer): Promise<void> {",
+        "    this.store.set(key, data);",
+        "  }",
+        "  async delete(key: string): Promise<void> {",
+        "    this.store.delete(key);",
+        "  }",
+        "}",
+        "",
+        "// 4. Module wiring — swap provider per environment",
+        "@Module({",
+        "  providers: [",
+        "    {",
+        "      provide: STORAGE_PROVIDER,",
+        '      useClass: process.env.NODE_ENV === "test"',
+        "        ? InMemoryStorageProvider",
+        "        : S3StorageProvider,",
+        "    },",
+        "  ],",
+        "  exports: [STORAGE_PROVIDER],",
+        "})",
+        "export class StorageModule {}",
+        "",
+        "// 5. Usage in a service",
+        "@Injectable()",
+        "export class FileService {",
+        "  constructor(@Inject(STORAGE_PROVIDER) private storage: StorageProvider) {}",
+        "",
+        "  async readFile(key: string): Promise<Buffer | null> {",
+        "    return this.storage.get(key);",
+        "  }",
+        "}",
+        "",
+      ].join("\n"),
+    };
+  }
+
+  // FastAPI (Python)
+  if (framework === "fastapi" && lang === "python") {
+    return {
+      path: "src/providers/storage_provider.example.py",
+      content: [
+        '"""DI wiring example for FastAPI — Generated by ariscan --fix',
+        "TODO(ARI-TST-001): Copy and adapt this pattern for your services.",
+        "",
+        "This shows how to swap a real storage provider for a test double",
+        'using FastAPI dependency injection."""',
+        "",
+        "from abc import ABC, abstractmethod",
+        "from typing import Optional",
+        "from fastapi import Depends, FastAPI",
+        "",
+        "",
+        "# 1. Define the interface (port)",
+        "class StorageProvider(ABC):",
+        '    """Abstract storage interface for dependency injection."""',
+        "",
+        "    @abstractmethod",
+        "    async def get(self, key: str) -> Optional[bytes]:",
+        "        ...",
+        "",
+        "    @abstractmethod",
+        "    async def put(self, key: str, data: bytes) -> None:",
+        "        ...",
+        "",
+        "    @abstractmethod",
+        "    async def delete(self, key: str) -> None:",
+        "        ...",
+        "",
+        "",
+        "# 2. Real implementation",
+        "class S3StorageProvider(StorageProvider):",
+        '    """AWS S3 storage — use in production."""',
+        "",
+        "    async def get(self, key: str) -> Optional[bytes]:",
+        "        # TODO: Implement with boto3",
+        '        raise NotImplementedError(f"get({key})")',
+        "",
+        "    async def put(self, key: str, data: bytes) -> None:",
+        '        raise NotImplementedError(f"put({key})")',
+        "",
+        "    async def delete(self, key: str) -> None:",
+        '        raise NotImplementedError(f"delete({key})")',
+        "",
+        "",
+        "# 3. In-memory test double",
+        "class InMemoryStorageProvider(StorageProvider):",
+        '    """In-memory storage — use in tests."""',
+        "",
+        "    def __init__(self) -> None:",
+        "        self._store: dict[str, bytes] = {}",
+        "",
+        "    async def get(self, key: str) -> Optional[bytes]:",
+        "        return self._store.get(key)",
+        "",
+        "    async def put(self, key: str, data: bytes) -> None:",
+        "        self._store[key] = data",
+        "",
+        "    async def delete(self, key: str) -> None:",
+        "        self._store.pop(key, None)",
+        "",
+        "",
+        "# 4. FastAPI dependency injection",
+        "def get_storage() -> StorageProvider:",
+        '    """Override this in tests with app.dependency_overrides."""',
+        "    return S3StorageProvider()",
+        "",
+        "",
+        "# 5. Usage in a route",
+        "app = FastAPI()",
+        "",
+        "",
+        '@app.get("/files/{key}")',
+        "async def read_file(",
+        "    key: str, storage: StorageProvider = Depends(get_storage)",
+        ") -> dict:",
+        "    data = await storage.get(key)",
+        '    return {"key": key, "found": data is not None}',
+        "",
+        "",
+        "# 6. Test override example:",
+        "# from fastapi.testclient import TestClient",
+        "# app.dependency_overrides[get_storage] = lambda: InMemoryStorageProvider()",
+        "# client = TestClient(app)",
+        "",
+      ].join("\n"),
+    };
+  }
+
+  // Spring Boot (Java)
+  if ((framework === "spring-boot" || framework === "spring") && lang === "java") {
+    return {
+      path: "src/main/java/providers/StorageProviderExample.java",
+      content: [
+        "// DI wiring example for Spring Boot — Generated by ariscan --fix",
+        "// TODO(ARI-TST-001): Copy and adapt this pattern for your services.",
+        "//",
+        "// This shows how to swap a real storage provider for a test double",
+        "// using Spring dependency injection and profiles.",
+        "",
+        "package providers;",
+        "",
+        "import org.springframework.context.annotation.Bean;",
+        "import org.springframework.context.annotation.Configuration;",
+        "import org.springframework.context.annotation.Profile;",
+        "import org.springframework.stereotype.Service;",
+        "",
+        "import java.util.HashMap;",
+        "import java.util.Map;",
+        "import java.util.Optional;",
+        "",
+        "// 1. Define the interface (port)",
+        "interface StorageProvider {",
+        "    Optional<byte[]> get(String key);",
+        "    void put(String key, byte[] data);",
+        "    void delete(String key);",
+        "}",
+        "",
+        "// 2. Real implementation",
+        '@Profile("!test")',
+        "@Service",
+        "class S3StorageProvider implements StorageProvider {",
+        "    @Override",
+        "    public Optional<byte[]> get(String key) {",
+        "        // TODO: Implement with AWS SDK v2",
+        '        throw new UnsupportedOperationException("get(" + key + ")");',
+        "    }",
+        "    @Override",
+        "    public void put(String key, byte[] data) {",
+        '        throw new UnsupportedOperationException("put(" + key + ")");',
+        "    }",
+        "    @Override",
+        "    public void delete(String key) {",
+        '        throw new UnsupportedOperationException("delete(" + key + ")");',
+        "    }",
+        "}",
+        "",
+        "// 3. In-memory test double",
+        '@Profile("test")',
+        "@Service",
+        "class InMemoryStorageProvider implements StorageProvider {",
+        "    private final Map<String, byte[]> store = new HashMap<>();",
+        "    @Override",
+        "    public Optional<byte[]> get(String key) {",
+        "        return Optional.ofNullable(store.get(key));",
+        "    }",
+        "    @Override",
+        "    public void put(String key, byte[] data) {",
+        "        store.put(key, data);",
+        "    }",
+        "    @Override",
+        "    public void delete(String key) {",
+        "        store.remove(key);",
+        "    }",
+        "}",
+        "",
+        "// 4. Usage — inject the interface, Spring resolves by profile",
+        "// @Service",
+        "// class FileService {",
+        "//     private final StorageProvider storage;",
+        "//     FileService(StorageProvider storage) { this.storage = storage; }",
+        "//     public Optional<byte[]> readFile(String key) { return storage.get(key); }",
+        "// }",
+        "",
+        '// 5. In tests: @ActiveProfiles("test") activates InMemoryStorageProvider',
+        "",
+      ].join("\n"),
+    };
+  }
+
+  // Go (wire)
+  if (lang === "go") {
+    return {
+      path: "internal/providers/storage_provider_example.go",
+      content: [
+        "// DI wiring example for Go — Generated by ariscan --fix",
+        "// TODO(ARI-TST-001): Copy and adapt this pattern for your services.",
+        "//",
+        "// This shows how to swap a real storage provider for a test double",
+        "// using Go interfaces (no DI framework needed).",
+        "",
+        "package providers",
+        "",
+        "import (",
+        '\t"context"',
+        '\t"sync"',
+        ")",
+        "",
+        "// 1. Define the interface (port)",
+        "type StorageProvider interface {",
+        "\tGet(ctx context.Context, key string) ([]byte, error)",
+        "\tPut(ctx context.Context, key string, data []byte) error",
+        "\tDelete(ctx context.Context, key string) error",
+        "}",
+        "",
+        "// 2. In-memory test double",
+        "type InMemoryStorage struct {",
+        "\tmu    sync.RWMutex",
+        "\tstore map[string][]byte",
+        "}",
+        "",
+        "func NewInMemoryStorage() *InMemoryStorage {",
+        "\treturn &InMemoryStorage{store: make(map[string][]byte)}",
+        "}",
+        "",
+        "func (s *InMemoryStorage) Get(_ context.Context, key string) ([]byte, error) {",
+        "\ts.mu.RLock()",
+        "\tdefer s.mu.RUnlock()",
+        "\tdata, ok := s.store[key]",
+        "\tif !ok {",
+        "\t\treturn nil, nil",
+        "\t}",
+        "\treturn data, nil",
+        "}",
+        "",
+        "func (s *InMemoryStorage) Put(_ context.Context, key string, data []byte) error {",
+        "\ts.mu.Lock()",
+        "\tdefer s.mu.Unlock()",
+        "\ts.store[key] = data",
+        "\treturn nil",
+        "}",
+        "",
+        "func (s *InMemoryStorage) Delete(_ context.Context, key string) error {",
+        "\ts.mu.Lock()",
+        "\tdefer s.mu.Unlock()",
+        "\tdelete(s.store, key)",
+        "\treturn nil",
+        "}",
+        "",
+        "// 3. Usage in production — create S3Storage implementing StorageProvider",
+        "// 4. Wire in main.go or test setup:",
+        "//   var storage StorageProvider = NewInMemoryStorage() // tests",
+        "//   var storage StorageProvider = NewS3Storage(cfg)    // production",
+        "",
+      ].join("\n"),
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Generate a .gitleaks.toml secrets scanning configuration.
+ * P2.06: Guided remediation template for security governance (P8).
+ */
+async function generateGitleaksConfig(context: RepoContext): Promise<FixProposal | null> {
+  const exists = await context.fileExists(".gitleaks.toml");
+  const existsTrufflehog = await context.fileExists(".trufflehog.yml");
+
+  if (exists || existsTrufflehog) {
+    return null;
+  }
+
+  const content = [
+    "# .gitleaks.toml — Secrets scanning configuration",
+    "# Generated by ariscan --fix. Customize for your project.",
+    "# See: https://github.com/gitleaks/gitleaks",
+    "",
+    "[allowlist]",
+    '  description = "Global allowlist"',
+    "  paths = [",
+    '    "node_modules",',
+    '    "vendor",',
+    '    "__fixtures__",',
+    '    "*.test.ts",',
+    '    "*.test.js",',
+    '    "*.spec.ts",',
+    '    "*.spec.js"',
+    "  ]",
+    "",
+  ].join("\n");
+
+  return {
+    path: ".gitleaks.toml",
+    content,
+    rationale:
+      "Secrets scanning prevents accidental credential leaks. " +
+      "Gitleaks is lightweight and integrates with CI via GitHub Actions.",
+    criterion: "ARI-SEC-003",
+    alreadyExists: false,
+    confidence: "high" as FixConfidence,
+  };
+}
+
 // Helper functions
+
+/** Normalize detected language name to lowercase for comparison. */
+function normalizeLang(lang: string | undefined): string {
+  return (lang ?? "").toLowerCase();
+}
 
 function getPackageManager(context: RepoContext): string {
   if (context.files.some((f) => f === "pnpm-lock.yaml" || f === "pnpm-workspace.yaml"))

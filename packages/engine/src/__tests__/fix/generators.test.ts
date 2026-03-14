@@ -52,7 +52,7 @@ describe("generateFixProposals", () => {
 
     const proposals = await generateFixProposals(ctx, nodeDetection);
 
-    expect(proposals.length).toBeGreaterThanOrEqual(8);
+    expect(proposals.length).toBeGreaterThanOrEqual(9);
     const paths = proposals.map((p) => p.path);
     expect(paths).toContain("AGENTS.md");
     expect(paths).toContain(".agentignore");
@@ -64,6 +64,7 @@ describe("generateFixProposals", () => {
     expect(paths).toContain(".github/CODEOWNERS");
     expect(paths).toContain("docs/decisions/000-template.md");
     expect(paths).toContain("CHANGELOG.md");
+    expect(paths).toContain(".gitleaks.toml");
   });
 
   it("marks existing files as alreadyExists", async () => {
@@ -218,6 +219,8 @@ describe("generateFixProposals", () => {
         "src/providers/storage.provider.ts",
         ".husky/pre-commit",
         ".github/CODEOWNERS",
+        ".github/pull_request_template.md",
+        ".gitleaks.toml",
         ".env.example",
         "docs/decisions/001-something.md",
       ],
@@ -743,6 +746,482 @@ describe("generateFixProposals", () => {
       const codeowners = proposals.find((p) => p.path === ".github/CODEOWNERS");
 
       expect(codeowners?.confidence).toBe("low");
+    });
+  });
+
+  describe("docker-compose generator", () => {
+    it("generates docker-compose.yml when postgres dep is detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { pg: "^8.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.alreadyExists).toBe(false);
+      expect(compose?.confidence).toBe("medium");
+      expect(compose?.content).toContain("postgres");
+      expect(compose?.content).toContain("postgres:16-alpine");
+      expect(compose?.content).toContain("5432");
+      expect(compose?.content).toContain("POSTGRES_DB=app_dev");
+    });
+
+    it("generates docker-compose.yml with redis when ioredis is used", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { ioredis: "^5.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("redis:7-alpine");
+      expect(compose?.content).toContain("6379");
+    });
+
+    it("generates multiple services when multiple deps are detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { pg: "^8.0.0", ioredis: "^5.0.0", amqplib: "^0.10.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose?.content).toContain("postgres:");
+      expect(compose?.content).toContain("redis:");
+      expect(compose?.content).toContain("rabbitmq:");
+    });
+
+    it("skips docker-compose when no service deps are found", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeUndefined();
+    });
+
+    it("skips when docker-compose.yml already exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { pg: "^8.0.0" },
+        }),
+        "docker-compose.yml": "services: {}",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeUndefined();
+    });
+
+    it("skips when compose.yml already exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { pg: "^8.0.0" },
+        }),
+        "compose.yml": "services: {}",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeUndefined();
+    });
+
+    it("detects Python service deps from requirements.txt", async () => {
+      const ctx = createMockContext({
+        "requirements.txt": "psycopg2-binary>=2.9\naioredis>=2.0",
+      });
+
+      const proposals = await generateFixProposals(ctx, pythonDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("postgres:");
+      expect(compose?.content).toContain("redis:");
+    });
+
+    it("generates named volumes section for services with persistent storage", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { pg: "^8.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose?.content).toContain("volumes:");
+      expect(compose?.content).toContain("pgdata:");
+    });
+
+    it("includes healthchecks for all generated services", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { pg: "^8.0.0", ioredis: "^5.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose?.content).toContain("healthcheck:");
+      expect(compose?.content).toContain("pg_isready");
+      expect(compose?.content).toContain("redis-cli");
+    });
+
+    it("detects MySQL from mysql2 dependency", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { mysql2: "^3.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("mysql:");
+      expect(compose?.content).toContain("mysql:8.0");
+      expect(compose?.content).toContain("3306");
+      expect(compose?.content).toContain("MYSQL_DATABASE=app_dev");
+    });
+
+    it("detects MongoDB from mongoose dependency", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { mongoose: "^8.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("mongo:");
+      expect(compose?.content).toContain("mongo:7");
+      expect(compose?.content).toContain("27017");
+    });
+
+    it("generates environment entries with list syntax (- prefix)", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { pg: "^8.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose?.content).toContain("      - POSTGRES_USER=dev");
+    });
+  });
+
+  describe("PR template generator", () => {
+    it("generates PR template for repos with .github directory", async () => {
+      const ctx = createMockContext(
+        {
+          "package.json": JSON.stringify({ name: "test" }),
+        },
+        [".github/workflows/ci.yml"],
+      );
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const pr = proposals.find((p) => p.path === ".github/pull_request_template.md");
+
+      expect(pr).toBeDefined();
+      expect(pr?.alreadyExists).toBe(false);
+      expect(pr?.confidence).toBe("medium");
+    });
+
+    it("includes AI-code review checklist in PR template", async () => {
+      const ctx = createMockContext(
+        {
+          "package.json": JSON.stringify({ name: "test" }),
+        },
+        [".github/workflows/ci.yml"],
+      );
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const pr = proposals.find((p) => p.path === ".github/pull_request_template.md");
+
+      expect(pr?.content).toContain("AI-Code Review Checklist");
+      expect(pr?.content).toContain("reviewed line-by-line");
+      expect(pr?.content).toContain("hallucinated imports");
+      expect(pr?.content).toContain("secrets, credentials");
+      expect(pr?.content).toContain("License compatibility");
+    });
+
+    it("includes summary, changes, test plan, and rollback sections", async () => {
+      const ctx = createMockContext(
+        {
+          "package.json": JSON.stringify({ name: "test" }),
+        },
+        [".github/workflows/ci.yml"],
+      );
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const pr = proposals.find((p) => p.path === ".github/pull_request_template.md");
+
+      expect(pr?.content).toContain("## Summary");
+      expect(pr?.content).toContain("## Changes");
+      expect(pr?.content).toContain("## Test Plan");
+      expect(pr?.content).toContain("## Rollback Plan");
+    });
+
+    it("marks as alreadyExists when PR template exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        ".github/pull_request_template.md": "# PR Template",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const pr = proposals.find((p) => p.path === ".github/pull_request_template.md");
+
+      expect(pr?.alreadyExists).toBe(true);
+    });
+
+    it("marks as alreadyExists when PULL_REQUEST_TEMPLATE.md exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        ".github/PULL_REQUEST_TEMPLATE.md": "# PR Template",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const pr = proposals.find((p) => p.path === ".github/pull_request_template.md");
+
+      expect(pr?.alreadyExists).toBe(true);
+    });
+
+    it("generates PR template even when no .github dir exists yet", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const pr = proposals.find((p) => p.path === ".github/pull_request_template.md");
+
+      expect(pr).toBeDefined();
+      expect(pr?.alreadyExists).toBe(false);
+    });
+  });
+
+  describe("DI wiring example generator", () => {
+    it("generates NestJS DI example for nestjs framework", async () => {
+      const nestDetection: DetectionResult = {
+        languages: [{ language: "typescript", confidence: 0.9, primary: true }],
+        frameworks: [{ framework: "nestjs", confidence: 0.8 }],
+        monorepo: null,
+      };
+
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nestDetection);
+      const di = proposals.find((p) => p.path === "src/providers/storage.module.example.ts");
+
+      expect(di).toBeDefined();
+      expect(di?.confidence).toBe("low");
+      expect(di?.content).toContain("@Module");
+      expect(di?.content).toContain("STORAGE_PROVIDER");
+      expect(di?.content).toContain("InMemoryStorageProvider");
+    });
+
+    it("generates FastAPI DI example for python/fastapi", async () => {
+      const fastapiDetection: DetectionResult = {
+        languages: [{ language: "python", confidence: 0.9, primary: true }],
+        frameworks: [{ framework: "fastapi", confidence: 0.8 }],
+        monorepo: null,
+      };
+
+      const ctx = createMockContext({});
+
+      const proposals = await generateFixProposals(ctx, fastapiDetection);
+      const di = proposals.find((p) => p.path === "src/providers/storage_provider.example.py");
+
+      expect(di).toBeDefined();
+      expect(di?.confidence).toBe("low");
+      expect(di?.content).toContain("FastAPI");
+      expect(di?.content).toContain("Depends");
+      expect(di?.content).toContain("dependency_overrides");
+    });
+
+    it("generates Spring Boot DI example for java/spring-boot", async () => {
+      const springDetection: DetectionResult = {
+        languages: [{ language: "java", confidence: 0.9, primary: true }],
+        frameworks: [{ framework: "spring-boot", confidence: 0.8 }],
+        monorepo: null,
+      };
+
+      const ctx = createMockContext({});
+
+      const proposals = await generateFixProposals(ctx, springDetection);
+      const di = proposals.find(
+        (p) => p.path === "src/main/java/providers/StorageProviderExample.java",
+      );
+
+      expect(di).toBeDefined();
+      expect(di?.confidence).toBe("low");
+      expect(di?.content).toContain("@Profile");
+      expect(di?.content).toContain("@Service");
+      expect(di?.content).toContain("InMemoryStorageProvider");
+    });
+
+    it("generates Go DI example for go projects", async () => {
+      const goDetection: DetectionResult = {
+        languages: [{ language: "go", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      };
+
+      const ctx = createMockContext({});
+
+      const proposals = await generateFixProposals(ctx, goDetection);
+      const di = proposals.find((p) => p.path === "internal/providers/storage_provider_example.go");
+
+      expect(di).toBeDefined();
+      expect(di?.confidence).toBe("low");
+      expect(di?.content).toContain("StorageProvider interface");
+      expect(di?.content).toContain("InMemoryStorage");
+      expect(di?.content).toContain("sync.RWMutex");
+    });
+
+    it("skips DI example when framework has no known DI pattern", async () => {
+      const expressDetection: DetectionResult = {
+        languages: [{ language: "typescript", confidence: 0.9, primary: true }],
+        frameworks: [{ framework: "express", confidence: 0.8 }],
+        monorepo: null,
+      };
+
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, expressDetection);
+      const diPaths = proposals.filter((p) => p.path.includes("example"));
+
+      // Express doesn't have a DI wiring example
+      expect(diPaths.length).toBe(0);
+    });
+
+    it("marks as alreadyExists when DI example file already exists", async () => {
+      const nestDetection: DetectionResult = {
+        languages: [{ language: "typescript", confidence: 0.9, primary: true }],
+        frameworks: [{ framework: "nestjs", confidence: 0.8 }],
+        monorepo: null,
+      };
+
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "src/providers/storage.module.example.ts": "// existing",
+      });
+
+      const proposals = await generateFixProposals(ctx, nestDetection);
+      const di = proposals.find((p) => p.path === "src/providers/storage.module.example.ts");
+
+      expect(di?.alreadyExists).toBe(true);
+    });
+  });
+
+  describe("gitleaks config generator", () => {
+    it("generates .gitleaks.toml for repos without secrets scanning", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const gitleaks = proposals.find((p) => p.path === ".gitleaks.toml");
+
+      expect(gitleaks).toBeDefined();
+      expect(gitleaks?.alreadyExists).toBe(false);
+      expect(gitleaks?.confidence).toBe("high");
+      expect(gitleaks?.content).toContain("[allowlist]");
+      expect(gitleaks?.content).toContain("node_modules");
+    });
+
+    it("skips when .gitleaks.toml already exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        ".gitleaks.toml": "[allowlist]",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const gitleaks = proposals.find((p) => p.path === ".gitleaks.toml");
+
+      expect(gitleaks).toBeUndefined();
+    });
+
+    it("skips when .trufflehog.yml already exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        ".trufflehog.yml": "detectors: []",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const gitleaks = proposals.find((p) => p.path === ".gitleaks.toml");
+
+      expect(gitleaks).toBeUndefined();
+    });
+  });
+
+  describe("PascalCase language normalization", () => {
+    it("generates tsconfig and .nvmrc when detection returns PascalCase TypeScript", async () => {
+      const pascalDetection: DetectionResult = {
+        languages: [{ language: "TypeScript", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      };
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          scripts: { lint: "eslint .", typecheck: "tsc --noEmit" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, pascalDetection);
+      const paths = proposals.map((p) => p.path);
+
+      expect(paths).toContain("tsconfig.json");
+      expect(paths).toContain(".nvmrc");
+      expect(paths).toContain(".husky/pre-commit");
+    });
+
+    it("generates Python-specific .agentignore patterns with PascalCase Python", async () => {
+      const pascalDetection: DetectionResult = {
+        languages: [{ language: "Python", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      };
+      const ctx = createMockContext({
+        "pyproject.toml": "[project]\nname = 'test'",
+      });
+
+      const proposals = await generateFixProposals(ctx, pascalDetection);
+      const agentignore = proposals.find((p) => p.path === ".agentignore");
+
+      expect(agentignore?.content).toContain("*.pyc");
+      expect(agentignore?.content).toContain(".mypy_cache/");
     });
   });
 });

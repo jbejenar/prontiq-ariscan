@@ -13,6 +13,8 @@
     "typecheck": "turbo typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "selftest": "node packages/cli/dist/cli.js . --threshold 70",
+    "selftest:json": "node packages/cli/dist/cli.js . --json --threshold 70",
     "clean": "turbo clean",
     "changeset": "changeset",
     "version-packages": "changeset version",

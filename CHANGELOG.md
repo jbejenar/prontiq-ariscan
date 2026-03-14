@@ -1,5 +1,50 @@
 # Changelog
 
+## [3.7.0] — 2026-03-14
+
+### Added
+- **Engine (P2.06/P2.14):** `.gitleaks.toml` `--fix` generator — generates secrets scanning config with sensible allowlist for node_modules, vendor, test files. High confidence (auto-apply). Criterion: ARI-SEC-003. 3 new tests.
+- **Engine (P2.14):** Scaffold→scan integration test — generates scaffold in temp dir via `generateFixProposals`, then scans and asserts L3+ (46+), no pillar below 10, P8 security above gate (40+). 3 new tests.
+- **CI (P2.14):** Scaffold→scan gate in CI pipeline — creates a minimal TS repo, applies `--fix`, scans, and fails build if scaffold scores below L3 (46).
+
+### Fixed
+- **Engine:** Case-sensitivity bug in fix generators — language detection returns PascalCase (`"TypeScript"`) but generators compared lowercase (`"typescript"`). This caused tsconfig, .nvmrc, and pre-commit hook generators to silently return null for real repos. Added `normalizeLang()` helper. **Impact: scaffold jumped from 52→61 (L2→L3).**
+- **Engine:** PR template generator now generates for all projects (not just repos with existing `.github/` dir), enabling single-pass scaffold completeness.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Scaffold score:** 61/100 (L3 Capable) — up from 52 (was stuck at L2)
+- **Tests:** 515 engine tests passing (up from 509), 22 test files
+- **Roadmap progress:** Scaffold quality gate shipped, case-sensitivity P0 bug fixed
+
+## [3.6.0] — 2026-03-14
+
+### Added
+- **CI (P2.14):** Dogfood quality gate — CI composite score floor raised from 55 → 70 (L4 minimum). New per-pillar floor gate (35 minimum per pillar, fails build if any pillar collapses). Ensures the repo that ships a readiness scanner is itself pristine.
+- **Repo (P2.14):** `.ariscan.yml` policy file — `threshold: 70` for local dogfooding via the scanner's own config system.
+- **Repo (P2.14):** `pnpm selftest` / `pnpm selftest:json` scripts — one-command local quality verification. Exits non-zero if score < 70.
+- **Docs (P2.14):** AGENTS.md and CLAUDE.md updated with `pnpm selftest` command and quality gate explanation.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Tests:** 509 engine tests passing, 22 test files
+- **Roadmap progress:** P2.14 dogfood quality gate shipped
+
+## [3.5.0] — 2026-03-14
+
+### Added
+- **Engine (P2.06):** Docker-compose `--fix` generator — detects service dependencies (PostgreSQL, Redis, MySQL, MongoDB, RabbitMQ) from package.json, requirements.txt, pyproject.toml, and go.mod. Generates `docker-compose.yml` with healthchecks, named volumes, and environment variables. Medium confidence (suggest). Criterion: ARI-ENV-003. 9 new tests.
+- **Engine (P2.06):** PR template `--fix` generator — generates `.github/pull_request_template.md` with Summary, Changes, Test Plan, AI-Code Review Checklist (8-point human-oversight checklist for AI-generated code), and Rollback Plan sections. Medium confidence (suggest). Criterion: ARI-SEC-003. 6 new tests.
+- **Engine (P2.06):** DI wiring example `--fix` generators — framework-specific dependency injection examples for NestJS (TypeScript), FastAPI (Python), Spring Boot (Java), and Go (plain interfaces). Shows interface→real impl→in-memory test double→wiring pattern. Low confidence (manual review). Criterion: ARI-TST-001. 6 new tests.
+
+### Fixed
+- **Engine:** Docker-compose environment entries now use correct YAML list syntax (`- KEY=value`).
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Tests:** 509 engine tests passing (up from 485), 22 test files
+- **Roadmap progress:** P2.06 docker-compose, PR template, and DI wiring templates shipped
+
 ## [3.4.0] — 2026-03-14
 
 ### Added

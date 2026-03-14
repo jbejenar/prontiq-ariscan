@@ -1671,7 +1671,7 @@ It is the source of truth for what was actually built vs. what was specified.
 |---|---|---|
 | P1.15 — Markdown Report v1 | ✅ Done | Implemented in `output/markdown.ts` with badge header, pillar table, severity-sorted findings, remediations, "Quick Start: Top 3 Actions" section, and impact×ease remediation ordering. Enhanced 2026-03-10. |
 | P1.16 — README Badge Support | ✅ Done | `--badge <path>` flag generates SVG badge + embed snippets. `generateBadgeSvg()` and `generateBadgeSnippets()` in `output/badge.ts`. Added 2026-03-08. |
-| P1.17 — Safe `--fix` Starter | ✅ Done | AGENTS.md, .agentignore, .devcontainer generation + provider pattern skeleton (StorageProvider interface for TS/Python/Go with cloud SDK detection). All done with --dry-run. Updated 2026-03-10. Extended by P2.07 (tsconfig strictness, .nvmrc, pre-commit hooks, CODEOWNERS, env var docs, ADR template, changelog template generators + confidence classification + --force flag, 2026-03-14). |
+| P1.17 — Safe `--fix` Starter | ✅ Done | AGENTS.md, .agentignore, .devcontainer generation + provider pattern skeleton (StorageProvider interface for TS/Python/Go with cloud SDK detection). All done with --dry-run. Updated 2026-03-10. Extended by P2.07 (tsconfig strictness, .nvmrc, pre-commit hooks, CODEOWNERS, env var docs, ADR template, changelog template generators + confidence classification + --force flag, 2026-03-14). Extended by P2.06 (docker-compose, PR template, DI wiring examples, 2026-03-14). |
 | P1.18 — Benchmark Cohort v1 | ⬜ Not Started | |
 
 ---
@@ -1969,7 +1969,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Spec authoring, parser implementation, generation command, default patterns.
 - **Out of scope:** Agent vendor integration (advocacy/partnerships), enforcement mechanism.
 
-### Ticket P2.06 — Guided Remediation Templates (🔴) 🔧 In Progress
+### Ticket P2.06 — Guided Remediation Templates (🔴) 🔧 In Progress (updated 2026-03-14)
 
 - **User story:** As a developer who just got my scan results, I need ready-to-apply fixes for the most common issues so I can improve my score without deep expertise.
 - **Problem statement:** Scoring without remediation creates friction. The gap between "here's your score" and "here's how to fix it" is where users drop off. Templates provide copy-pasteable, tested solutions for the most common readiness issues.
@@ -2221,6 +2221,23 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **Telemetry:** (meta) opt-in rate, payload size, transmission success rate.
 - **In scope:** Consent flow, payload definition, transmission, documentation, privacy policy.
 - **Out of scope:** Analytics dashboard (internal tooling), real-time processing, user-facing aggregates.
+
+### Ticket P2.14 — Dogfood Quality Gate (🔴) ✅ Done (2026-03-14)
+
+- **User story:** As a contributor, I need the CI pipeline to enforce a high self-scan score so the repo that ships a readiness scanner is itself pristine.
+- **Problem statement:** The repo ships a tool that measures agent readiness. If the repo itself doesn't score high, credibility is lost. A hard quality gate ensures every merge maintains the standard.
+- **Deliverables:**
+  - CI composite score floor raised from 55 → 70 (L4 Productive minimum).
+  - Per-pillar floor gate: no single pillar allowed below 35 (prevents single-pillar collapse).
+  - `.ariscan.yml` policy file with `threshold: 70` for local dogfooding.
+  - `pnpm selftest` / `pnpm selftest:json` scripts for local quality verification.
+- **Acceptance criteria:**
+  - CI build fails if composite ARI score drops below 70.
+  - CI build fails if any individual pillar drops below 35.
+  - `pnpm selftest` exits non-zero if score < 70.
+  - `.ariscan.yml` is checked in and loaded by the scanner when run locally.
+- **Verification:** `pnpm selftest` exits 0 with current score 76/100 (L4). All pillars ≥ 40.
+- **Dependencies:** P1.01 (CLI), P1.13 (composite scoring).
 
 ### P2 Exit Criteria
 
