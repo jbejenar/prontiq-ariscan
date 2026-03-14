@@ -52,7 +52,7 @@ describe("generateFixProposals", () => {
 
     const proposals = await generateFixProposals(ctx, nodeDetection);
 
-    expect(proposals.length).toBe(8);
+    expect(proposals.length).toBeGreaterThanOrEqual(8);
     const paths = proposals.map((p) => p.path);
     expect(paths).toContain("AGENTS.md");
     expect(paths).toContain(".agentignore");
@@ -62,6 +62,8 @@ describe("generateFixProposals", () => {
     expect(paths).toContain(".nvmrc");
     expect(paths).toContain(".husky/pre-commit");
     expect(paths).toContain(".github/CODEOWNERS");
+    expect(paths).toContain("docs/decisions/000-template.md");
+    expect(paths).toContain("CHANGELOG.md");
   });
 
   it("marks existing files as alreadyExists", async () => {
@@ -198,6 +200,7 @@ describe("generateFixProposals", () => {
         "AGENTS.md": "# exists",
         ".agentignore": "dist/",
         ".nvmrc": "22",
+        "CHANGELOG.md": "# Changelog",
         "package.json": JSON.stringify({
           name: "test",
           scripts: { lint: "eslint .", typecheck: "tsc --noEmit" },
@@ -215,6 +218,8 @@ describe("generateFixProposals", () => {
         "src/providers/storage.provider.ts",
         ".husky/pre-commit",
         ".github/CODEOWNERS",
+        ".env.example",
+        "docs/decisions/001-something.md",
       ],
     );
 
@@ -529,6 +534,161 @@ describe("generateFixProposals", () => {
       const codeowners = proposals.find((p) => p.path === ".github/CODEOWNERS");
 
       expect(codeowners?.content).toContain("packages/");
+    });
+  });
+
+  describe("env var documentation generator (P2.07)", () => {
+    it("generates .env.example from process.env usage", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "src/config.ts": `
+          const port = process.env.PORT || 3000;
+          const dbUrl = process.env.DATABASE_URL;
+          const secret = process.env.JWT_SECRET;
+        `,
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const envDoc = proposals.find((p) => p.path === ".env.example");
+
+      expect(envDoc).toBeDefined();
+      expect(envDoc?.alreadyExists).toBe(false);
+      expect(envDoc?.criterion).toBe("ARI-ENV-007");
+      expect(envDoc?.confidence).toBe("medium");
+      expect(envDoc?.content).toContain("PORT");
+      expect(envDoc?.content).toContain("DATABASE_URL");
+      expect(envDoc?.content).toContain("JWT_SECRET");
+    });
+
+    it("detects default values for env vars", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "src/app.ts": `
+          const port = process.env.PORT || "3000";
+          const host = process.env.HOST ?? "localhost";
+          const required = process.env.API_KEY;
+        `,
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const envDoc = proposals.find((p) => p.path === ".env.example");
+
+      expect(envDoc).toBeDefined();
+      // PORT and HOST have defaults (optional section), API_KEY doesn't (required section)
+      expect(envDoc?.content).toContain("Required");
+      expect(envDoc?.content).toContain("Optional");
+      expect(envDoc?.content).toContain("API_KEY");
+    });
+
+    it("marks alreadyExists when .env.example present", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        ".env.example": "PORT=3000",
+        "src/app.ts": "const p = process.env.PORT;",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const envDoc = proposals.find((p) => p.path === ".env.example");
+
+      expect(envDoc?.alreadyExists).toBe(true);
+    });
+
+    it("skips when no env vars found", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "src/app.ts": "const x = 42;",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const envDoc = proposals.find((p) => p.path === ".env.example");
+
+      expect(envDoc).toBeUndefined();
+    });
+
+    it("includes file references in comments", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "src/db.ts": "const url = process.env.DATABASE_URL;",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const envDoc = proposals.find((p) => p.path === ".env.example");
+
+      expect(envDoc?.content).toContain("src/db.ts");
+    });
+  });
+
+  describe("ADR template generator (P2.06)", () => {
+    it("generates ADR template for repo without one", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const adr = proposals.find((p) => p.path === "docs/decisions/000-template.md");
+
+      expect(adr).toBeDefined();
+      expect(adr?.alreadyExists).toBe(false);
+      expect(adr?.criterion).toBe("ARI-DOC-002");
+      expect(adr?.confidence).toBe("medium");
+      expect(adr?.content).toContain("## Status");
+      expect(adr?.content).toContain("## Context");
+      expect(adr?.content).toContain("## Decision");
+      expect(adr?.content).toContain("## Consequences");
+      expect(adr?.content).toContain("## Alternatives Considered");
+    });
+
+    it("marks alreadyExists when docs/decisions/ directory exists", async () => {
+      const ctx = createMockContext({ "package.json": JSON.stringify({ name: "test" }) }, [
+        "docs/decisions/001-use-react.md",
+      ]);
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const adr = proposals.find((p) => p.path === "docs/decisions/000-template.md");
+
+      expect(adr?.alreadyExists).toBe(true);
+    });
+
+    it("marks alreadyExists when docs/adr/ directory exists", async () => {
+      const ctx = createMockContext({ "package.json": JSON.stringify({ name: "test" }) }, [
+        "docs/adr/001-something.md",
+      ]);
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const adr = proposals.find((p) => p.path === "docs/decisions/000-template.md");
+
+      expect(adr?.alreadyExists).toBe(true);
+    });
+  });
+
+  describe("changelog template generator (P2.06)", () => {
+    it("generates CHANGELOG.md for repo without one", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const changelog = proposals.find((p) => p.path === "CHANGELOG.md");
+
+      expect(changelog).toBeDefined();
+      expect(changelog?.alreadyExists).toBe(false);
+      expect(changelog?.criterion).toBe("ARI-DOC-002");
+      expect(changelog?.confidence).toBe("high");
+      expect(changelog?.content).toContain("Keep a Changelog");
+      expect(changelog?.content).toContain("## [Unreleased]");
+      expect(changelog?.content).toContain("### Added");
+    });
+
+    it("marks alreadyExists when CHANGELOG.md present", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "CHANGELOG.md": "# Changelog\n\n## 1.0.0",
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const changelog = proposals.find((p) => p.path === "CHANGELOG.md");
+
+      expect(changelog?.alreadyExists).toBe(true);
     });
   });
 

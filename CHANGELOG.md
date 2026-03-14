@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.4.0] — 2026-03-14
+
+### Added
+- **Engine (P2.07):** Env var documentation `--fix` generator — scans source files for `process.env.*`, `os.environ`, `os.Getenv` references and generates `.env.example` with required/optional classification, file references, and default detection. Supports TypeScript, JavaScript, Python, and Go. Medium confidence (suggest). Criterion: ARI-ENV-007. 5 new tests.
+- **Engine (P2.06):** ADR template `--fix` generator — generates `docs/decisions/000-template.md` with Status, Context, Decision, Consequences, and Alternatives Considered sections. Medium confidence (suggest). Criterion: ARI-DOC-002. 3 new tests.
+- **Engine (P2.06):** Changelog template `--fix` generator — generates `CHANGELOG.md` with Keep a Changelog format including Unreleased section structure. High confidence (auto-apply). Criterion: ARI-DOC-002. 2 new tests.
+- **CLI (P2.07):** `--fix --force` flag — allows overwriting existing files during fix generation. Dry-run shows `[OVERWRITE · --force]` section. Apply mode reports overwritten files separately. Without `--force`, existing files are skipped with a hint to use `--force`.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Tests:** 581 passing across 22 test files (28 schema + 485 engine + 68 CLI), up from 571
+- **Roadmap progress:** P2.07 env var doc + force flag complete, P2.06 ADR + changelog templates shipped
+
 ## [3.3.0] — 2026-03-14
 
 ### Added
