@@ -412,7 +412,7 @@ describe("generateFixProposals", () => {
 
       expect(preCommit).toBeDefined();
       expect(preCommit?.alreadyExists).toBe(false);
-      expect(preCommit?.criterion).toBe("ARI-SEC-002");
+      expect(preCommit?.criterion).toBe("ARI-SEC-003");
       expect(preCommit?.confidence).toBe("medium");
       expect(preCommit?.content).toContain("npm lint");
       expect(preCommit?.content).toContain("npm typecheck");
