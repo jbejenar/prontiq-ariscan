@@ -12,12 +12,12 @@ labels: bug
 
 ```bash
 # Commands to reproduce
-npx ariscan . --json
+npx @prontiq/ariscan-cli . --json
 ```
 
 ## Environment
 
-- **ariscan version:** <!-- `npx ariscan --version` -->
+- **ariscan version:** <!-- `npx @prontiq/ariscan-cli --version` -->
 - **Node.js version:** <!-- `node -v` -->
 - **OS:**
 - **Repository type:** <!-- e.g., TypeScript monorepo, Python, Go -->

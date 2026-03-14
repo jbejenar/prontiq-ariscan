@@ -25,15 +25,15 @@ const main = defineCommand({
     description: `Measure and improve repository readiness for AI coding agents
 
 Examples:
-  npx ariscan .                    # Scan current directory
-  npx ariscan /path/to/repo --json # JSON output
-  npx ariscan . --threshold 60     # Fail if score < 60
-  npx ariscan . --format sarif     # SARIF output for Code Scanning
-  npx ariscan . --badge badge.svg  # Generate badge SVG
-  npx ariscan . --budget           # Analyze token budget
-  npx ariscan . --fix              # Generate missing config files
-  npx ariscan . --fix --dry-run   # Preview changes without writing
-  npx ariscan . --fix --force     # Overwrite existing files
+  npx @prontiq/ariscan-cli .                    # Scan current directory
+  npx @prontiq/ariscan-cli /path/to/repo --json # JSON output
+  npx @prontiq/ariscan-cli . --threshold 60     # Fail if score < 60
+  npx @prontiq/ariscan-cli . --format sarif     # SARIF output for Code Scanning
+  npx @prontiq/ariscan-cli . --badge badge.svg  # Generate badge SVG
+  npx @prontiq/ariscan-cli . --budget           # Analyze token budget
+  npx @prontiq/ariscan-cli . --fix              # Generate missing config files
+  npx @prontiq/ariscan-cli . --fix --dry-run   # Preview changes without writing
+  npx @prontiq/ariscan-cli . --fix --force     # Overwrite existing files
 
 Exit codes:
   0  Score meets or exceeds threshold (default: 0)
