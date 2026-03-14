@@ -4,7 +4,7 @@
 
 ```
 prontiq/ariscan (CLI — ELv2)
-  | npx ariscan .
+  | npx @prontiq/ariscan-cli .
   | consumes @prontiq/ariscan-engine
   |
   +-- prontiq/engine (Analysis Engine)
@@ -32,7 +32,7 @@ prontiq/ariscan (CLI — ELv2)
 
 | Layer | Technology | Rationale |
 |---|---|---|
-| Runtime | Node.js 22 + TypeScript 5.7 (strict) | Widest install base via `npx ariscan .`, type-safe internals. Pin via `.nvmrc` + `engines`. |
+| Runtime | Node.js 22 + TypeScript 5.7 (strict) | Widest install base via `npx @prontiq/ariscan-cli .`, type-safe internals. Pin via `.nvmrc` + `engines`. |
 | Package Manager | pnpm 9.x + pnpm workspaces | Strict dependency management, workspace support for `@prontiq/ariscan-engine`. Same as ripple-next. |
 | Monorepo | Turborepo | Task caching, parallel execution, workspace-aware builds. Same as ripple-next. |
 | CLI Framework | citty (UnJS) | Lightweight, TypeScript-native, zero deps. Aligns with Nuxt/Nitro ecosystem. |
@@ -66,7 +66,7 @@ prontiq/ariscan (CLI — ELv2)
 | Provider Pattern | `PillarAnalyzer` interface + conformance suites per analyzer | ripple-next provider pattern + conformance |
 | Structured Remediation | Findings include `remediation.action`, `remediation.generator` | ripple-next machine-readable runbooks |
 | Agent Config Surfaces | AGENTS.md, CLAUDE.md, `.github/agents/`, `.github/prompts/` | ripple-next multi-surface AI config |
-| Self-Check | `npx ariscan doctor --json` | ripple-next `pnpm doctor --json` |
+| Self-Check | `npx @prontiq/ariscan-cli doctor --json` | ripple-next `pnpm doctor --json` |
 | Pure Function Core | `scan(path, config) → ScanResult` for CLI/MCP/Action/SaaS | Enables MCP server (P3.10) |
 
 ---
@@ -105,7 +105,7 @@ The analysis intelligence layer. Provides semantic depth beyond the baseline CLI
 - Provider detection (Claude, Copilot, Cursor, etc.)
 - Calibration benchmark execution harness
 
-**Consumed by:** ariscan (via npm), cloud, remediate, api
+**Consumed by:** @prontiq/ariscan-cli (via npm), cloud, remediate, api
 
 ### prontiq/cloud
 The SaaS platform serving Pro and Enterprise customers.
@@ -210,7 +210,7 @@ Shared infrastructure-as-code and operational controls.
 ### CLI Scan (Local)
 
 ```
-npx ariscan .
+npx @prontiq/ariscan-cli .
   -> Config loading (CLI flags > ariscan.yml > defaults)
   -> Language/framework detection
   -> Context file discovery (AGENTS.md, CLAUDE.md, Copilot rules, MCP files)
@@ -279,7 +279,7 @@ Every scan (CLI + SaaS)
 ### Package Dependency Graph
 
 ```
-ariscan -> @prontiq/ariscan-engine
+@prontiq/ariscan-cli -> @prontiq/ariscan-engine
 cloud   -> @prontiq/ariscan-engine, @prontiq/db, @prontiq/auth, @prontiq/queue, @prontiq/github
 remediate -> @prontiq/ariscan-engine, @prontiq/db, @prontiq/queue, @prontiq/github
 fleet   -> @prontiq/ariscan-engine, @prontiq/db, @prontiq/auth, @prontiq/queue

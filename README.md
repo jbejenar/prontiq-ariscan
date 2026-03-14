@@ -1,8 +1,8 @@
-# Prontiq ARI — `ariscan`
+# Prontiq ARI — `@prontiq/ariscan-cli`
 
 > Measure and improve how ready your codebase is for AI coding agents.
 
-**ARI** (Agent Readiness Index) is a composite score (0-100) derived from 8 research-calibrated pillars. Run `npx ariscan .` to get an actionable readiness report in under 10 minutes.
+**ARI** (Agent Readiness Index) is a composite score (0-100) derived from 8 research-calibrated pillars. Run `npx @prontiq/ariscan-cli .` to get an actionable readiness report in under 10 minutes.
 
 > **Naming note:** historical research and draft materials may refer to **Tide Conform**. Current naming is **Prontiq ARI**.
 
@@ -51,7 +51,7 @@ Security acts as a **gate**: below 40% on Pillar 8 caps the overall level at L2 
 
 ```bash
 # Via npx (once published)
-npx ariscan .
+npx @prontiq/ariscan-cli .
 
 # From source
 node packages/cli/dist/cli.js .
@@ -92,7 +92,7 @@ The core scanning engine is functional. What's built:
 
 - **@prontiq/ariscan-schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig, Confidence)
 - **@prontiq/ariscan-engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification, context budget analyzer, `.agentignore` parser, safe `--fix` generators
-- **ariscan CLI** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export; `--budget` token analysis; `--fix`/`--dry-run` safe file generation
+- **@prontiq/ariscan-cli** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export; `--budget` token analysis; `--fix`/`--dry-run` safe file generation
 - **553 tests** across 22 test files
 - **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
 - **Test fixtures** — hostile-repo (L1), capable-repo (L3)
@@ -140,7 +140,7 @@ The core scanning engine is functional. What's built:
 
 | Package | Status | Purpose |
 |---|---|---|
-| `ariscan` | Built | CLI scan, scoring, reporting, threshold exit codes |
+| `@prontiq/ariscan-cli` | Built | CLI scan, scoring, reporting, threshold exit codes |
 | `@prontiq/ariscan-schema` | Built | Zod schemas for scan results, config, findings |
 | `@prontiq/ariscan-engine` | Built | 8-pillar analyzers, composite scoring, security gate |
 | `@prontiq/sdk` | Planned | Programmatic integration for reporting/workflow automation |
