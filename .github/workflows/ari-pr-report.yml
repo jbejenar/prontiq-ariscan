@@ -98,7 +98,7 @@ jobs:
             echo "$FINDINGS"
             echo ""
             echo "---"
-            echo "_Self-scan by \`ariscan\` on $(date -u +%Y-%m-%dT%H:%M:%SZ)_"
+            echo "_Self-scan by \`@prontiq/ariscan-cli\` on $(date -u +%Y-%m-%dT%H:%M:%SZ)_"
             echo 'ENDOFCOMMENT'
           } >> "$GITHUB_OUTPUT"
 

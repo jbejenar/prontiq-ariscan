@@ -22,7 +22,7 @@ This roadmap exists to do three things at once:
 
 ## Outcomes (2026–2027)
 
-- Teams can run `npx ariscan .` and obtain actionable results in under 10 minutes.
+- Teams can run `npx @prontiq/ariscan-cli .` and obtain actionable results in under 10 minutes.
 - Every scored pillar includes rationale, confidence, and suggested actions.
 - CI policy integration is simple enough for maintainers, strong enough for serious teams.
 - Methodology remains reproducible and transparent across versions.
@@ -109,16 +109,16 @@ prontiq/ariscan/
 │   ├── cli/                              # CLI entrypoint (citty)
 │   │   ├── src/
 │   │   │   ├── commands/
-│   │   │   │   ├── scan.ts               # npx ariscan . (default command)
-│   │   │   │   ├── doctor.ts             # npx ariscan doctor [--json]
-│   │   │   │   ├── init.ts               # npx ariscan init [agents-md|agentignore|devcontainer|policy]
-│   │   │   │   ├── audit.ts              # npx ariscan audit agents-md
-│   │   │   │   ├── diff.ts               # npx ariscan diff context
-│   │   │   │   ├── badge.ts              # npx ariscan badge
-│   │   │   │   ├── taxonomy.ts           # npx ariscan taxonomy [ARI-XXX-NNN] [--json]
-│   │   │   │   ├── policy.ts             # npx ariscan policy [init|validate]
-│   │   │   │   ├── simulate.ts           # npx ariscan simulate
-│   │   │   │   └── config.ts             # npx ariscan config [set|show-telemetry-payload]
+│   │   │   │   ├── scan.ts               # npx @prontiq/ariscan-cli . (default command)
+│   │   │   │   ├── doctor.ts             # npx @prontiq/ariscan-cli doctor [--json]
+│   │   │   │   ├── init.ts               # npx @prontiq/ariscan-cli init [agents-md|agentignore|devcontainer|policy]
+│   │   │   │   ├── audit.ts              # npx @prontiq/ariscan-cli audit agents-md
+│   │   │   │   ├── diff.ts               # npx @prontiq/ariscan-cli diff context
+│   │   │   │   ├── badge.ts              # npx @prontiq/ariscan-cli badge
+│   │   │   │   ├── taxonomy.ts           # npx @prontiq/ariscan-cli taxonomy [ARI-XXX-NNN] [--json]
+│   │   │   │   ├── policy.ts             # npx @prontiq/ariscan-cli policy [init|validate]
+│   │   │   │   ├── simulate.ts           # npx @prontiq/ariscan-cli simulate
+│   │   │   │   └── config.ts             # npx @prontiq/ariscan-cli config [set|show-telemetry-payload]
 │   │   │   ├── output/
 │   │   │   │   ├── json.ts               # --format json (default for non-TTY)
 │   │   │   │   ├── sarif.ts              # --format sarif (GitHub Code Scanning)
@@ -272,7 +272,7 @@ packages:
 **Root `package.json` scripts:**
 ```json
 {
-  "name": "ariscan",
+  "name": "@prontiq/ariscan-cli",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.4",
@@ -568,7 +568,7 @@ All 8 pillar analyzers implement `PillarAnalyzer`. Community plugins (P3.08) als
       "remediation": {
         "action": "create-file",
         "path": "AGENTS.md",
-        "generator": "npx ariscan init agents-md"
+        "generator": "npx @prontiq/ariscan-cli init agents-md"
       },
       "evidence": {
         "paper": "Lulla et al., 2026",
@@ -692,7 +692,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 | Provider Pattern | `PillarAnalyzer` interface + conformance suites | ripple-next provider pattern + `packages/testing/conformance/` |
 | Structured Remediation | Findings include `remediation.action`, `remediation.generator` | ripple-next machine-readable runbooks (`pnpm runbook <name> --json`) |
 | Agent Config Surfaces | AGENTS.md, CLAUDE.md, `.github/agents/`, `.github/prompts/` | ripple-next multi-surface AI config (7+ config files) |
-| Self-Check | `npx ariscan doctor --json` | ripple-next `pnpm doctor --json` |
+| Self-Check | `npx @prontiq/ariscan-cli doctor --json` | ripple-next `pnpm doctor --json` |
 | Pure Function Core | `scan(path, config) → ScanResult` for CLI, MCP, and Action | Enables MCP server (P3.10) and GitHub Action (P3.02) |
 
 **Dog-fooding requirement:** The `ariscan` repo itself must score L5 on its own rubric. It ships with AGENTS.md, CLAUDE.md, `.agentignore`, `.ariscan.yml`, `docs/error-taxonomy.json`, and all agent configuration surfaces it measures in other repos.
@@ -705,18 +705,18 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 - **Problem statement:** There is no standard CLI tool for measuring AI coding agent readiness. Developers need a single command that works out of the box, respects local configuration, and produces deterministic, machine-parseable output suitable for CI pipelines.
 - **Target persona:** OSS maintainer, team lead evaluating AI agent effectiveness.
 - **Definition of Done:**
-  - [x] `npx ariscan .` command that scans the current directory and produces a scored report.
+  - [x] `npx @prontiq/ariscan-cli .` command that scans the current directory and produces a scored report.
   - [x] Config loading with clear precedence: CLI flags > `.ariscan.yml` > built-in defaults. *(implemented in `config-loader.ts` with directory walk-up, YAML parsing, Zod validation via `FileConfig` schema)*
   - [x] Deterministic exit codes: 0 (pass), 1 (fail — below threshold), 2 (error — scan could not complete).
   - [x] `--help` output documenting all core flags, examples, and config file format. *(citty auto-generates flag docs + 3 usage examples in description)*
   - [x] `--verbose` and `--quiet` modes for debugging and CI respectively. *(verbose: shows pillar details, detection info, context files, and all findings. quiet: single-line CI-friendly output "ARI score/100 level (name)". Added 2026-03-08.)*
-  - [x] `--help` documents all core flags and includes at least 3 usage examples. *(3 examples: `npx ariscan .`, `npx ariscan /path --json`, `npx ariscan . --threshold 60`)*
+  - [x] `--help` documents all core flags and includes at least 3 usage examples. *(3 examples: `npx @prontiq/ariscan-cli .`, `npx @prontiq/ariscan-cli /path --json`, `npx @prontiq/ariscan-cli . --threshold 60`)*
   - [x] Config precedence (CLI > local config > defaults) is tested with unit tests covering each override layer. *(16 tests in `config-loader.test.ts`)*
   - [x] Exit code matrix is documented for CI users in both `--help` and published docs. *(exit codes 0/1/2 documented in `--help` description, added 2026-03-10)*
   - [x] Runs to completion on repos up to 100k files within 60 seconds on commodity hardware. *(verified: 685ms on 100k-file mock context, sub-linear scaling confirmed)*
   - [x] Zero external network calls during scan (fully offline operation).
 - **Tech stack (RFC-0003):** Node.js 22, TypeScript 5.7 strict, pnpm workspaces, Turborepo, citty (CLI framework), Zod (config validation), tsup (build), Vitest (testing), ESLint 9 + Prettier (linting). AI-first patterns extracted from ripple-next reference architecture: `ARI-*` error taxonomy, provider pattern for analyzers, pure function core (`scan(path, config) → ScanResult`).
-- **Dependencies:** npm package name claimed (`ariscan`), TypeScript project scaffold, test framework (Vitest).
+- **Dependencies:** npm package name claimed (`@prontiq/ariscan-cli`), TypeScript project scaffold, test framework (Vitest).
 - **Telemetry:** install-to-first-scan time, scan duration p50/p95.
 - **In scope:** CLI entrypoint, config loading, flag parsing, exit codes, basic error handling, `ARI-*` error taxonomy scaffold, AGENTS.md + CLAUDE.md for the ariscan repo itself (dog-fooding).
 - **Out of scope:** Scoring logic (separate tickets), output formatting (separate tickets), network features.
@@ -1283,7 +1283,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| 1 | `npx ariscan .` scans and produces scored report | ✅ Done | `cli.ts` defines main command with positional `path` defaulting to `"."` |
+| 1 | `npx @prontiq/ariscan-cli .` scans and produces scored report | ✅ Done | `cli.ts` defines main command with positional `path` defaulting to `"."` |
 | 2 | Config loading: CLI flags > `.ariscan.yml` > defaults | ✅ Done | `config-loader.ts`: directory walk-up discovery, YAML parsing, Zod validation via `FileConfig`. `resolveConfig()` merges CLI > file > defaults. 16 unit tests. |
 | 3 | Deterministic exit codes: 0 (pass), 1 (fail), 2 (error) | ✅ Done | `process.exit(2)` on path not found and scan error. `process.exit(1)` when score < threshold. Implicit 0 on success. |
 | 4 | `--help` with all flags, examples, config format | ✅ Done | citty auto-generates flag docs + 3 usage examples in description. Config format via `--config` flag. |
@@ -2818,7 +2818,7 @@ P1 deterministic scoring foundation
   - [x] CHANGELOG.md auto-generation from changesets. Handled by `changesets/action` version PR.
   - [x] GitHub Release creation with scan result artifact attached. Workflow uploads `scan-result.json` to each release.
   - [x] Provenance attestation for npm packages (`--provenance` flag). Enabled via `id-token: write` permission and `--provenance` on publish.
-- **Why:** npm publishing is a P1 exit criterion. Provenance attestation is AI-first — agents downloading `ariscan` from npm should be able to verify the package hasn't been tampered with.
+- **Why:** npm publishing is a P1 exit criterion. Provenance attestation is AI-first — agents downloading `@prontiq/ariscan-cli` from npm should be able to verify the package hasn't been tampered with.
 - **Dependencies:** ~~npm org setup, `NPM_TOKEN` secret.~~ Done — `@prontiq` org available, `NPM_TOKEN` configured.
 
 ### Ticket CI.08 — Test Coverage Reporting (🟡 P2) ⬜ Not Started
