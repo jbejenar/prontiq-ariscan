@@ -1793,7 +1793,7 @@ To maximise adoption across end users, plugin authors, and programmatic consumer
 
 | Package | npm Name | Scope | Target Audience | Status |
 |---|---|---|---|---|
-| `packages/cli` | `ariscan` | Public (unscoped) | End users running `npx ariscan .` | `private: false` — ready to publish |
+| `packages/cli` | `@prontiq/ariscan-cli` | Public (scoped) | End users running `npx @prontiq/ariscan-cli .` | `private: false` — ready to publish |
 | `packages/schema` | `@prontiq/ariscan-schema` | Public (scoped) | Plugin authors, CI integrations, anyone importing types (`PillarId`, `Finding`, `ScanResult`) | `private: false` — ready to publish |
 | `packages/engine` | `@prontiq/ariscan-engine` | Public (scoped) | Programmatic consumers embedding scanning in their own tooling | `private: false` — ready to publish |
 
@@ -1805,7 +1805,7 @@ To maximise adoption across end users, plugin authors, and programmatic consumer
 - [x] Add `publishConfig`, `repository`, `homepage`, and `bugs` fields to all three `package.json` files.
 - [x] Add `files` whitelist (`["dist", "README.md"]`) to each package to avoid publishing source/test files.
 - [x] Ensure `workspace:*` dependencies are resolved to real version ranges at publish time (pnpm handles this automatically with `pnpm publish`).
-- [x] Add per-package `README.md` for all three packages (`ariscan`, `@prontiq/ariscan-schema`, `@prontiq/ariscan-engine`) with API docs and usage examples.
+- [x] Add per-package `README.md` for all three packages (`@prontiq/ariscan-cli`, `@prontiq/ariscan-schema`, `@prontiq/ariscan-engine`) with API docs and usage examples.
 - [x] Integrate `@changesets/cli` for coordinated versioning across all three packages (see CI.07).
 - [x] Enable npm provenance attestation (`--provenance`) in the publish workflow.
 
