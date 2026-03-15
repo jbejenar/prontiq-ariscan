@@ -33,25 +33,29 @@ async function resolveRepoPath(path: string): Promise<string> {
   return repoPath;
 }
 
-async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
+async function handleFlagCommands(args: Record<string, unknown>): Promise<boolean> {
   if (args.telemetryShow) {
     await handleTelemetryShow();
-    return;
+    return true;
   }
   if (args.telemetry) {
     await handleTelemetrySet(args.telemetry as string);
-    return;
+    return true;
   }
   if (args.jsonSchema) {
     process.stdout.write(formatJsonSchema());
-    return;
+    return true;
   }
+  return false;
+}
 
-  const repoPath = await resolveRepoPath(args.path as string);
-
+async function handleRepoCommands(
+  repoPath: string,
+  args: Record<string, unknown>,
+): Promise<boolean> {
   if (args.budget) {
     await handleBudgetMode(repoPath, args.json as boolean, args.quiet as boolean);
-    return;
+    return true;
   }
   if (args.fix) {
     await handleFixMode(
@@ -60,8 +64,17 @@ async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
       args.dryRun as boolean,
       args.quiet as boolean,
     );
-    return;
+    return true;
   }
+  return false;
+}
+
+async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
+  if (await handleFlagCommands(args)) return;
+
+  const repoPath = await resolveRepoPath(args.path as string);
+  if (await handleRepoCommands(repoPath, args)) return;
+
   if (args.noTelemetry) {
     process.env["ARISCAN_TELEMETRY"] = "false";
   }
