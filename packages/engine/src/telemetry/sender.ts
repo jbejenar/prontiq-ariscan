@@ -18,6 +18,7 @@ export function sendTelemetry(payload: TelemetryPayload): void {
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  timer.unref();
 
   fetch(endpoint, {
     method: "POST",
