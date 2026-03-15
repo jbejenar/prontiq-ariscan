@@ -2,6 +2,7 @@
   "name": "prontiq-ariscan-monorepo",
   "private": true,
   "type": "module",
+  "license": "Elastic-2.0",
   "packageManager": "pnpm@9.15.4",
   "engines": {
     "node": ">=22.0.0"
