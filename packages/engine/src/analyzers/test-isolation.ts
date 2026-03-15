@@ -1,5 +1,6 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
+import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
+import { buildPillarResult } from "./shared.js";
 
 const PILLAR: PillarId = "P3";
 
@@ -269,15 +270,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
           confidence: "high",
         },
       });
-      return {
-        pillar: PILLAR,
-        name: PILLAR_NAMES[PILLAR],
-        score: 0,
-        weight: PILLAR_WEIGHTS[PILLAR],
-        confidence: "high",
-        findings,
-        summary: "No test files found",
-      };
+      return buildPillarResult(PILLAR, 0, "high", findings, "No test files found");
     }
 
     // Test-to-source ratio
@@ -793,16 +786,12 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       score += 5;
     }
 
-    score = Math.min(100, Math.max(0, score));
-
-    return {
-      pillar: PILLAR,
-      name: PILLAR_NAMES[PILLAR],
+    return buildPillarResult(
+      PILLAR,
       score,
-      weight: PILLAR_WEIGHTS[PILLAR],
-      confidence: sampled.length >= 10 ? "high" : "medium",
+      sampled.length >= 10 ? "high" : "medium",
       findings,
-      summary: `${testFiles.length} test files found, ratio ${ratio.toFixed(2)}, ${totalAntiPatterns + newAntiPatternCount} anti-patterns detected`,
-    };
+      `${testFiles.length} test files found, ratio ${ratio.toFixed(2)}, ${totalAntiPatterns + newAntiPatternCount} anti-patterns detected`,
+    );
   },
 };

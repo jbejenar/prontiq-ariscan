@@ -1,5 +1,6 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
+import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
+import { buildPillarResult, anyFileExists } from "./shared.js";
 
 const PILLAR: PillarId = "P6";
 
@@ -117,13 +118,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       "Gemfile.lock",
       "composer.lock",
     ];
-    let hasLockfile = false;
-    for (const lf of lockfiles) {
-      if (await context.fileExists(lf)) {
-        hasLockfile = true;
-        break;
-      }
-    }
+    const hasLockfile = await anyFileExists(context, lockfiles);
 
     if (hasLockfile) {
       score += 20;
@@ -323,13 +318,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       ".eslintrc.yaml",
       ".eslintrc",
     ];
-    let hasEslint = false;
-    for (const ec of eslintConfigs) {
-      if (await context.fileExists(ec)) {
-        hasEslint = true;
-        break;
-      }
-    }
+    let hasEslint = await anyFileExists(context, eslintConfigs);
     if (!hasEslint && pkg) {
       const eslintConfig = (pkg as Record<string, unknown>)["eslintConfig"];
       if (eslintConfig) {
@@ -350,13 +339,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       "prettier.config.cjs",
       "prettier.config.mjs",
     ];
-    let hasPrettier = false;
-    for (const pc of prettierConfigs) {
-      if (await context.fileExists(pc)) {
-        hasPrettier = true;
-        break;
-      }
-    }
+    let hasPrettier = await anyFileExists(context, prettierConfigs);
     if (!hasPrettier && pkg) {
       const prettierField = (pkg as Record<string, unknown>)["prettier"];
       if (prettierField) {
@@ -616,16 +599,12 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       }
     }
 
-    score = Math.min(100, Math.max(0, score));
-
-    return {
-      pillar: PILLAR,
-      name: PILLAR_NAMES[PILLAR],
+    return buildPillarResult(
+      PILLAR,
       score,
-      weight: PILLAR_WEIGHTS[PILLAR],
-      confidence: tsconfig ? "high" : "medium",
+      tsconfig ? "high" : "medium",
       findings,
-      summary: `TypeScript strict: ${tsconfig ? "detected" : "no tsconfig"}, Lockfile: ${hasLockfile}, Build: ${scripts["build"] ? "yes" : "no"}`,
-    };
+      `TypeScript strict: ${tsconfig ? "detected" : "no tsconfig"}, Lockfile: ${hasLockfile}, Build: ${scripts["build"] ? "yes" : "no"}`,
+    );
   },
 };

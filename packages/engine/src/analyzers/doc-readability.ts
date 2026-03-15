@@ -1,5 +1,6 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
+import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
+import { buildPillarResult } from "./shared.js";
 
 const PILLAR: PillarId = "P5";
 
@@ -371,16 +372,12 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
       });
     }
 
-    score = Math.min(100, Math.max(0, score));
-
-    return {
-      pillar: PILLAR,
-      name: PILLAR_NAMES[PILLAR],
+    return buildPillarResult(
+      PILLAR,
       score,
-      weight: PILLAR_WEIGHTS[PILLAR],
-      confidence: "medium",
+      "medium",
       findings,
-      summary: `API specs: ${apiSpecs.length}, GraphQL: ${graphqlSchemas.length > 0}, Error taxonomy: ${hasErrorTaxonomy}, Runbooks: ${machineReadableRunbooks.length} machine-readable / ${proseOnlyRunbooks.length} prose`,
-    };
+      `API specs: ${apiSpecs.length}, GraphQL: ${graphqlSchemas.length > 0}, Error taxonomy: ${hasErrorTaxonomy}, Runbooks: ${machineReadableRunbooks.length} machine-readable / ${proseOnlyRunbooks.length} prose`,
+    );
   },
 };

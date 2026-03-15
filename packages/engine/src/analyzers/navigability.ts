@@ -1,5 +1,6 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
+import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
+import { buildPillarResult } from "./shared.js";
 
 const PILLAR: PillarId = "P7";
 
@@ -234,15 +235,13 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     );
 
     if (sourceFiles.length === 0) {
-      return {
-        pillar: PILLAR,
-        name: PILLAR_NAMES[PILLAR],
-        score: 50,
-        weight: PILLAR_WEIGHTS[PILLAR],
-        confidence: "low",
-        findings: [],
-        summary: "No source files to analyze for navigability",
-      };
+      return buildPillarResult(
+        PILLAR,
+        50,
+        "low",
+        [],
+        "No source files to analyze for navigability",
+      );
     }
 
     // Directory structure analysis
@@ -820,16 +819,12 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
 
     const thresholdSummary = `depth:${depthLabel} dirs:${dirSizeLabel} naming:${namingLabel} imports:${importLabel} circular:${circularLabel} dead-code:${deadCodeLabel} duplication:${duplicationLabel}`;
 
-    score = Math.min(100, Math.max(0, score));
-
-    return {
-      pillar: PILLAR,
-      name: PILLAR_NAMES[PILLAR],
+    return buildPillarResult(
+      PILLAR,
       score,
-      weight: PILLAR_WEIGHTS[PILLAR],
-      confidence: sourceFiles.length > 10 ? "medium" : "low",
+      sourceFiles.length > 10 ? "medium" : "low",
       findings,
-      summary: `${sourceFiles.length} source files across ${dirs.size} directories, max depth ${maxDepth}, naming ${Math.round(consistency * 100)}% consistent | Thresholds: ${thresholdSummary}${costlyPaths}`,
-    };
+      `${sourceFiles.length} source files across ${dirs.size} directories, max depth ${maxDepth}, naming ${Math.round(consistency * 100)}% consistent | Thresholds: ${thresholdSummary}${costlyPaths}`,
+    );
   },
 };

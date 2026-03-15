@@ -1,5 +1,6 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
+import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
+import { buildPillarResult, clampScore, anyFileExists } from "./shared.js";
 
 const PILLAR: PillarId = "P2";
 
@@ -152,8 +153,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
     }
 
     // Changeset scope controls (CI-adjacent)
-    let hasChangesetControls = false;
-    const commitlintConfigs = [
+    let hasChangesetControls = await anyFileExists(context, [
       "commitlint.config.js",
       "commitlint.config.cjs",
       "commitlint.config.ts",
@@ -163,13 +163,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
       ".commitlintrc.yaml",
       ".commitlintrc.js",
       ".commitlintrc.cjs",
-    ];
-    for (const cfg of commitlintConfigs) {
-      if (await context.fileExists(cfg)) {
-        hasChangesetControls = true;
-        break;
-      }
-    }
+    ]);
 
     if (!hasChangesetControls && pkg) {
       const commitlint = pkg["commitlint"] as Record<string, unknown> | undefined;
@@ -487,16 +481,14 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         latencyLabel === "measured" ? "high" : latencyLabel === "inferred" ? "medium" : "low",
     });
 
-    score = Math.min(100, Math.max(0, score));
+    score = clampScore(score);
 
-    return {
-      pillar: PILLAR,
-      name: PILLAR_NAMES[PILLAR],
+    return buildPillarResult(
+      PILLAR,
       score,
-      weight: PILLAR_WEIGHTS[PILLAR],
-      confidence: pkg ? "high" : "low",
+      pkg ? "high" : "low",
       findings,
-      summary: `Feedback loop score: ${score}/100. Test: ${hasTestCmd ? "yes" : "no"}, Lint: ${hasLintCmd ? "yes" : "no"}, CI: ${hasCI ? "yes" : "no"}`,
-    };
+      `Feedback loop score: ${score}/100. Test: ${hasTestCmd ? "yes" : "no"}, Lint: ${hasLintCmd ? "yes" : "no"}, CI: ${hasCI ? "yes" : "no"}`,
+    );
   },
 };
