@@ -1393,14 +1393,58 @@ describe("generateFixProposals", () => {
       expect(queue).toBeUndefined();
     });
 
-    it("does not generate queue provider for Python projects", async () => {
+    it("generates Python queue provider when celery detected", async () => {
       const ctx = createMockContext({
-        "requirements.txt": "confluent-kafka==2.0.0",
+        "requirements.txt": "celery==5.3.0\nredis==5.0.0",
       });
 
       const proposals = await generateFixProposals(ctx, pythonDetection);
-      const queue = proposals.find((p) => p.path === "src/providers/queue.provider.ts");
-      expect(queue).toBeUndefined();
+      const queue = proposals.find((p) => p.path === "src/providers/queue_provider.py");
+
+      expect(queue).toBeDefined();
+      expect(queue?.content).toContain("class QueueProvider(ABC)");
+      expect(queue?.content).toContain("class InMemoryQueueProvider");
+      expect(queue?.content).toContain("async def send(");
+      expect(queue?.content).toContain("async def receive(");
+      expect(queue?.content).toContain("from abc import ABC, abstractmethod");
+    });
+
+    it("generates Go queue provider when sarama detected", async () => {
+      const goDetection: DetectionResult = {
+        languages: [{ language: "go", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      };
+      const ctx = createMockContext({
+        "go.mod": "module example.com/app\n\nrequire github.com/Shopify/sarama v1.38.0",
+      });
+
+      const proposals = await generateFixProposals(ctx, goDetection);
+      const queue = proposals.find((p) => p.path === "internal/providers/queue.go");
+
+      expect(queue).toBeDefined();
+      expect(queue?.content).toContain("type QueueProvider interface");
+      expect(queue?.content).toContain("type InMemoryQueue struct");
+      expect(queue?.content).toContain("func NewInMemoryQueue()");
+    });
+
+    it("generates Java queue provider when spring-kafka detected", async () => {
+      const javaDetection: DetectionResult = {
+        languages: [{ language: "java", confidence: 0.9, primary: true }],
+        frameworks: [{ framework: "spring", confidence: 0.8 }],
+        monorepo: null,
+      };
+      const ctx = createMockContext({
+        "pom.xml": "<dependency><artifactId>spring-kafka</artifactId></dependency>",
+      });
+
+      const proposals = await generateFixProposals(ctx, javaDetection);
+      const queue = proposals.find((p) => p.path === "src/main/java/providers/QueueProvider.java");
+
+      expect(queue).toBeDefined();
+      expect(queue?.content).toContain("public interface QueueProvider");
+      expect(queue?.content).toContain("class InMemoryQueueProvider");
+      expect(queue?.content).toContain("QueueMessage");
     });
   });
 
@@ -1462,14 +1506,57 @@ describe("generateFixProposals", () => {
       expect(email).toBeUndefined();
     });
 
-    it("does not generate email provider for Python projects", async () => {
+    it("generates Python email provider when sendgrid detected", async () => {
       const ctx = createMockContext({
         "requirements.txt": "sendgrid==6.0.0",
       });
 
       const proposals = await generateFixProposals(ctx, pythonDetection);
-      const email = proposals.find((p) => p.path === "src/providers/email.provider.ts");
-      expect(email).toBeUndefined();
+      const email = proposals.find((p) => p.path === "src/providers/email_provider.py");
+
+      expect(email).toBeDefined();
+      expect(email?.content).toContain("class EmailProvider(ABC)");
+      expect(email?.content).toContain("class InMemoryEmailProvider");
+      expect(email?.content).toContain("async def send(");
+      expect(email?.content).toContain("from abc import ABC, abstractmethod");
+    });
+
+    it("generates Go email provider when gomail detected", async () => {
+      const goDetection: DetectionResult = {
+        languages: [{ language: "go", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      };
+      const ctx = createMockContext({
+        "go.mod": "module example.com/app\n\nrequire gopkg.in/gomail.v2 v2.0.0",
+      });
+
+      const proposals = await generateFixProposals(ctx, goDetection);
+      const email = proposals.find((p) => p.path === "internal/providers/email.go");
+
+      expect(email).toBeDefined();
+      expect(email?.content).toContain("type EmailProvider interface");
+      expect(email?.content).toContain("type InMemoryEmail struct");
+      expect(email?.content).toContain("func NewInMemoryEmail()");
+    });
+
+    it("generates Java email provider when jakarta.mail detected", async () => {
+      const javaDetection: DetectionResult = {
+        languages: [{ language: "java", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      };
+      const ctx = createMockContext({
+        "build.gradle": "implementation 'jakarta.mail:jakarta.mail-api:2.1.0'",
+      });
+
+      const proposals = await generateFixProposals(ctx, javaDetection);
+      const email = proposals.find((p) => p.path === "src/main/java/providers/EmailProvider.java");
+
+      expect(email).toBeDefined();
+      expect(email?.content).toContain("public interface EmailProvider");
+      expect(email?.content).toContain("class InMemoryEmailProvider");
+      expect(email?.content).toContain("EmailMessage");
     });
   });
 });
