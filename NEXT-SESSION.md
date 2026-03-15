@@ -1,17 +1,16 @@
 # Next Session Guide
 
-## Session: 2026-03-16 (twentieth session)
+## Session: 2026-03-16 (twenty-first session)
 **Phase:** P2 — Context Intelligence (continued)
-**Self-scan:** 88/100 (L5 Autonomous) — up from 83/100
-**Tests:** 596 engine + 58 schema + 109 CLI = 763 passing across 38 test files (no regressions)
+**Self-scan:** 90/100 (L5 Autonomous) — up from 88/100
+**Tests:** 604 engine + 58 schema + 109 CLI = 771 passing across 38 test files (no regressions)
 **Quality gate:** typecheck, lint, test, build, selftest — all green
 **Scaffold score:** 61/100 (L3 Capable) — stable
-**Roadmap progress:** 3 items shipped this session (P3, P5, P7 improvements)
+**Roadmap progress:** 2 items shipped this session (P6 85→95, P4 95→100)
 
 ## Items Completed This Session
-- **P3 Test Isolation improved (65 → 80):** Fixed anti-pattern in integration.test.ts (beforeAll→beforeEach). Added analyzer-factory.ts for DI/provider pattern bonus (+15).
-- **P5 Doc Readability improved (60 → 70):** Added machine-readable runbook (runbooks/runbook.yaml). Added JSDoc to key source/test files. Updated README stats.
-- **P7 Code Navigability improved (71 → 75):** Extracted handleFlagCommands/handleRepoCommands from dispatchCommand to reduce cognitive complexity below moderate threshold.
+- **P6 Build Determinism improved (85 → 95):** Added TypeScript project references to tsconfig.json (+5). Added ARI-BLD-011 ESLint+Prettier config detection (+5). Total +10 points.
+- **P4 Dev Environment improved (95 → 100):** Added `doctor` script to package.json (+5). Fixed devcontainer settings detection for `customizations.vscode` (modern format).
 
 ## Items Deferred
 - P2.01: Context quality generator (requires semantic deduplication — NLP analysis, deferred)
@@ -24,23 +23,36 @@
 - P7 code duplication (ARI-NAV-008) — 62 shared blocks across 8 files. Would require significant refactoring.
 - P7 naming consistency (ARI-NAV-003) — camelCase(36) vs kebab-case(49) vs snake_case(36). 40% consistency. Renaming files is high-risk.
 
+## Per-Pillar Scores
+| Pillar | Score |
+|--------|-------|
+| P1 Context Quality | 100 |
+| P2 Feedback Loop | 100 |
+| P3 Test Isolation | 80 |
+| P4 Dev Environment | 100 |
+| P5 Doc Readability | 70 |
+| P6 Build Determinism | 95 |
+| P7 Code Navigability | 75 |
+| P8 Security & Governance | 100 |
+| **Composite** | **90** |
+
 ## Next Session Should Start With
 
-### Priority 1: P6 Build Determinism (currently 85, target 90+)
-- Investigate remaining ARI-BLD findings
-- Check for strict mode gaps, lockfile freshness
+### Priority 1: P3 Test Isolation (currently 80, target 90+)
+- Test-to-source ratio is 0.71 — adding more test files would push this higher
+- Check for remaining anti-patterns (shared mutable state, non-deterministic time, etc.)
 
-### Priority 2: P4 Dev Environment (currently 95, target 100)
-- Check what's missing for the final 5 points
+### Priority 2: P7 Code Navigability (currently 75, target 80+)
+- Code duplication (62 shared blocks) is the main drag
+- Naming consistency (40%) is difficult to improve without risky file renames
 
-### Priority 3: P2.06 remaining work
-- Guided remediation validation (test templates against real repos, verify ARI impact estimates)
-- Python/Go/Java provider pattern templates (currently TypeScript-only)
+### Priority 3: P5 Doc Readability (currently 70, target 80+)
+- Check what criteria are missing for additional points
 
 ### Priority 4: Polish & DX
+- P2.06: Guided remediation validation (test templates against real repos)
 - Confidence-adjusted composite score (`--confidence-adjusted` flag)
 - P1.04: Semantic additionality engine
-- P1.18: Benchmark cohort v1
 
 ## Blockers
-- None. All quality gates pass. Score at L5 Autonomous (88/100).
+- None. All quality gates pass. Score at L5 Autonomous (90/100).

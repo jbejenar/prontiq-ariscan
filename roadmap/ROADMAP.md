@@ -1485,7 +1485,7 @@ It is the source of truth for what was actually built vs. what was specified.
 
 ---
 
-#### P1.10 — Type Strictness Scoring Baseline / Pillar 6 (13 done, 2 partial, 2 not done) — updated 2026-03-10
+#### P1.10 — Type Strictness Scoring Baseline / Pillar 6 (14 done, 2 partial, 1 not done) — updated 2026-03-16
 
 **TypeScript checks:**
 
@@ -1516,6 +1516,7 @@ It is the source of truth for what was actually built vs. what was specified.
 | 2 | Lockfile gitignored check | ✅ Done | |
 | 3 | Build tool modernity | ✅ Done | `tsup\|esbuild\|vite\|swc\|unbuild\|turbo` vs `webpack` |
 | 4 | Monorepo clarity (project refs, package boundaries) | ✅ Done | ARI-BLD-006: checks turbo, nx, lerna, pnpm-workspace project references. ARI-BLD-007: lockfile drift detection (packageManager field vs actual lockfile). Added 2026-03-09. |
+| 5 | Linting & formatting config detection | ✅ Done | ARI-BLD-011: detects ESLint + Prettier configs (10+ ESLint formats, 11+ Prettier formats, package.json fields). +5 when both present. Added 2026-03-16. |
 
 **Acceptance Criteria:**
 
