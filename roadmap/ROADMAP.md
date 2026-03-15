@@ -2118,7 +2118,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Automated scanning, result publication, trend analysis, filtering.
 - **Out of scope:** User-submitted scores (trust issues), paid placement.
 
-### Ticket P2.13 — Anonymous Usage Telemetry (🟠)
+### Ticket P2.13 — Anonymous Usage Telemetry (🟠) ✅ Done (2026-03-15)
 
 - **User story:** As a Prontiq maintainer, I need aggregated, anonymous metrics from CLI usage to calibrate scoring weights and understand real-world adoption patterns.
 - **Problem statement:** Research-calibrated scoring requires real-world validation data. Without understanding how repos score in the wild, calibration drifts from reality. However, as an open-source project, any telemetry must be: (1) strictly opt-in with informed consent, (2) fully anonymous with zero sensitive data, (3) clearly documented, and (4) easy to disable.

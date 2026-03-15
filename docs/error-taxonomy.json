@@ -1,0 +1,193 @@
+{
+  "$schema": "https://prontiq.dev/schemas/error-taxonomy/v1.json",
+  "version": "1.0.0",
+  "description": "ARI finding codes taxonomy — all diagnostic codes emitted by the ariscan engine",
+  "pillars": {
+    "P1": {
+      "name": "Agent Context Quality",
+      "prefix": "ARI-CTX",
+      "codes": {
+        "ARI-CTX-001": { "severity": "high", "summary": "No agent context files found" },
+        "ARI-CTX-002": { "severity": "medium", "summary": "AGENTS.md is too short (< 10 lines)" },
+        "ARI-CTX-003": { "severity": "low", "summary": "No .agentignore file found" },
+        "ARI-CTX-004": { "severity": "medium", "summary": "No README.md found" },
+        "ARI-CTX-005": {
+          "severity": "medium",
+          "summary": "Critical info buried below first 20% of context file"
+        },
+        "ARI-CTX-006": {
+          "severity": "low",
+          "summary": "AGENTS.md references paths not found in repo"
+        },
+        "ARI-CTX-007": {
+          "severity": "medium",
+          "summary": "AGENTS.md contains boilerplate without project-specific details"
+        },
+        "ARI-CTX-008": {
+          "severity": "low",
+          "summary": "AGENTS.md is verbose without proportional code examples"
+        },
+        "ARI-CTX-009": { "severity": "high", "summary": "Context file failed parse validation" },
+        "ARI-CTX-010": { "severity": "info", "summary": "Agent context coverage report" }
+      }
+    },
+    "P2": {
+      "name": "Feedback Loop Speed",
+      "prefix": "ARI-FBK",
+      "codes": {
+        "ARI-FBK-001": { "severity": "high", "summary": "No test command found" },
+        "ARI-FBK-002": { "severity": "medium", "summary": "No lint command found" },
+        "ARI-FBK-003": {
+          "severity": "medium",
+          "summary": "No typecheck script for TypeScript project"
+        },
+        "ARI-FBK-004": { "severity": "medium", "summary": "No CI configuration found" },
+        "ARI-FBK-005": { "severity": "medium", "summary": "Test timeout is very large (>60s)" },
+        "ARI-FBK-006": { "severity": "low", "summary": "No changeset scope controls found" },
+        "ARI-FBK-007": { "severity": "low", "summary": "No watch mode command found" },
+        "ARI-FBK-008": { "severity": "info", "summary": "Incremental build status" },
+        "ARI-FBK-009": { "severity": "info", "summary": "Estimated feedback latency" },
+        "ARI-FBK-010": { "severity": "info", "summary": "Change-scope controls assessment" }
+      }
+    },
+    "P3": {
+      "name": "Test Isolation",
+      "prefix": "ARI-TST",
+      "codes": {
+        "ARI-TST-001": { "severity": "high", "summary": "Cloud SDK reference in test file" },
+        "ARI-TST-002": { "severity": "high", "summary": "Direct HTTP call in test" },
+        "ARI-TST-003": { "severity": "medium", "summary": "Non-deterministic time usage in test" },
+        "ARI-TST-004": {
+          "severity": "medium",
+          "summary": "Non-deterministic random usage in test"
+        },
+        "ARI-TST-005": {
+          "severity": "medium",
+          "summary": "Direct environment variable access in test"
+        },
+        "ARI-TST-006": { "severity": "critical", "summary": "No test files found in repository" },
+        "ARI-TST-007": { "severity": "medium", "summary": "Low test-to-source ratio" },
+        "ARI-TST-008": {
+          "severity": "medium",
+          "summary": "Test accesses real filesystem without mocks"
+        },
+        "ARI-TST-009": {
+          "severity": "medium",
+          "summary": "Assertion on unordered collection without sorting"
+        },
+        "ARI-TST-010": { "severity": "high", "summary": "Very low test file count ratio" },
+        "ARI-TST-011": { "severity": "high", "summary": "Mutable global environment detected" },
+        "ARI-TST-012": { "severity": "medium", "summary": "Test order dependency detected" },
+        "ARI-TST-013": {
+          "severity": "medium",
+          "summary": "Concurrency/race condition pattern in test"
+        },
+        "ARI-TST-014": { "severity": "critical", "summary": "Hardcoded credential in test file" },
+        "ARI-TST-015": { "severity": "high", "summary": "High flakiness transfer risk" }
+      }
+    },
+    "P4": {
+      "name": "Dev Environment",
+      "prefix": "ARI-ENV",
+      "codes": {
+        "ARI-ENV-001": { "severity": "medium", "summary": "No devcontainer configuration found" },
+        "ARI-ENV-002": { "severity": "medium", "summary": "No bootstrap/setup script found" },
+        "ARI-ENV-003": { "severity": "low", "summary": "No version pinning found" },
+        "ARI-ENV-004": { "severity": "low", "summary": "No doctor/health-check command found" },
+        "ARI-ENV-005": { "severity": "info", "summary": "Devcontainer validation status" },
+        "ARI-ENV-006": { "severity": "info", "summary": "First-run blocker assessment" },
+        "ARI-ENV-007": {
+          "severity": "medium",
+          "summary": "Environment variable completeness check"
+        },
+        "ARI-ENV-008": { "severity": "info", "summary": "Setup scripts status" },
+        "ARI-ENV-009": { "severity": "info", "summary": "Version pinning status" },
+        "ARI-ENV-010": { "severity": "info", "summary": "Docker Compose status" },
+        "ARI-ENV-011": { "severity": "info", "summary": "Env example file status" },
+        "ARI-ENV-012": { "severity": "info", "summary": "Doctor/health-check status" },
+        "ARI-ENV-013": { "severity": "info", "summary": "Estimated time-to-first-test-pass" }
+      }
+    },
+    "P5": {
+      "name": "Doc Machine-Readability",
+      "prefix": "ARI-DOC",
+      "codes": {
+        "ARI-DOC-001": {
+          "severity": "medium",
+          "summary": "Server code detected but no API contract"
+        },
+        "ARI-DOC-002": {
+          "severity": "low",
+          "summary": "Prose-only runbooks, no machine-readable format"
+        },
+        "ARI-DOC-003": { "severity": "low", "summary": "Low JSDoc coverage" },
+        "ARI-DOC-004": { "severity": "medium", "summary": "README references stale file paths" }
+      }
+    },
+    "P6": {
+      "name": "Build Determinism & Type Safety",
+      "prefix": "ARI-BLD",
+      "codes": {
+        "ARI-BLD-001": {
+          "severity": "high",
+          "summary": "TypeScript strict mode not fully enabled"
+        },
+        "ARI-BLD-002": { "severity": "high", "summary": "Lockfile is gitignored" },
+        "ARI-BLD-003": { "severity": "medium", "summary": "No lockfile found" },
+        "ARI-BLD-004": { "severity": "medium", "summary": "Excessive interface{}/any in Go files" },
+        "ARI-BLD-005": { "severity": "medium", "summary": "Excessive .unwrap() in Rust files" },
+        "ARI-BLD-006": {
+          "severity": "medium",
+          "summary": "Monorepo without TypeScript project references"
+        },
+        "ARI-BLD-007": {
+          "severity": "high",
+          "summary": "Package manager mismatch (field vs lockfile)"
+        },
+        "ARI-BLD-008": {
+          "severity": "medium",
+          "summary": "Java project lacks nullability annotations"
+        },
+        "ARI-BLD-009": { "severity": "medium", "summary": "C# nullable reference types disabled" },
+        "ARI-BLD-010": { "severity": "info", "summary": "Build tool assessment" }
+      }
+    },
+    "P7": {
+      "name": "Code Navigability",
+      "prefix": "ARI-NAV",
+      "codes": {
+        "ARI-NAV-001": { "severity": "medium", "summary": "Directory has too many source files" },
+        "ARI-NAV-002": { "severity": "low", "summary": "Maximum directory depth too deep" },
+        "ARI-NAV-003": { "severity": "low", "summary": "Inconsistent file naming conventions" },
+        "ARI-NAV-004": {
+          "severity": "medium",
+          "summary": "File has too many imports (high coupling)"
+        },
+        "ARI-NAV-005": { "severity": "high", "summary": "Potential circular dependency" },
+        "ARI-NAV-006": { "severity": "low", "summary": "Unused source files detected" },
+        "ARI-NAV-007": { "severity": "high", "summary": "Function with poor cognitive complexity" },
+        "ARI-NAV-008": { "severity": "medium", "summary": "Code duplication detected" }
+      }
+    },
+    "P8": {
+      "name": "Security & Governance",
+      "prefix": "ARI-SEC",
+      "codes": {
+        "ARI-SEC-001": { "severity": "medium", "summary": "No CODEOWNERS file found" },
+        "ARI-SEC-002": { "severity": "low", "summary": "No SECURITY.md found" },
+        "ARI-SEC-003": { "severity": "high", "summary": "No secrets scanning configuration" },
+        "ARI-SEC-004": { "severity": "medium", "summary": "No dependency update automation" },
+        "ARI-SEC-005": {
+          "severity": "low",
+          "summary": "PR template missing AI-specific review checklist"
+        },
+        "ARI-SEC-006": { "severity": "low", "summary": "No agent scope control found" },
+        "ARI-SEC-007": { "severity": "low", "summary": "No license compliance tooling in CI" },
+        "ARI-SEC-008": {
+          "severity": "info",
+          "summary": "Language-specific AI vulnerability context"
+        }
+      }
+    }
+  }
+}
