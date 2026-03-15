@@ -986,7 +986,7 @@ describe("generateFixProposals", () => {
 
       expect(compose).toBeDefined();
       expect(compose?.content).toContain("minio:");
-      expect(compose?.content).toContain("minio/minio:latest");
+      expect(compose?.content).toContain("minio/minio:");
       expect(compose?.content).toContain("9000");
       expect(compose?.content).toContain("9001");
       expect(compose?.content).toContain("MINIO_ROOT_USER=dev");

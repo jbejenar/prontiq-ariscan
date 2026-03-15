@@ -1492,13 +1492,13 @@ async function detectRequiredServices(
   if (
     allDeps["minio"] ||
     combined.includes("minio-go") ||
-    combined.includes("minio") // Python minio package
+    /\bminio[>=~\s]/u.test(pyDeps) // Python minio package (e.g., minio>=7.0.0)
   ) {
     if (!seen.has("minio")) {
       seen.add("minio");
       services.push({
         name: "minio",
-        image: "minio/minio:latest",
+        image: "minio/minio:RELEASE.2025-02-28T09-55-16Z",
         ports: ["9000", "9001"],
         environment: [
           "MINIO_ROOT_USER=dev",
