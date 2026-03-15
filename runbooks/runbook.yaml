@@ -1,0 +1,53 @@
+---
+# Machine-readable operational runbook for prontiq-ariscan
+# Used by agents and operators to execute standard procedures.
+runbook:
+  version: "1.0"
+  service: "@prontiq/ariscan-cli"
+
+procedures:
+  - id: release
+    name: Publish a new release
+    steps:
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm selftest
+      - description: Bump version in all package.json files
+        run: pnpm version-bump
+      - description: Create git tag and push
+        run: git tag v$(node -p "require('./packages/cli/package.json').version")
+      - run: git push --follow-tags
+
+  - id: verify
+    name: Full verification gate
+    steps:
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm selftest
+
+  - id: rollback
+    name: Rollback a bad release
+    steps:
+      - description: Revert to previous tag
+        run: git revert HEAD --no-edit
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm selftest
+      - description: Push revert commit
+        run: git push
+
+  - id: incident-triage
+    name: Triage a scoring regression
+    steps:
+      - description: Run selftest with JSON output
+        run: node packages/cli/dist/cli.js . --format json > scan-result.json
+      - description: Compare per-pillar scores against last-known-good
+        run: diff <(jq '.pillars[] | {pillar, score}' scan-result.json) <(jq '.pillars[] | {pillar, score}' scan-result-baseline.json)
+      - description: Check git log for recent changes
+        run: git log --oneline -10

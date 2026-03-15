@@ -1,3 +1,4 @@
+/** Scan subcommand — runs all 8 pillar analyzers against a target directory. */
 import { defineCommand } from "citty";
 import { resolve } from "node:path";
 import { access } from "node:fs/promises";

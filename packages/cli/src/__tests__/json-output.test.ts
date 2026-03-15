@@ -1,3 +1,4 @@
+/** Tests for JSON output formatting and JSON Schema generation. */
 import { describe, it, expect } from "vitest";
 import type { ScanResult } from "@prontiq/ariscan-schema";
 import { formatJson, getJsonSchemaObject } from "../output/json.js";

@@ -1,3 +1,4 @@
+/** Tests for SVG badge generation and badge snippet formatting. */
 import { describe, it, expect } from "vitest";
 import type { ScanResult } from "@prontiq/ariscan-schema";
 import { generateBadgeSvg, generateBadgeSnippets, formatBadge } from "../output/badge.js";

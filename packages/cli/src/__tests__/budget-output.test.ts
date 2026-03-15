@@ -1,3 +1,4 @@
+/** Tests for token budget JSON output formatting. */
 import { describe, it, expect } from "vitest";
 import { formatBudgetJson } from "../output/budget.js";
 import type { TokenBudgetResult } from "@prontiq/ariscan-engine";

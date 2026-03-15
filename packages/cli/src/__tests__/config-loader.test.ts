@@ -1,3 +1,4 @@
+/** Tests for config file loading, merging, and CLI flag resolution. */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { loadConfigFile, fileConfigToScanConfig, findConfigFile } from "../config-loader.js";
 import * as fs from "node:fs/promises";
