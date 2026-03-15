@@ -118,7 +118,7 @@ describe("integration: scan progress callback", () => {
 });
 
 describe("integration: scaffold→scan gate", () => {
-  let scaffoldDir: string | undefined;
+  let scaffoldDir = "";
 
   beforeEach(async () => {
     // Create a minimal TypeScript project
