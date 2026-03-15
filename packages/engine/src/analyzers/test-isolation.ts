@@ -468,7 +468,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       let fileHasMutation = false;
       for (const gm of GLOBAL_MUTATION_PATTERNS) {
         // Skip process.env mutations when env is properly saved/restored
-        if (restoresProcessEnv && /process\.env/.test(gm.pattern.source)) continue;
+        if (restoresProcessEnv && gm.pattern.source.includes("process")) continue;
 
         if (gm.pattern.test(content)) {
           if (!fileHasMutation) {
@@ -660,7 +660,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
           const restoresEnv = hasAfter && /\bconst\s+\w+\s*=\s*process\.env\b/.test(c);
           // Check if any un-restored global mutation patterns remain
           const hasUnrestoredMutation = GLOBAL_MUTATION_PATTERNS.some((gm) => {
-            if (restoresEnv && /process\.env/.test(gm.pattern.source)) return false;
+            if (restoresEnv && gm.pattern.source.includes("process")) return false;
             return gm.pattern.test(c);
           });
           return (
