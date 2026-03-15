@@ -2,6 +2,8 @@ export { scan } from "./scan.js";
 export type { ScanProgressEvent, OnProgress } from "./scan.js";
 export { createRepoContext } from "./context/repo-context.js";
 export { ANALYZERS, getAnalyzer } from "./analyzers/registry.js";
+export { createAnalyzerPipeline } from "./analyzers/analyzer-factory.js";
+export type { AnalyzerPipelineOptions } from "./analyzers/analyzer-factory.js";
 export {
   calculateCompositeScore,
   classifyMaturityLevel,
