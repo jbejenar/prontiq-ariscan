@@ -32,3 +32,6 @@ export {
 } from "./scan-result.js";
 
 export { PillarOverride, ScanConfig, FileConfig } from "./config.js";
+
+export { ScoreBucket, scoreToBucket, telemetryPayloadSchema } from "./telemetry.js";
+export type { TelemetryPayload } from "./telemetry.js";

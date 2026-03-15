@@ -32,3 +32,10 @@ export {
   getDefaultPatterns,
 } from "./agentignore/index.js";
 export type { AgentignoreRule, AgentignoreFile, AgentignoreCategory } from "./agentignore/index.js";
+export {
+  getTelemetryConsent,
+  setTelemetryConsent,
+  readConsentFile,
+  buildTelemetryPayload,
+  sendTelemetry,
+} from "./telemetry/index.js";

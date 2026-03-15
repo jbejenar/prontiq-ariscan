@@ -7,8 +7,11 @@ import {
   analyzeTokenBudget,
   detect,
   generateFixProposals,
+  buildTelemetryPayload,
+  sendTelemetry,
 } from "@prontiq/ariscan-engine";
 import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
+import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
 import { formatTerminal } from "./output/terminal.js";
 import { formatJson, formatJsonSchema } from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
@@ -108,8 +111,33 @@ Exit codes:
       description: "With --fix: overwrite existing files (requires explicit opt-in)",
       default: false,
     },
+    telemetry: {
+      type: "string",
+      description: "Set telemetry consent: true or false",
+      required: false,
+    },
+    telemetryShow: {
+      type: "boolean",
+      description: "Show what telemetry data would be sent",
+      default: false,
+    },
+    noTelemetry: {
+      type: "boolean",
+      description: "Disable telemetry for this single run",
+      default: false,
+    },
   },
   async run({ args }) {
+    if (args.telemetryShow) {
+      await handleTelemetryShow();
+      return;
+    }
+
+    if (args.telemetry) {
+      await handleTelemetrySet(args.telemetry);
+      return;
+    }
+
     if (args.jsonSchema) {
       process.stdout.write(formatJsonSchema());
       return;
@@ -132,6 +160,11 @@ Exit codes:
     if (args.fix) {
       await handleFixMode(repoPath, args.force, args.dryRun, args.quiet);
       return;
+    }
+
+    // Set single-run telemetry override before scan
+    if (args.noTelemetry) {
+      process.env["ARISCAN_TELEMETRY"] = "false";
     }
 
     await handleScanMode(repoPath, args);
@@ -252,6 +285,10 @@ async function handleScanMode(
     process.stderr.write(`Error: Scan failed: ${message}\n`);
     process.exit(2);
   }
+
+  // Fire-and-forget telemetry (only if consent is active)
+  const telemetryPayload = buildTelemetryPayload(result, result.metadata.duration);
+  sendTelemetry(telemetryPayload);
 
   if (args.badge) {
     const badgePath = resolve(args.badge);
