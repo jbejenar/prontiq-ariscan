@@ -1,3 +1,4 @@
+/** Tests for the config subcommand (show/validate). */
 import { describe, it, expect } from "vitest";
 
 describe("config command", () => {

@@ -1,3 +1,4 @@
+/** ESLint flat config — TypeScript strict rules for all packages. */
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 

@@ -132,11 +132,11 @@ The core scanning engine is functional. What's built:
 - **@prontiq/ariscan-schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig, Confidence)
 - **@prontiq/ariscan-engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification, context budget analyzer, `.agentignore` parser, safe `--fix` generators (up to 15 files including AGENTS.md, .agentignore, .devcontainer, tsconfig, .nvmrc, pre-commit hooks, CODEOWNERS, PR template, ADR template, CHANGELOG, docker-compose, .gitleaks.toml, provider skeleton, env var docs, DI wiring examples)
 - **@prontiq/ariscan-cli** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export; `--budget` token analysis; `--fix`/`--dry-run` safe file generation
-- **646 tests** across 26 test files
+- **763 tests** across 38 test files
 - **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
 - **Test fixtures** — hostile-repo (L1), capable-repo (L3)
 - **JSON Schema** — `ariscan.schema.json` in repo root for output validation
-- **Dogfooding** — Self-scan: 81/100 (L5 Autonomous)
+- **Dogfooding** — Self-scan: 86/100 (L5 Autonomous)
 
 ---
 

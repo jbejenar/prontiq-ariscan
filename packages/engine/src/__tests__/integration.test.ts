@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { resolve } from "node:path";
 import { mkdtemp, writeFile, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -118,9 +118,9 @@ describe("integration: scan progress callback", () => {
 });
 
 describe("integration: scaffold→scan gate", () => {
-  let scaffoldDir: string;
+  let scaffoldDir = "";
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     // Create a minimal TypeScript project
     scaffoldDir = await mkdtemp(join(tmpdir(), "ari-scaffold-"));
     await mkdir(join(scaffoldDir, ".git"), { recursive: true });
@@ -171,7 +171,7 @@ describe("integration: scaffold→scan gate", () => {
     }
   }, 30000);
 
-  afterAll(async () => {
+  afterEach(async () => {
     if (scaffoldDir) {
       await rm(scaffoldDir, { recursive: true, force: true });
     }
