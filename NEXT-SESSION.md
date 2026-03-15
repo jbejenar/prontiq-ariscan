@@ -1,20 +1,16 @@
 # Next Session Guide
 
-## Session: 2026-03-14 (fourteenth session)
+## Session: 2026-03-15 (fifteenth session)
 **Phase:** P2 — Context Intelligence (continued)
 **Self-scan:** 76/100 (L4 Productive) — holding steady
-**Tests:** 517 engine + 28 schema + 68 CLI = 613 passing across 22 test files
+**Tests:** 526 engine + 28 schema + 68 CLI = 622 passing across 22 test files
 **Quality gate:** typecheck, lint, test, build, selftest — all green
-**Scaffold score:** 61/100 (L3 Capable) — up from 52 (L2), gated in CI at 46+
-**Roadmap progress:** 6 items shipped this session
+**Scaffold score:** 61/100 (L3 Capable) — stable
+**Roadmap progress:** 2 items shipped this session
 
 ## Items Completed This Session
-- Engine (P2.06): Docker-compose `--fix` generator — detects PostgreSQL, Redis, MySQL, MongoDB, RabbitMQ from package deps across Node.js, Python, Go. Generates `docker-compose.yml` with healthchecks + named volumes. 12 new tests.
-- Engine (P2.06): PR template `--fix` generator — `.github/pull_request_template.md` with AI-Code Review Checklist (8-point human-oversight checklist). 6 new tests.
-- Engine (P2.06): DI wiring example `--fix` generators — NestJS, FastAPI, Spring Boot, Go interface-based DI patterns with in-memory test doubles. 6 new tests.
-- CI/Repo (P2.14): Dogfood quality gate — CI score floor raised 55→70, per-pillar floor 35, `.ariscan.yml` policy, `pnpm selftest` script.
-- Engine: Fixed case-sensitivity bug in generators (TypeScript vs typescript) — scaffold jumped 52→61.
-- Engine (P2.06): `.gitleaks.toml` generator + scaffold→scan integration test (3 tests) + CI scaffold gate.
+- Engine + CLI (P1.01 AC#5): **Streaming progress output** — `scan()` now accepts optional `onProgress` callback emitting `ScanProgressEvent` (pillar, status, elapsed). CLI displays per-pillar checkmarks with timing in terminal mode (e.g., `✓ P1 Agent Context Quality (55ms)`). Suppressed in `--quiet` and `--json` modes. 3 new integration tests.
+- Engine (P2.06): **Docker-compose templates expanded** — Added Elasticsearch (8.15.0, single-node), Kafka (Confluent 7.7.0 + Zookeeper), and MinIO (S3-compatible) service detection and generation. Detects deps across Node.js (`@elastic/elasticsearch`, `kafkajs`, `minio`), Python (`elasticsearch-py`, `confluent-kafka`), and Go (`olivere/elastic`, `segmentio/kafka-go`, `minio-go`). All with healthchecks. 7 new tests.
 
 ## Items Deferred
 - P2.01: Context quality generator (requires semantic deduplication — NLP analysis, deferred)
@@ -27,19 +23,19 @@
 
 ## Next Session Should Start With
 
-### Priority 1: P2.06 remaining templates
+### Priority 1: P2.06 remaining work
 - Guided remediation validation (test templates against real repos, verify ARI impact estimates)
-- Additional docker-compose service templates (Elasticsearch, Kafka, MinIO)
+- Framework-aware provider patterns (Storage, Queue, Email with in-memory test doubles)
 
 ### Priority 2: Remaining P2 items
-- P1.01 AC#5: Streaming output for large repos (progress callback during scan)
-- P2.05: `.agentignore` spec v1 completion (partial)
+- P2.05: `.agentignore` spec v1 completion (partial — parser exists, needs category annotations + ecosystem defaults)
+- P2.13: Anonymous usage telemetry (opt-in consent flow)
 
 ### Priority 3: Polish & DX
 - Confidence-adjusted composite score (`--confidence-adjusted` flag)
 - P1.04: Semantic additionality engine
 - P1.18: Benchmark cohort v1
-- ARI-NAV-007: Reduce cognitive complexity in CLI formatters (formatTerminal=323, run=194)
+- ARI-NAV-007: Reduce cognitive complexity in CLI formatters (formatTerminal=323, run=215)
 
 ## Blockers
 - None. All quality gates pass.

@@ -1427,6 +1427,90 @@ async function detectRequiredServices(
     }
   }
 
+  // Elasticsearch
+  if (
+    allDeps["@elastic/elasticsearch"] ||
+    combined.includes("elasticsearch-py") ||
+    combined.includes("elastic/go-elasticsearch") ||
+    combined.includes("olivere/elastic")
+  ) {
+    if (!seen.has("elasticsearch")) {
+      seen.add("elasticsearch");
+      services.push({
+        name: "elasticsearch",
+        image: "elasticsearch:8.15.0",
+        ports: ["9200", "9300"],
+        environment: [
+          "discovery.type=single-node",
+          "xpack.security.enabled=false",
+          "ES_JAVA_OPTS=-Xms512m -Xmx512m",
+        ],
+        volumes: ["esdata:/usr/share/elasticsearch/data"],
+        healthcheck: '["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]',
+      });
+    }
+  }
+
+  // Kafka (with Zookeeper)
+  if (
+    allDeps["kafkajs"] ||
+    allDeps["node-rdkafka"] ||
+    combined.includes("confluent-kafka") ||
+    combined.includes("segmentio/kafka-go") ||
+    combined.includes("kafka-go")
+  ) {
+    if (!seen.has("kafka")) {
+      seen.add("kafka");
+      services.push(
+        {
+          name: "zookeeper",
+          image: "confluentinc/cp-zookeeper:7.7.0",
+          ports: ["2181"],
+          environment: ["ZOOKEEPER_CLIENT_PORT=2181", "ZOOKEEPER_TICK_TIME=2000"],
+          volumes: [],
+          healthcheck: '["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]',
+        },
+        {
+          name: "kafka",
+          image: "confluentinc/cp-kafka:7.7.0",
+          ports: ["9092"],
+          environment: [
+            "KAFKA_BROKER_ID=1",
+            "KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181",
+            "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092",
+            "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1",
+          ],
+          volumes: [],
+          healthcheck:
+            '["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]',
+        },
+      );
+    }
+  }
+
+  // MinIO (S3-compatible object storage)
+  if (
+    allDeps["minio"] ||
+    combined.includes("minio-go") ||
+    /\bminio[>=~\s]/u.test(pyDeps) // Python minio package (e.g., minio>=7.0.0)
+  ) {
+    if (!seen.has("minio")) {
+      seen.add("minio");
+      services.push({
+        name: "minio",
+        image: "minio/minio:RELEASE.2025-02-28T09-55-16Z",
+        ports: ["9000", "9001"],
+        environment: [
+          "MINIO_ROOT_USER=dev",
+          "MINIO_ROOT_PASSWORD=devdevdev",
+          "MINIO_CONSOLE_ADDRESS=:9001",
+        ],
+        volumes: ["miniodata:/data"],
+        healthcheck: '["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]',
+      });
+    }
+  }
+
   // Also check for framework-specific hints
   const primaryLang = detection?.languages.find((l) => l.primary);
   if (

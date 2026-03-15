@@ -4,6 +4,7 @@ import { mkdtemp, writeFile, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { scan } from "../scan.js";
+import type { ScanProgressEvent } from "../scan.js";
 import { createRepoContext } from "../context/repo-context.js";
 import { detect } from "../detection/index.js";
 import { generateFixProposals } from "../fix/index.js";
@@ -67,6 +68,53 @@ describe("integration: scan", () => {
     expect(result.pillars).toHaveLength(8);
     expect(result.metadata.duration).toBeLessThan(60000);
   }, 60000);
+});
+
+describe("integration: scan progress callback", () => {
+  it("fires start and done events for each pillar", async () => {
+    const events: ScanProgressEvent[] = [];
+    await scan(resolve(FIXTURES, "capable-repo"), {}, (event) => {
+      events.push(event);
+    });
+
+    // Each of the 8 pillars should have a start and done event
+    const starts = events.filter((e) => e.status === "start");
+    const dones = events.filter((e) => e.status === "done");
+    expect(starts).toHaveLength(8);
+    expect(dones).toHaveLength(8);
+
+    // All pillar IDs should be present
+    const pillarIds = [...new Set(events.map((e) => e.pillar))].sort();
+    expect(pillarIds).toEqual(["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]);
+  }, 30000);
+
+  it("elapsed times are non-negative and monotonically increasing", async () => {
+    const events: ScanProgressEvent[] = [];
+    await scan(resolve(FIXTURES, "capable-repo"), {}, (event) => {
+      events.push(event);
+    });
+
+    for (const event of events) {
+      expect(event.elapsed).toBeGreaterThanOrEqual(0);
+    }
+
+    // Each pillar's done should be after or equal to its start
+    for (const pillar of ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]) {
+      const start = events.find((e) => e.pillar === pillar && e.status === "start");
+      const done = events.find((e) => e.pillar === pillar && e.status === "done");
+      expect(start).toBeDefined();
+      expect(done).toBeDefined();
+      if (start && done) {
+        expect(done.elapsed).toBeGreaterThanOrEqual(start.elapsed);
+      }
+    }
+  }, 30000);
+
+  it("works without onProgress callback (backward compat)", async () => {
+    // No callback — should not throw
+    const result = await scan(resolve(FIXTURES, "capable-repo"));
+    expect(result.score).toBeGreaterThanOrEqual(0);
+  }, 30000);
 });
 
 describe("integration: scaffold→scan gate", () => {

@@ -8,7 +8,7 @@ import {
   detect,
   generateFixProposals,
 } from "@prontiq/ariscan-engine";
-import type { FixProposal } from "@prontiq/ariscan-engine";
+import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
 import { formatTerminal } from "./output/terminal.js";
 import { formatJson, formatJsonSchema } from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
@@ -16,6 +16,7 @@ import { formatSarif } from "./output/sarif.js";
 import { generateBadgeSvg, generateBadgeSnippets } from "./output/badge.js";
 import { formatBudgetTerminal, formatBudgetJson } from "./output/budget.js";
 import { resolveConfig } from "./config-loader.js";
+import { PILLAR_NAMES } from "@prontiq/ariscan-schema";
 import type { ScanResult } from "@prontiq/ariscan-schema";
 
 const main = defineCommand({
@@ -207,9 +208,20 @@ Exit codes:
       process.stderr.write(`\nScanning ${repoPath}...\n`);
     }
 
+    // Stream per-pillar progress in terminal mode (non-quiet)
+    const showProgress = !args.quiet && format === "terminal";
+    const onProgress: OnProgress | undefined = showProgress
+      ? (event) => {
+          const name = PILLAR_NAMES[event.pillar] ?? event.pillar;
+          if (event.status === "done") {
+            process.stderr.write(`  ✓ ${event.pillar} ${name} (${event.elapsed}ms)\n`);
+          }
+        }
+      : undefined;
+
     let result: ScanResult;
     try {
-      result = await scan(repoPath, config);
+      result = await scan(repoPath, config, onProgress);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       process.stderr.write(`Error: Scan failed: ${message}\n`);

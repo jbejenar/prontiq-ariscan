@@ -4,6 +4,7 @@ import type {
   ContextFileInfo,
   ContextFileType,
   ParseStatus,
+  PillarId,
 } from "@prontiq/ariscan-schema";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
@@ -12,6 +13,19 @@ import { createRepoContext } from "./context/repo-context.js";
 import { aggregateResults } from "./scoring/composite.js";
 import { detect } from "./detection/index.js";
 import type { RepoContext } from "./analyzers/analyzer.interface.js";
+
+/** Progress event emitted during a scan. */
+export interface ScanProgressEvent {
+  /** Which pillar is being analyzed. */
+  pillar: PillarId;
+  /** Whether the analyzer is starting or finished. */
+  status: "start" | "done";
+  /** Milliseconds elapsed since scan began. */
+  elapsed: number;
+}
+
+/** Callback for streaming scan progress. */
+export type OnProgress = (event: ScanProgressEvent) => void;
 
 const VERSION = "0.1.0";
 
@@ -123,10 +137,13 @@ async function discoverContextFiles(context: RepoContext): Promise<ContextFileIn
 /**
  * Pure function: scan a repository and produce an ARI score.
  * This is the core entry point for the scanning engine.
+ *
+ * @param onProgress — optional callback for streaming per-pillar progress updates.
  */
 export async function scan(
   repoPath: string,
   config: Partial<ScanConfig> = {},
+  onProgress?: OnProgress,
 ): Promise<ScanResult> {
   const startTime = performance.now();
 
@@ -150,7 +167,7 @@ export async function scan(
     });
   }
 
-  // Run analyzers in parallel (RFC-0003)
+  // Run analyzers in parallel (RFC-0003) with progress instrumentation
   const supportChecks = await Promise.all(
     activeAnalyzers.map(async (analyzer) => ({
       analyzer,
@@ -158,10 +175,23 @@ export async function scan(
     })),
   );
 
+  const supported = supportChecks.filter(({ supported: s }) => s);
+
   const pillarResults = await Promise.all(
-    supportChecks
-      .filter(({ supported }) => supported)
-      .map(({ analyzer }) => analyzer.analyze(context)),
+    supported.map(async ({ analyzer }) => {
+      onProgress?.({
+        pillar: analyzer.pillar,
+        status: "start",
+        elapsed: Math.round(performance.now() - startTime),
+      });
+      const result = await analyzer.analyze(context);
+      onProgress?.({
+        pillar: analyzer.pillar,
+        status: "done",
+        elapsed: Math.round(performance.now() - startTime),
+      });
+      return result;
+    }),
   );
 
   const duration = Math.round(performance.now() - startTime);
