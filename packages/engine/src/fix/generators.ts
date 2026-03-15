@@ -1500,7 +1500,11 @@ async function detectRequiredServices(
         name: "minio",
         image: "minio/minio:latest",
         ports: ["9000", "9001"],
-        environment: ["MINIO_ROOT_USER=dev", "MINIO_ROOT_PASSWORD=devdevdev"],
+        environment: [
+          "MINIO_ROOT_USER=dev",
+          "MINIO_ROOT_PASSWORD=devdevdev",
+          "MINIO_CONSOLE_ADDRESS=:9001",
+        ],
         volumes: ["miniodata:/data"],
         healthcheck: '["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]',
       });

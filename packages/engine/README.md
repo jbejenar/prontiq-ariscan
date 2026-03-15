@@ -24,13 +24,13 @@ console.log(result.pillars);        // Per-pillar scores and findings
 
 ## API
 
-### `scan(repoPath, config?)`
+### `scan(repoPath, config?, onProgress?)`
 
 The primary entry point. Scans a repository and returns a full `ScanResult`.
 
 ```ts
 import { scan } from "@prontiq/ariscan-engine";
-import type { ScanResult, ScanConfig } from "@prontiq/ariscan-schema";
+import type { ScanResult, ScanConfig, OnProgress } from "@prontiq/ariscan-engine";
 
 const config: Partial<ScanConfig> = {
   pillars: {
@@ -38,7 +38,14 @@ const config: Partial<ScanConfig> = {
   },
 };
 
-const result: ScanResult = await scan(".", config);
+// Optional: receive per-pillar progress updates
+const onProgress: OnProgress = (event) => {
+  if (event.status === "done") {
+    console.log(`✓ ${event.pillar} completed (${event.elapsed}ms)`);
+  }
+};
+
+const result: ScanResult = await scan(".", config, onProgress);
 ```
 
 ### `createRepoContext(repoPath)`
