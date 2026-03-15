@@ -1,0 +1,16 @@
+{
+  "name": "capable-repo",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "eslint": "^9.0.0",
+    "tsup": "^8.0.0"
+  }
+}

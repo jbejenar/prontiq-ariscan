@@ -1,0 +1,17 @@
+# Generated output
+dist/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+
+# Binary/data
+*.wasm
+pnpm-lock.yaml
+
+# IDE/OS
+.DS_Store
+.vscode/
+.idea/

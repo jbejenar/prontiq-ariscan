@@ -1,0 +1,109 @@
+name: ARI PR Report
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  ari-delta:
+    name: ARI Score Delta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # ── Scan PR branch ──
+      - name: Scan PR branch
+        run: node packages/cli/dist/cli.js . --json > pr-scan.json
+
+      # ── Scan base branch ──
+      - name: Scan base branch
+        run: |
+          git stash --include-untracked || true
+          git checkout ${{ github.event.pull_request.base.sha }}
+          pnpm install --frozen-lockfile
+          pnpm build
+          node packages/cli/dist/cli.js . --json > base-scan.json || echo '{"score":0,"level":"L1"}' > base-scan.json
+          git checkout ${{ github.event.pull_request.head.sha }}
+          git stash pop || true
+
+      # ── Generate delta comment ──
+      - name: Generate ARI comment
+        id: comment
+        run: |
+          PR_SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('pr-scan.json','utf8')).score)")
+          PR_LEVEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('pr-scan.json','utf8')).level)")
+          BASE_SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('base-scan.json','utf8')).score)")
+          BASE_LEVEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('base-scan.json','utf8')).level)")
+          DELTA=$((PR_SCORE - BASE_SCORE))
+
+          if [ "$DELTA" -gt 0 ]; then
+            EMOJI="📈"
+            SIGN="+"
+          elif [ "$DELTA" -lt 0 ]; then
+            EMOJI="📉"
+            SIGN=""
+          else
+            EMOJI="➡️"
+            SIGN="±"
+          fi
+
+          # Build pillar comparison table
+          PILLAR_TABLE=$(node -e "
+            const pr = JSON.parse(require('fs').readFileSync('pr-scan.json','utf8'));
+            const base = JSON.parse(require('fs').readFileSync('base-scan.json','utf8'));
+            const baseMap = Object.fromEntries((base.pillars||[]).map(p=>[p.pillar,p]));
+            const rows = (pr.pillars||[]).map(p => {
+              const b = baseMap[p.pillar] || {score:0};
+              const d = p.score - b.score;
+              const sign = d > 0 ? '+' : d < 0 ? '' : '±';
+              const icon = d > 0 ? '🟢' : d < 0 ? '🔴' : '⚪';
+              return '| ' + p.pillar + ' | ' + p.name + ' | ' + b.score + ' | ' + p.score + ' | ' + icon + ' ' + sign + d + ' |';
+            }).join('\n');
+            console.log(rows);
+          ")
+
+          # Build top findings list
+          FINDINGS=$(node -e "
+            const pr = JSON.parse(require('fs').readFileSync('pr-scan.json','utf8'));
+            const top = (pr.findings||[]).slice(0,5).map(f =>
+              '- **' + f.code + '** (' + f.severity + '): ' + f.message
+            ).join('\n');
+            console.log(top || '_No findings_');
+          ")
+
+          {
+            echo 'body<<ENDOFCOMMENT'
+            echo "## $EMOJI ARI Score: $PR_SCORE/100 ($PR_LEVEL) — Delta: ${SIGN}${DELTA}"
+            echo ""
+            echo "| Pillar | Name | Base | PR | Delta |"
+            echo "|--------|------|------|-----|-------|"
+            echo "$PILLAR_TABLE"
+            echo ""
+            echo "### Top Findings"
+            echo "$FINDINGS"
+            echo ""
+            echo "---"
+            echo "_Self-scan by \`@prontiq/ariscan-cli\` on $(date -u +%Y-%m-%dT%H:%M:%SZ)_"
+            echo 'ENDOFCOMMENT'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post or update PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: ari-scan
+          message: ${{ steps.comment.outputs.body }}

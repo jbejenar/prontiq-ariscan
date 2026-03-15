@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22
+  ARI_SCORE_FLOOR: 70
+  ARI_PILLAR_FLOOR: 35
+
+jobs:
+  # ─── Fast checks (no build needed) ────────────────────────────
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+
+  # ─── Type check (needs workspace deps built) ──────────────────
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  # ─── Test suite ────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  # ─── Build (depends on quality gates) ─────────────────────────
+  build:
+    name: Build
+    needs: [format, lint, typecheck, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # ── Self-scan: dog-food the scanner ──
+      - name: Self-scan (ARI)
+        id: ari
+        run: |
+          node packages/cli/dist/cli.js . --json > scan-result.json
+          SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('scan-result.json','utf8')).score)")
+          LEVEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('scan-result.json','utf8')).level)")
+          echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+          echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
+          echo "### ARI Self-Scan: $SCORE/100 ($LEVEL)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload scan result
+        uses: actions/upload-artifact@v4
+        with:
+          name: ari-scan-result
+          path: scan-result.json
+          retention-days: 90
+
+      # ── Composite score floor gate ──
+      - name: ARI composite score gate
+        run: |
+          SCORE=${{ steps.ari.outputs.score }}
+          FLOOR=${{ env.ARI_SCORE_FLOOR }}
+          if [ "$SCORE" -lt "$FLOOR" ]; then
+            echo "::error::ARI composite score $SCORE is below floor $FLOOR"
+            exit 1
+          fi
+          echo "✓ ARI composite score $SCORE meets floor $FLOOR"
+
+      # ── Scaffold→scan gate: verify --fix output scores L3+ ──
+      - name: ARI scaffold gate
+        run: |
+          TMPDIR=$(mktemp -d)
+          mkdir -p "$TMPDIR/.git" "$TMPDIR/src"
+          echo '{"name":"scaffold-test","version":"1.0.0","type":"module","scripts":{"build":"tsc","test":"vitest run","lint":"eslint src/","typecheck":"tsc --noEmit"}}' > "$TMPDIR/package.json"
+          echo 'export function hello(): string { return "world"; }' > "$TMPDIR/src/index.ts"
+          echo 'import { it, expect } from "vitest"; it("works", () => { expect(1).toBe(1); });' > "$TMPDIR/src/index.test.ts"
+          node packages/cli/dist/cli.js "$TMPDIR" --fix 2>&1
+          node packages/cli/dist/cli.js "$TMPDIR" --json > scaffold-scan.json
+          SCAFFOLD_SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('scaffold-scan.json','utf8')).score)")
+          echo "### Scaffold score: $SCAFFOLD_SCORE/100" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SCAFFOLD_SCORE" -lt 46 ]; then
+            echo "::error::Scaffold score $SCAFFOLD_SCORE is below L3 floor (46)"
+            exit 1
+          fi
+          echo "✓ Scaffold scores $SCAFFOLD_SCORE (L3+ verified)"
+          rm -rf "$TMPDIR"
+
+      # ── Per-pillar floor gate ──
+      - name: ARI pillar floor gate
+        run: |
+          PILLAR_FLOOR=${{ env.ARI_PILLAR_FLOOR }}
+          FAILED=$(node -e "
+            const r = JSON.parse(require('fs').readFileSync('scan-result.json','utf8'));
+            const floor = ${PILLAR_FLOOR};
+            const failed = (r.pillars||[]).filter(p => p.score < floor);
+            if (failed.length > 0) {
+              failed.forEach(p => console.error('::error::' + p.pillar + ' ' + p.name + ' score ' + p.score + ' is below pillar floor ' + floor));
+              process.exit(1);
+            }
+            (r.pillars||[]).forEach(p => console.log('✓ ' + p.pillar + ' ' + p.name + ': ' + p.score + '/100'));
+          ")
+
+  # ─── Dependency review (PRs only) ─────────────────────────────
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high

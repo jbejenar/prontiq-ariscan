@@ -1,0 +1,193 @@
+name: Publish
+
+on:
+  workflow_dispatch: # allow manual trigger from Actions tab
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+# Provenance attestation requires id-token: write
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false # never cancel a publish mid-flight
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  publish:
+    name: Version & Publish
+    runs-on: ubuntu-latest
+    # Only publish if CI passed or manually triggered
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      # Self-scan to produce artifact for GitHub Release
+      - name: Self-scan (ARI)
+        run: node packages/cli/dist/cli.js . --json > scan-result.json
+
+      # Auto-generate changeset from conventional commits if none exists
+      - name: Auto-generate changeset from conventional commits
+        id: auto-changeset
+        run: |
+          # Check if any changeset files exist (besides README.md and config.json)
+          CHANGESETS=$(find .changeset -name '*.md' ! -name 'README.md' 2>/dev/null | head -1)
+          if [ -n "$CHANGESETS" ]; then
+            echo "Manual changeset found, skipping auto-generation"
+            echo "has_changeset=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Find the last publish commit (version bump commit from changesets)
+          LAST_TAG=$(git tag --sort=-v:refname | head -1)
+          if [ -z "$LAST_TAG" ]; then
+            # No tags yet — compare against first commit
+            COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
+          else
+            COMPARE_REF="$LAST_TAG"
+          fi
+
+          echo "Comparing commits since: $COMPARE_REF"
+
+          # Analyze conventional commit prefixes to determine bump type
+          BUMP="none"
+          SUMMARY_FILE=$(mktemp)
+
+          while IFS= read -r MSG; do
+            # Skip merge commits and version commits
+            case "$MSG" in
+              Merge*|chore:\ version*) continue ;;
+            esac
+
+            # Check for breaking changes (major)
+            if printf '%s' "$MSG" | grep -qE '^[a-z]+(\(.+\))?!:|BREAKING CHANGE'; then
+              BUMP="major"
+              printf -- '- %s\n' "$MSG" >> "$SUMMARY_FILE"
+            # Check for features (minor)
+            elif printf '%s' "$MSG" | grep -qE '^feat(\(.+\))?:'; then
+              if [ "$BUMP" != "major" ]; then
+                BUMP="minor"
+              fi
+              printf -- '- %s\n' "$MSG" >> "$SUMMARY_FILE"
+            # Check for fixes (patch)
+            elif printf '%s' "$MSG" | grep -qE '^fix(\(.+\))?:'; then
+              if [ "$BUMP" = "none" ]; then
+                BUMP="patch"
+              fi
+              printf -- '- %s\n' "$MSG" >> "$SUMMARY_FILE"
+            # docs, chore, refactor, etc. — collect but don't bump
+            elif printf '%s' "$MSG" | grep -qE '^(docs|chore|refactor|perf|style|test|ci)(\(.+\))?:'; then
+              printf -- '- %s\n' "$MSG" >> "$SUMMARY_FILE"
+            fi
+          done < <(git log "$COMPARE_REF"..HEAD --format='%s' --no-merges)
+
+          if [ "$BUMP" = "none" ]; then
+            echo "No version-bumping commits found since $COMPARE_REF"
+            echo "has_changeset=false" >> "$GITHUB_OUTPUT"
+            rm -f "$SUMMARY_FILE"
+            exit 0
+          fi
+
+          echo "Detected bump type: $BUMP"
+          echo "has_changeset=true" >> "$GITHUB_OUTPUT"
+
+          # Generate changeset file (write frontmatter, then append summary)
+          {
+            printf '%s\n' '---'
+            printf '"%s": %s\n' "@prontiq/ariscan-schema" "$BUMP"
+            printf '"%s": %s\n' "@prontiq/ariscan-engine" "$BUMP"
+            printf '"%s": %s\n' "@prontiq/ariscan-cli" "$BUMP"
+            printf '%s\n\n' '---'
+            cat "$SUMMARY_FILE"
+          } > .changeset/auto-from-commits.md
+
+          rm -f "$SUMMARY_FILE"
+
+          echo "Generated changeset:"
+          cat .changeset/auto-from-commits.md
+
+      # Version packages (bumps package.json, writes CHANGELOGs, removes changeset files)
+      - name: Version packages
+        if: steps.auto-changeset.outputs.has_changeset == 'true'
+        run: pnpm version-packages
+
+      # Commit the version bump directly to main
+      - name: Commit version bump
+        id: commit-version
+        if: steps.auto-changeset.outputs.has_changeset == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: version packages [skip ci]" || echo "Nothing to commit"
+          git push origin main
+
+      # Publish to npm (only if git push succeeded — prevents npm/git version mismatch)
+      - name: Publish to npm
+        if: steps.auto-changeset.outputs.has_changeset == 'true' && steps.commit-version.outcome == 'success'
+        id: npm-publish
+        run: |
+          pnpm changeset publish --provenance 2>&1 | tee publish-output.txt
+
+          # Extract published packages for the release step
+          PUBLISHED=$(grep -oE '@prontiq/ariscan-[a-z]+@[0-9]+\.[0-9]+\.[0-9]+' publish-output.txt || true)
+          echo "published=$PUBLISHED" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$PUBLISHED" ]; then
+            echo "published_any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published_any=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Create GitHub Releases with ARI scan artifact
+      - name: Create GitHub Releases
+        if: steps.npm-publish.outputs.published_any == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Read the version from CLI package (all packages share the same version)
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+
+          for PKG in schema engine cli; do
+            TAG="@prontiq/ariscan-${PKG}@${VERSION}"
+            echo "Creating release for $TAG"
+
+            # Create a git tag
+            git tag "$TAG" 2>/dev/null || true
+            git push origin "$TAG" 2>/dev/null || true
+
+            gh release create "$TAG" \
+              scan-result.json \
+              --title "$TAG" \
+              --notes "Published from $(git rev-parse --short HEAD). ARI scan result attached." \
+              2>/dev/null || \
+            gh release upload "$TAG" scan-result.json --clobber 2>/dev/null || \
+              echo "Warning: could not attach artifact to $TAG"
+          done

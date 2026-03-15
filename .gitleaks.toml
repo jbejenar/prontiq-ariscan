@@ -1,0 +1,14 @@
+# Gitleaks configuration for secrets scanning
+# See https://github.com/gitleaks/gitleaks
+
+title = "ariscan gitleaks config"
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+  "node_modules",
+  "vendor",
+  "__fixtures__",
+  "packages/testing/fixtures",
+  "pnpm-lock.yaml",
+]

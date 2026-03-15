@@ -1,0 +1,50 @@
+{
+  "name": "@prontiq/ariscan-engine",
+  "version": "0.2.0",
+  "private": false,
+  "type": "module",
+  "license": "Elastic-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbejenar/prontiq-ariscan.git",
+    "directory": "packages/engine"
+  },
+  "homepage": "https://github.com/jbejenar/prontiq-ariscan/tree/main/packages/engine",
+  "bugs": {
+    "url": "https://github.com/jbejenar/prontiq-ariscan/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@prontiq/ariscan-schema": "workspace:*",
+    "fast-glob": "^3.3.0",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "memfs": "^4.14.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

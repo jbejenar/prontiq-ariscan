@@ -1,0 +1,6 @@
+* @prontiq/core
+packages/schema/ @prontiq/core
+packages/engine/ @prontiq/core
+packages/cli/ @prontiq/core
+docs/ @prontiq/core
+rfcs/ @prontiq/core

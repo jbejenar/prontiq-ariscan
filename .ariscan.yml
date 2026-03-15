@@ -1,0 +1,10 @@
+# .ariscan.yml — Self-scan policy for prontiq-ariscan
+# This repo dogfoods its own scanner. The score must stay high.
+#
+# CI enforces:
+#   - Composite score >= 70 (L4 Productive minimum)
+#   - Every pillar >= 35 (no single-pillar collapse)
+#
+# Local: pnpm selftest
+
+threshold: 70
