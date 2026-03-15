@@ -145,7 +145,6 @@ The core scanning engine is functional. What's built:
 | Document | Purpose |
 |---|---|
 | [roadmap/ROADMAP.md](./roadmap/ROADMAP.md) | Roadmap phases, deliverables, and exit criteria |
-| [VISION.md](./VISION.md) | Long-term product and category vision |
 | [milestones/MILESTONES.md](./milestones/MILESTONES.md) | Milestone-level acceptance criteria |
 | [rfcs/](./rfcs/) | RFC process and architecture/product decisions |
 | [docs/research/](./docs/research/) | Evidence base and calibration references |
@@ -158,7 +157,6 @@ The core scanning engine is functional. What's built:
 
 | Track | Status | Target |
 |---|---|---|
-| Pre-launch foundation | In Progress | Mar 2026 |
 | P1 — MVP CLI | In Progress | May 2026 |
 | P2 — Context intelligence | In Progress | Jul 2026 |
 | P3 — Readiness-as-Code | Planned | Sep 2026 |

@@ -12,29 +12,9 @@
 
 ---
 
-## Product Thesis
+## Purpose
 
-This roadmap exists to do three things at once:
-
-1. **Standardize:** make ARI the common language for AI coding readiness in OSS.
-2. **Operationalize:** turn research into repeatable tools, not abstract recommendations.
-3. **Activate:** reduce install-to-improvement time with pragmatic, high-signal guidance.
-
-## Outcomes (2026–2027)
-
-- Teams can run `npx @prontiq/ariscan-cli .` and obtain actionable results in under 10 minutes.
-- Every scored pillar includes rationale, confidence, and suggested actions.
-- CI policy integration is simple enough for maintainers, strong enough for serious teams.
-- Methodology remains reproducible and transparent across versions.
-
-## North-Star Metrics
-
-- Weekly active repositories scanned (WA-RS).
-- CI-integrated scan ratio (% scans in automation vs local-only).
-- Scan-to-fix conversion (repos applying >=1 recommendation).
-- Median install-to-first-valid-score time.
-- 7-day and 30-day repeat scan retention.
-- Coverage by language/framework/repo archetype.
+This roadmap tracks the open-source `ariscan` CLI — scoring, remediation guidance, CI integration, and ecosystem tooling.
 
 ---
 
@@ -2643,119 +2623,22 @@ The scaffolder and scanner share the same rubric, finding codes, and scoring log
 
 ---
 
-## Research Anchors
+## Future Directions
 
-These are the key messages, grounded in research, that should appear in documentation, blog posts, and community communication:
-
-- **Context quality beats context quantity.** LLM-generated context files decrease agent success by 2-3% while costing 20% more tokens. Human-written, additive context files improve performance by ~4% on niche repos (Gloaguen et al., 2026, ETH Zurich).
-- **Long contexts and poor placement reduce effective performance.** >30% degradation when critical info sits in the middle of context (Liu et al., 2024). Even whitespace padding degrades reasoning (arXiv 2510.05381, 2025).
-- **Test flakiness is catastrophically destructive to agents.** Unlike humans who retry-and-ignore, agents treat flaky failures as real signals and "fix" valid code, introducing genuine regressions. 63% of LLM-generated flaky tests trace to unordered collection assumptions (Berndt et al., 2026).
-- **Type systems are the highest-ROI agent feedback loop.** 94% of LLM compilation errors are type-check failures (GitHub Octoverse 2025). Strict typing is the single most cost-effective agent feedback mechanism.
-- **AI-assisted code concentrates security risk without governance controls.** Critical vulnerabilities increase 37.6% after 5 iterations of AI improvement (IEEE-ISTAS, 2025). AI introduces hardcoded credentials at 2x the human rate (Veracode, 2025).
-- **Faster individual productivity ≠ better delivery.** AI adoption decreased delivery throughput by 1.5% and stability by 7.2% because AI increases batch sizes (DORA, 2024).
-- **Multi-agent coordination is currently broken.** Agents achieve 30% lower success rates working together than individually (CooperBench, 2026). 36.9% of failures are due to misalignment.
+Post-v1.0 priorities include framework ecosystem integrations (verification gates for popular agent workflow frameworks), wider language/domain packs, community plugin ecosystem, and `ariscan init` expansion to additional frameworks. See the P3.5 scaffolder section for the preset registry.
 
 ---
 
-## Post-v1 Horizons (Exploratory)
-
-### P4 — Ecosystem Acceleration (Q4 2026)
-
-- Formal scoring spec governance and change review process (RFC-driven).
-- Certification and badge program for high-readiness OSS projects.
-- Quarterly "State of Agent Readiness in OSS" report — the ARI Index (powered by telemetry data if opt-in adoption is sufficient).
-- Community plugin ecosystem with curated "official" plugins.
-- `.agentignore` adoption advocacy with agent vendors (Claude Code, Copilot, Cursor).
-- **`@prontiq/ai-first-toolkit` extraction (RFC-0003):** Extract validated AI-first patterns (error taxonomy scaffolding, AGENTS.md/CLAUDE.md templates, machine-readable runbook runtime, provider pattern base classes, conformance harness) into a standalone package. Enables any project to adopt the patterns validated in both ripple-next and ariscan without depending on either.
-
-#### Framework Ecosystem Integrations
-
-Ariscan does not compete with workflow frameworks. It grades what they produce. The integration model: ariscan runs as a verification step *within* each framework's existing workflow.
-
-**Strategic Context:**
-
-| Framework | Stars | What it does | How ariscan integrates |
-|-----------|-------|--------------|----------------------|
-| GSD | 27k+ | Spec-driven dev with fresh subagent contexts | Verification gate in `/gsd:verify-work` |
-| Superpowers | 28k+ | Auto-triggering skills library, TDD enforcement | Post-implementation skill, pre-branch-completion |
-| PAUL | 137 | Plan-Apply-Unify loop, in-session context | Check during `/paul:unify` reconciliation |
-| GitHub Spec Kit | GitHub | Constitution-based spec-driven development | ariscan thresholds as constitution rules |
-| BMAD-METHOD | — | Role-based agent personas (PM, Architect, Dev, QA) | QA agent persona between implementation and merge |
-| CARL | 132 | Dynamic just-in-time rule injection | Domain file that loads ariscan rules in monitored projects |
-| Kiro | Amazon | EARS requirements → design → tasks → code | Post-task verification via CLI hook |
-
-**Integration Features:**
-
-| # | Feature | Pri | Description |
-|---|---------|-----|-------------|
-| FW.01 | Generic hook API | 🔴 P0 | `ariscan . --format json --exit-code --baseline .ariscan-baseline.json` — any framework can call this |
-| FW.02 | Baseline diffing | 🔴 P0 | `ariscan baseline` saves current scores. `ariscan . --baseline` reports per-pillar regressions. "Did this build cycle make readiness worse?" |
-| FW.03 | GSD verification gate | 🟠 P1 | ariscan in `/gsd:verify-work` — score after each phase, findings into STATE.md |
-| FW.04 | Superpowers skill | 🟠 P1 | Auto-triggering skill — activates after implementation, blocks merge on regression |
-| FW.05 | PAUL unify check | 🟡 P2 | Score delta logged into SUMMARY.md during `/paul:unify` |
-| FW.06 | Spec Kit constitution rule | 🟡 P2 | ariscan thresholds as engineering principles in constitution format |
-| FW.07 | BMAD quality agent | 🟡 P2 | QA persona between Devon (Developer) and merge |
-| FW.08 | CARL domain | 🟡 P2 | Domain file for ariscan rules in monitored projects |
-| FW.09 | Claude Code plugin | 🟠 P1 | Publish to Anthropic marketplace — `/ariscan` slash command |
-| FW.10 | Integration docs + examples | 🔴 P0 | Working configs for GSD, Superpowers, PAUL, Spec Kit, and custom workflows |
-
-**Acceptance Criteria — Framework Ecosystem:**
-
-- [ ] `ariscan baseline` + `ariscan . --baseline` correctly identifies per-pillar regressions
-- [ ] Generic hook API documented with examples for at least 3 frameworks
-- [ ] GSD integration tested end-to-end with `/gsd:verify-work`
-- [ ] Claude Code plugin submitted to Anthropic marketplace
-- [ ] Integration guide published with working configs for top 4 frameworks
-
-**Competitive Positioning:**
-
-Workflow frameworks answer: *"How should the agent work?"*
-Ariscan answers: *"What should the codebase look like when the agent arrives?"*
-
-`ariscan init` front-loads readiness into new projects.
-`ariscan .` verifies readiness hasn't regressed after each build cycle.
-Prontiq SaaS monitors readiness continuously across the fleet.
-
-The scaffolder and framework integrations together make ariscan the **infrastructure layer beneath every workflow framework** — not a competitor to any of them.
-
-### P5 — Advanced Tooling (2027)
-
-- CI template expansion (Bitbucket Pipelines, Azure DevOps, CircleCI).
-- Wider language/domain packs with community maintainers (Kotlin, Swift, PHP, Scala).
-- Reference datasets for reproducible readiness research.
-- Academic partnership program for ARI validation studies.
-- Agent simulation improvements: multi-agent scenario testing.
-
----
-
-## Sequencing Logic
+## Sequencing
 
 ```text
 P1 deterministic scoring foundation
-  └─> P2 high-signal context intelligence + remediation + telemetry
-        └─> P3 policy-as-code and ecosystem integrations
-              ├─> P3.5 scaffolder: ariscan init (depends on P1 scoring engine)
-              └─> P4/P5 standards, framework integrations, and community scale
+  └─> P2 context intelligence + remediation + telemetry
+        ├─> P3 policy-as-code and ecosystem integrations
+        └─> P3.5 scaffolder: ariscan init (depends on P1 scoring engine)
 ```
 
-## Risk Register
-
-- **Risk:** scoring perceived as opaque.
-  - **Mitigation:** publish rationale and evidence mapping per pillar. Every criterion cites research.
-- **Risk:** teams optimize score instead of outcomes.
-  - **Mitigation:** anti-gaming checks plus impact-oriented recommendations. Score without remediation guidance creates perverse incentives.
-- **Risk:** language bias harms trust outside TypeScript-heavy ecosystems.
-  - **Mitigation:** language-specific profiles (P3.06) with confidence labels and transparent limitations. Cross-language maturity level comparability testing.
-- **Risk:** context generation abused as doc spam.
-  - **Mitigation:** additive-value scoring and redundancy penalties. Generated files that restate README score 0-10%.
-- **Risk:** telemetry feature damages community trust.
-  - **Mitigation:** strictly opt-in (defaults OFF), fully documented, payload inspectable, no PII, easy to disable. Removable without affecting any other functionality.
-- **Risk:** `.agentignore` standard fails to gain adoption.
-  - **Mitigation:** publish parser as MIT-licensed library. Advocate with agent vendors. Include in `--fix` output.
-- **Risk:** dogfood gate creates false confidence — scaffolded project scores well on static checks but may not reflect real-world readiness.
-  - **Mitigation:** simulation verification (P3.05) validates scaffolded projects actually work end-to-end. Score threshold rises as simulation coverage improves.
-- **Risk:** scaffold templates drift as scanner evolves — new findings/criteria cause scaffolded output to fail dogfood gate.
-  - **Mitigation:** CI runs scaffold→scan loop on every build. PR checklist and CONTRIBUTING.md enforce co-evolution. Template drift caught before merge.
+---
 
 ## CI/CD & Build Pipeline — AI-First Design (added 2026-03-09)
 

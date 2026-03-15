@@ -12,7 +12,7 @@
 Defines the 8-pillar, research-calibrated ARI scoring rubric that produces a 0-100 composite score and L1-L5 maturity level.
 
 ## Motivation
-No standard exists for codebase agent-readiness. Factory.ai has proprietary scoring. Traditional tools measure code quality/security, not agent effectiveness. 80+ papers provide empirical grounding.
+No open standard exists for codebase agent-readiness. Traditional tools measure code quality and security, not agent effectiveness. 80+ papers provide empirical grounding for the ARI rubric.
 
 ## Design
 
