@@ -52,30 +52,8 @@ function levelBadge(level: string, score: number): string {
   return `**${level}** · ${score}/100`;
 }
 
-/**
- * Format scan result as a Markdown report.
- * Designed for GitHub PR comments, Slack, and wikis.
- */
-export function formatMarkdown(result: ScanResult): string {
+function formatPillarTable(result: ScanResult): string[] {
   const lines: string[] = [];
-
-  // Badge-ready summary line
-  lines.push(`# ARI Score: ${result.score}/100 — ${result.level} ${result.levelMeta.name}`);
-  lines.push("");
-
-  // Composite score and maturity
-  lines.push(`> ${levelBadge(result.level, result.score)}`);
-  lines.push(`>`);
-  lines.push(`> **${result.levelMeta.name}** — ${result.levelMeta.description}`);
-  lines.push("");
-
-  // Security gate
-  if (result.securityGateTriggered) {
-    lines.push("> ⚠️ **Security gate triggered:** Pillar 8 score < 40% — maturity capped at L2");
-    lines.push("");
-  }
-
-  // Per-pillar table
   lines.push("## Pillar Scores");
   lines.push("");
   lines.push("| Pillar | Name | Score | Bar | Weight | Confidence |");
@@ -90,77 +68,105 @@ export function formatMarkdown(result: ScanResult): string {
   }
 
   lines.push("");
+  return lines;
+}
 
-  // Top findings (sorted by severity)
+function formatTopFindings(sortedFindings: Finding[]): string[] {
+  if (sortedFindings.length === 0) return [];
+  const lines: string[] = [];
+  lines.push("## Top Findings");
+  lines.push("");
+
+  for (const finding of sortedFindings.slice(0, 10)) {
+    lines.push(formatFinding(finding));
+  }
+
+  if (sortedFindings.length > 10) {
+    lines.push(`*...and ${sortedFindings.length - 10} more findings.*`);
+    lines.push("");
+  }
+  return lines;
+}
+
+function formatQuickStart(actionable: Finding[]): string[] {
+  if (actionable.length === 0) return [];
+  const lines: string[] = [];
+  lines.push("## Quick Start: Top 3 Actions");
+  lines.push("");
+
+  for (const [idx, finding] of actionable.slice(0, 3).entries()) {
+    if (finding.remediation) {
+      const impact = finding.remediation.estimatedImpact
+        ? ` → ${finding.remediation.estimatedImpact}`
+        : "";
+      lines.push(`${idx + 1}. **\`${finding.code}\`** ${finding.remediation.description}${impact}`);
+    }
+  }
+
+  lines.push("");
+  return lines;
+}
+
+function formatRemediations(actionable: Finding[]): string[] {
+  if (actionable.length === 0) return [];
+  const lines: string[] = [];
+  lines.push("## Suggested Remediations");
+  lines.push("");
+
+  for (const finding of actionable.slice(0, 10)) {
+    if (finding.remediation) {
+      const impact = finding.remediation.estimatedImpact
+        ? ` (impact: ${finding.remediation.estimatedImpact})`
+        : "";
+      lines.push(`- **\`${finding.code}\`** — ${finding.remediation.description}${impact}`);
+    }
+  }
+
+  lines.push("");
+  return lines;
+}
+
+function formatFooter(metadata: ScanResult["metadata"]): string[] {
+  return [
+    "---",
+    "",
+    `*Scanned in ${metadata.duration}ms · ariscan v${metadata.version} · Rubric ${metadata.rubricVersion} · ${metadata.timestamp}*`,
+    "",
+  ];
+}
+
+/**
+ * Format scan result as a Markdown report.
+ * Designed for GitHub PR comments, Slack, and wikis.
+ */
+export function formatMarkdown(result: ScanResult): string {
+  const lines: string[] = [];
+
+  lines.push(`# ARI Score: ${result.score}/100 — ${result.level} ${result.levelMeta.name}`);
+  lines.push("");
+  lines.push(`> ${levelBadge(result.level, result.score)}`);
+  lines.push(`>`);
+  lines.push(`> **${result.levelMeta.name}** — ${result.levelMeta.description}`);
+  lines.push("");
+
+  if (result.securityGateTriggered) {
+    lines.push("> ⚠️ **Security gate triggered:** Pillar 8 score < 40% — maturity capped at L2");
+    lines.push("");
+  }
+
+  lines.push(...formatPillarTable(result));
+
   const sortedFindings = [...result.findings].sort(
     (a, b) => (SEVERITY_ORDER[a.severity] ?? 99) - (SEVERITY_ORDER[b.severity] ?? 99),
   );
+  lines.push(...formatTopFindings(sortedFindings));
 
-  if (sortedFindings.length > 0) {
-    lines.push("## Top Findings");
-    lines.push("");
-
-    const topFindings = sortedFindings.slice(0, 10);
-
-    for (const finding of topFindings) {
-      lines.push(formatFinding(finding));
-    }
-
-    if (sortedFindings.length > 10) {
-      lines.push(`*...and ${sortedFindings.length - 10} more findings.*`);
-      lines.push("");
-    }
-  }
-
-  // Quick-start: First 3 actions (highest impact × ease)
   const actionable = sortedFindings
     .filter((f) => f.remediation && f.severity !== "info")
     .sort((a, b) => impactEaseScore(b) - impactEaseScore(a));
-
-  if (actionable.length > 0) {
-    lines.push("## Quick Start: Top 3 Actions");
-    lines.push("");
-    const top3 = actionable.slice(0, 3);
-    for (const [idx, finding] of top3.entries()) {
-      if (finding.remediation) {
-        const impact = finding.remediation.estimatedImpact
-          ? ` → ${finding.remediation.estimatedImpact}`
-          : "";
-        lines.push(
-          `${idx + 1}. **\`${finding.code}\`** ${finding.remediation.description}${impact}`,
-        );
-      }
-    }
-    lines.push("");
-  }
-
-  // Remediation suggestions (ordered by impact × ease)
-  const withRemediation = actionable;
-  if (withRemediation.length > 0) {
-    lines.push("## Suggested Remediations");
-    lines.push("");
-
-    const topRemediations = withRemediation.slice(0, 10);
-
-    for (const finding of topRemediations) {
-      if (finding.remediation) {
-        const impact = finding.remediation.estimatedImpact
-          ? ` (impact: ${finding.remediation.estimatedImpact})`
-          : "";
-        lines.push(`- **\`${finding.code}\`** — ${finding.remediation.description}${impact}`);
-      }
-    }
-
-    lines.push("");
-  }
-
-  // Footer with scan metadata
-  lines.push("---");
-  lines.push("");
-  lines.push(
-    `*Scanned in ${result.metadata.duration}ms · ariscan v${result.metadata.version} · Rubric ${result.metadata.rubricVersion} · ${result.metadata.timestamp}*`,
-  );
-  lines.push("");
+  lines.push(...formatQuickStart(actionable));
+  lines.push(...formatRemediations(actionable));
+  lines.push(...formatFooter(result.metadata));
 
   return lines.join("\n");
 }

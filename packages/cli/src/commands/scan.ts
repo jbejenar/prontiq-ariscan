@@ -22,34 +22,56 @@ export interface ScanOptions {
   config?: string;
 }
 
-export async function runScan(options: ScanOptions): Promise<void> {
-  if (options.jsonSchema) {
-    process.stdout.write(formatJsonSchema());
-    return;
-  }
-
-  const repoPath = resolve(options.path);
-
-  // Validate path exists
+async function validateRepoPath(path: string): Promise<string> {
+  const repoPath = resolve(path);
   try {
     await access(repoPath);
   } catch {
     process.stderr.write(`Error: Path does not exist: ${repoPath}\n`);
     process.exit(2);
   }
+  return repoPath;
+}
 
-  // Build CLI overrides
-  const cliOverrides: Partial<ScanConfig> = {};
+function buildCliOverrides(options: ScanOptions): Partial<ScanConfig> {
+  const overrides: Partial<ScanConfig> = {};
   if (options.threshold > 0) {
-    cliOverrides.threshold = options.threshold;
+    overrides.threshold = options.threshold;
   }
   if (options.json) {
-    cliOverrides.format = "json";
+    overrides.format = "json";
   } else if (options.format !== "terminal") {
-    cliOverrides.format = options.format as ScanConfig["format"];
+    overrides.format = options.format as ScanConfig["format"];
+  }
+  return overrides;
+}
+
+function formatOutput(result: ScanResult, format: string, options: ScanOptions): string {
+  if (format === "json") return formatJson(result);
+  if (format === "sarif") return formatSarif(result);
+  if (format === "markdown") return formatMarkdown(result);
+  return formatTerminal(result, { verbose: options.verbose, quiet: options.quiet });
+}
+
+function createProgressCallback(format: string, quiet: boolean): OnProgress | undefined {
+  if (quiet || format !== "terminal") return undefined;
+  return (event) => {
+    const name = PILLAR_NAMES[event.pillar] ?? event.pillar;
+    if (event.status === "done") {
+      process.stderr.write(`  ✓ ${event.pillar} ${name} (${event.elapsed}ms)\n`);
+    }
+  };
+}
+
+export async function runScan(options: ScanOptions): Promise<void> {
+  if (options.jsonSchema) {
+    process.stdout.write(formatJsonSchema());
+    return;
   }
 
-  // Resolve config: CLI flags > .ariscan.yml > defaults
+  const repoPath = await validateRepoPath(options.path);
+  const cliOverrides = buildCliOverrides(options);
+
   const scanConfig = await resolveConfig({
     repoPath,
     configPath: options.config,
@@ -62,40 +84,17 @@ export async function runScan(options: ScanOptions): Promise<void> {
     process.stderr.write(`\nScanning ${repoPath}...\n\n`);
   }
 
-  // Stream per-pillar progress in terminal mode (non-quiet)
-  const showProgress = !options.quiet && format === "terminal";
-  const onProgress: OnProgress | undefined = showProgress
-    ? (event) => {
-        const name = PILLAR_NAMES[event.pillar] ?? event.pillar;
-        if (event.status === "done") {
-          process.stderr.write(`  ✓ ${event.pillar} ${name} (${event.elapsed}ms)\n`);
-        }
-      }
-    : undefined;
-
   let result: ScanResult;
   try {
-    result = await scan(repoPath, scanConfig, onProgress);
+    result = await scan(repoPath, scanConfig, createProgressCallback(format, options.quiet));
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`Error: Scan failed: ${message}\n`);
     process.exit(2);
   }
 
-  // Output result
-  if (format === "json") {
-    process.stdout.write(formatJson(result));
-  } else if (format === "sarif") {
-    process.stdout.write(formatSarif(result));
-  } else if (format === "markdown") {
-    process.stdout.write(formatMarkdown(result));
-  } else {
-    process.stdout.write(
-      formatTerminal(result, { verbose: options.verbose, quiet: options.quiet }),
-    );
-  }
+  process.stdout.write(formatOutput(result, format, options));
 
-  // Exit code based on threshold
   const threshold = scanConfig.threshold ?? options.threshold;
   if (threshold > 0 && result.score < threshold) {
     process.exit(1);

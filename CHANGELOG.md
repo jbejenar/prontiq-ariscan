@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.11.0] — 2026-03-15
+
+### Changed
+- **CLI:** Refactored 9 high-complexity functions across 5 CLI files to reduce cognitive complexity below the ARI-NAV-007 threshold (>15). Extracted section-rendering helpers in `markdown.ts`, `terminal.ts`, `budget.ts`; command-routing helpers in `scan.ts` and `cli.ts`; config helpers in `config-loader.ts`. No behavioral changes — pure structural extraction.
+- **Tests:** Consolidated duplicate `createMockContext` implementations in `budget-analyzer.test.ts` and `generators.test.ts` into the shared `helpers.ts` test utility, reducing code duplication across test files.
+
+### Metrics
+- **Self-scan score:** 82/100 (L5 Autonomous) — up from 81/100
+- **P7 Code Navigability:** 70/100 — up from 60/100 (target was 70+)
+- **Tests:** 646 total — no regressions
+
 ## [3.10.0] — 2026-03-15
 
 ### Fixed

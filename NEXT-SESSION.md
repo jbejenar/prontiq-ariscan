@@ -1,18 +1,15 @@
 # Next Session Guide
 
-## Session: 2026-03-15 (seventeenth session)
+## Session: 2026-03-15 (eighteenth session)
 **Phase:** P2 — Context Intelligence (continued)
-**Self-scan:** 81/100 (L5 Autonomous) — up from 76/100
+**Self-scan:** 82/100 (L5 Autonomous) — up from 81/100
 **Tests:** 586 engine + 28 schema + 68 CLI = 646 passing across 26 test files (no regressions)
 **Quality gate:** typecheck, lint, test, build, selftest — all green
 **Scaffold score:** 61/100 (L3 Capable) — stable
-**Roadmap progress:** 4 items shipped this session
+**Roadmap progress:** 1 item shipped this session
 
 ## Items Completed This Session
-- **P2.13 marked Done:** Telemetry already fully implemented (consent flow, CLI flags, env var override, payload builder, sender, schema, TELEMETRY.md). Simplified payload vs roadmap spec is intentional (less fingerprinting surface).
-- **P3 Test Isolation improved (42 → 55):** Fixed regex source matching bug in test-isolation analyzer (`ARI-TST-011` and transfer risk assessment). Fixed `consent.test.ts` false-positive `ARI-TST-003`.
-- **P5 Doc Machine-Readability improved (45 → 65):** Fixed 11 stale README path references. Added `docs/error-taxonomy.json` (70 ARI finding codes).
-- **README.md updated:** Replaced `node packages/cli/dist/cli.js` with `npx @prontiq/ariscan-cli` throughout. Updated test count.
+- **P7 Code Navigability improved (60 → 70):** Refactored 9 high-complexity functions across 5 CLI files (formatMarkdown 104→~10, runScan 55→~13, formatVerboseSection 53→~5, formatTerminal 50→~8, fileConfigToScanConfig 42→~8, formatBudgetTerminal 37→~5, cli.run 18→~3, buildPillarConfig 18→~5, formatDetectionSection 16→~10). Extracted test helpers to reduce code duplication (9→7 files). ARI-NAV-007 severity dropped from high to medium.
 
 ## Items Deferred
 - P2.01: Context quality generator (requires semantic deduplication — NLP analysis, deferred)
@@ -25,14 +22,13 @@
 
 ## Next Session Should Start With
 
-### Priority 1: P7 Code Navigability improvement (currently 60, target 70+)
-- ARI-NAV-007 flags 8 functions with high cognitive complexity — the biggest single finding
-- Focus on the top 5: `formatMarkdown` (104), `runScan` (55), `formatVerboseSection` (53), `formatTerminal` (50), `fileConfigToScanConfig` (42)
-- Extract helper functions to reduce complexity without behavioral changes
-
-### Priority 2: P2.06 remaining work
+### Priority 1: P2.06 remaining work
 - Guided remediation validation (test templates against real repos, verify ARI impact estimates)
 - Python/Go/Java provider pattern templates (currently TypeScript-only)
+
+### Priority 2: P3 Test Isolation improvement (currently 55, target 65+)
+- Investigate remaining ARI-TST findings
+- Test coverage improvements
 
 ### Priority 3: Polish & DX
 - Confidence-adjusted composite score (`--confidence-adjusted` flag)
@@ -40,4 +36,4 @@
 - P1.18: Benchmark cohort v1
 
 ## Blockers
-- None. All quality gates pass. Score at L5 Autonomous (81/100).
+- None. All quality gates pass. Score at L5 Autonomous (82/100).

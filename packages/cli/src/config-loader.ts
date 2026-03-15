@@ -50,6 +50,38 @@ export async function loadConfigFile(configPath: string): Promise<FileConfigType
   return FileConfig.parse(parsed);
 }
 
+function applyWeightOverrides(
+  pillars: NonNullable<ScanConfigType["pillars"]>,
+  weights: Record<string, number>,
+): void {
+  for (const [id, weight] of Object.entries(weights)) {
+    const pillarId = id as keyof typeof pillars;
+    pillars[pillarId] = { enabled: true, ...pillars[pillarId], weight };
+  }
+}
+
+function applyExclusions(pillars: NonNullable<ScanConfigType["pillars"]>, exclude: string[]): void {
+  for (const id of exclude) {
+    const pillarId = id as keyof typeof pillars;
+    pillars[pillarId] = { ...(pillars[pillarId] ?? { enabled: true }), enabled: false };
+  }
+}
+
+function buildPillarConfig(
+  pillarsConfig: NonNullable<FileConfigType["pillars"]>,
+): NonNullable<ScanConfigType["pillars"]> | undefined {
+  const pillars: NonNullable<ScanConfigType["pillars"]> = {};
+
+  if (pillarsConfig.weights) {
+    applyWeightOverrides(pillars, pillarsConfig.weights);
+  }
+  if (pillarsConfig.exclude) {
+    applyExclusions(pillars, pillarsConfig.exclude);
+  }
+
+  return Object.keys(pillars).length > 0 ? pillars : undefined;
+}
+
 /**
  * Convert a FileConfig (YAML structure) into a partial ScanConfig
  * that can be merged with CLI flags.
@@ -66,26 +98,8 @@ export function fileConfigToScanConfig(fileConfig: FileConfigType): Partial<Scan
   }
 
   if (fileConfig.pillars) {
-    const pillars: NonNullable<ScanConfigType["pillars"]> = {};
-
-    // Apply weight overrides
-    if (fileConfig.pillars.weights) {
-      for (const [id, weight] of Object.entries(fileConfig.pillars.weights)) {
-        const pillarId = id as keyof typeof pillars;
-        pillars[pillarId] = { enabled: true, ...pillars[pillarId], weight };
-      }
-    }
-
-    // Apply exclusions (set enabled: false)
-    if (fileConfig.pillars.exclude) {
-      for (const id of fileConfig.pillars.exclude) {
-        const pillarId = id as keyof typeof pillars;
-        const existing = pillars[pillarId] ?? { enabled: true };
-        pillars[pillarId] = { ...existing, enabled: false };
-      }
-    }
-
-    if (Object.keys(pillars).length > 0) {
+    const pillars = buildPillarConfig(fileConfig.pillars);
+    if (pillars) {
       result.pillars = pillars;
     }
   }

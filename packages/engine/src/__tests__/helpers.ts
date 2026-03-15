@@ -3,12 +3,16 @@ import type { RepoContext } from "../analyzers/analyzer.interface.js";
 /**
  * Create a mock RepoContext from an in-memory file map.
  * Keys are relative file paths, values are file contents (string) or null for binary.
+ * The second argument can be a rootPath string or an extraFiles array for convenience.
  */
 export function createMockContext(
   files: Record<string, string | null>,
-  rootPath: string = "/mock/repo",
+  rootPathOrExtraFiles: string | string[] = "/mock/repo",
+  extraFiles: string[] = [],
 ): RepoContext {
-  const filePaths = Object.keys(files).sort();
+  const rootPath = typeof rootPathOrExtraFiles === "string" ? rootPathOrExtraFiles : "/mock/repo";
+  const extra = Array.isArray(rootPathOrExtraFiles) ? rootPathOrExtraFiles : extraFiles;
+  const filePaths = [...Object.keys(files), ...extra].sort();
 
   return {
     rootPath,
