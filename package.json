@@ -20,6 +20,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm build && changeset publish",
+    "doctor": "node --input-type=module -e \"import{execSync}from'child_process';const v=process.versions.node;const[M]=v.split('.');if(+M<22){console.error('Node >= 22 required, found '+v);process.exit(1)}console.log('Node '+v+' ✓');console.log('pnpm '+execSync('pnpm --version').toString().trim()+' ✓')\"",
     "prepare": "husky"
   },
   "lint-staged": {

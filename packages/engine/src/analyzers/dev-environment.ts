@@ -59,7 +59,10 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
 
         // ARI-ENV-005: Devcontainer validation
         const hasImageOrBuild = !!(dc["image"] || dc["build"]);
-        const hasSettings = !!dc["settings"];
+        const hasSettings = !!(
+          dc["settings"] ||
+          (dc["customizations"] as Record<string, unknown> | undefined)?.["vscode"]
+        );
         const hasLifecycleCmd = !!(dc["postCreateCommand"] || dc["onCreateCommand"]);
 
         if (hasImageOrBuild && hasLifecycleCmd) {
