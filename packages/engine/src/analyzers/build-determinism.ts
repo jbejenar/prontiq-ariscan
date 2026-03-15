@@ -391,6 +391,61 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       });
     }
 
+    // --- ARI-BLD-012: Pre-commit hooks ---
+    const preCommitTools: string[] = [];
+    if (await context.fileExists(".husky/pre-commit")) preCommitTools.push("Husky");
+    if (await context.fileExists(".lefthook.yml")) preCommitTools.push("Lefthook");
+    if (await context.fileExists("lefthook.yml")) preCommitTools.push("Lefthook");
+    if (await context.fileExists(".pre-commit-config.yaml")) preCommitTools.push("pre-commit");
+
+    const hasLintStaged =
+      (pkg && (pkg as Record<string, unknown>)["lint-staged"]) ||
+      (await context.fileExists(".lintstagedrc")) ||
+      (await context.fileExists(".lintstagedrc.json")) ||
+      (await context.fileExists("lint-staged.config.js")) ||
+      (await context.fileExists("lint-staged.config.mjs"));
+
+    if (preCommitTools.length > 0 && hasLintStaged) {
+      score += 5;
+      findings.push({
+        code: "ARI-BLD-012",
+        severity: "info",
+        pillar: PILLAR,
+        message: `Pre-commit hooks configured (${preCommitTools[0]} + lint-staged) — agents get immediate feedback on style violations before CI`,
+        confidence: "high",
+      });
+    } else if (preCommitTools.length > 0) {
+      score += 3;
+      findings.push({
+        code: "ARI-BLD-012",
+        severity: "low",
+        pillar: PILLAR,
+        message: `Pre-commit hooks detected (${preCommitTools[0]}) but no lint-staged configuration — consider adding lint-staged for targeted pre-commit checks`,
+        confidence: "high",
+        remediation: {
+          action: "add-dependency",
+          description:
+            "Add lint-staged to run linting/formatting only on staged files for faster pre-commit checks",
+          confidence: "high",
+        },
+      });
+    } else {
+      findings.push({
+        code: "ARI-BLD-012",
+        severity: "low",
+        pillar: PILLAR,
+        message:
+          "No pre-commit hooks configured — agents may push code that fails linting or formatting checks",
+        confidence: "medium",
+        remediation: {
+          action: "configure-tool",
+          description:
+            "Add pre-commit hooks (Husky, Lefthook, or pre-commit) with lint-staged for immediate feedback on style violations",
+          confidence: "high",
+        },
+      });
+    }
+
     // Java nullability annotations check
     const javaFiles = context.files.filter(
       (f) => f.endsWith(".java") && !f.includes("build/") && !f.includes("target/"),

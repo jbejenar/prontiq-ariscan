@@ -305,6 +305,72 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
       }
     }
 
+    // --- ARI-DOC-005: Contributing guide detection ---
+    const hasContributing =
+      (await context.fileExists("CONTRIBUTING.md")) ||
+      context.files.some((f) => /docs\/contributing/i.test(f));
+
+    if (hasContributing) {
+      score += 5;
+      findings.push({
+        code: "ARI-DOC-005",
+        severity: "info",
+        pillar: PILLAR,
+        message:
+          "Contributing guide found — agents can follow PR conventions, branch naming, and review expectations",
+        confidence: "high",
+      });
+    } else {
+      findings.push({
+        code: "ARI-DOC-005",
+        severity: "low",
+        pillar: PILLAR,
+        message:
+          "No contributing guide found. Rationale: contributing guides help agents follow PR conventions, branch naming, and code review expectations.",
+        confidence: "medium",
+        remediation: {
+          action: "create-file",
+          path: "CONTRIBUTING.md",
+          description:
+            "Add a CONTRIBUTING.md with PR conventions, branch naming, commit message format, and review expectations",
+          confidence: "high",
+        },
+      });
+    }
+
+    // --- ARI-DOC-006: Architecture documentation detection ---
+    const hasArchitectureDocs =
+      (await context.fileExists("ARCHITECTURE.md")) ||
+      context.files.some((f) => /docs\/architecture/i.test(f) && /\.(md|ya?ml|json)$/.test(f));
+
+    if (hasArchitectureDocs) {
+      score += 5;
+      findings.push({
+        code: "ARI-DOC-006",
+        severity: "info",
+        pillar: PILLAR,
+        message:
+          "Architecture documentation found — agents can understand system boundaries and design constraints",
+        confidence: "high",
+      });
+    } else {
+      findings.push({
+        code: "ARI-DOC-006",
+        severity: "low",
+        pillar: PILLAR,
+        message:
+          "No architecture documentation found. Rationale: architecture docs help agents understand system boundaries, module responsibilities, and design constraints.",
+        confidence: "medium",
+        remediation: {
+          action: "create-file",
+          path: "ARCHITECTURE.md",
+          description:
+            "Add architecture documentation describing system boundaries, module responsibilities, and key design decisions",
+          confidence: "high",
+        },
+      });
+    }
+
     score = Math.min(100, Math.max(0, score));
 
     return {
