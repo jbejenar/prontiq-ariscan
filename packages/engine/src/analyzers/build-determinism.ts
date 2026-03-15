@@ -310,6 +310,87 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       }
     }
 
+    // --- ARI-BLD-011: Linting & formatting configuration ---
+    const eslintConfigs = [
+      "eslint.config.js",
+      "eslint.config.mjs",
+      "eslint.config.cjs",
+      "eslint.config.ts",
+      ".eslintrc.js",
+      ".eslintrc.cjs",
+      ".eslintrc.json",
+      ".eslintrc.yml",
+      ".eslintrc.yaml",
+      ".eslintrc",
+    ];
+    let hasEslint = false;
+    for (const ec of eslintConfigs) {
+      if (await context.fileExists(ec)) {
+        hasEslint = true;
+        break;
+      }
+    }
+    if (!hasEslint && pkg) {
+      const eslintConfig = (pkg as Record<string, unknown>)["eslintConfig"];
+      if (eslintConfig) {
+        hasEslint = true;
+      }
+    }
+
+    const prettierConfigs = [
+      ".prettierrc",
+      ".prettierrc.json",
+      ".prettierrc.yml",
+      ".prettierrc.yaml",
+      ".prettierrc.js",
+      ".prettierrc.cjs",
+      ".prettierrc.mjs",
+      ".prettierrc.toml",
+      "prettier.config.js",
+      "prettier.config.cjs",
+      "prettier.config.mjs",
+    ];
+    let hasPrettier = false;
+    for (const pc of prettierConfigs) {
+      if (await context.fileExists(pc)) {
+        hasPrettier = true;
+        break;
+      }
+    }
+    if (!hasPrettier && pkg) {
+      const prettierField = (pkg as Record<string, unknown>)["prettier"];
+      if (prettierField) {
+        hasPrettier = true;
+      }
+    }
+
+    if (hasEslint && hasPrettier) {
+      score += 5;
+      findings.push({
+        code: "ARI-BLD-011",
+        severity: "info",
+        pillar: PILLAR,
+        message: "Linting and formatting configured — agents produce code matching project style",
+        confidence: "high",
+      });
+    } else {
+      const missing = [!hasEslint ? "linter" : "", !hasPrettier ? "formatter" : ""]
+        .filter(Boolean)
+        .join(" and ");
+      findings.push({
+        code: "ARI-BLD-011",
+        severity: "low",
+        pillar: PILLAR,
+        message: `Missing ${missing} configuration — agents may produce inconsistent code style`,
+        confidence: "high",
+        remediation: {
+          action: "create-file",
+          description: `Add ${missing} configuration (e.g. ESLint + Prettier) to enforce consistent code style`,
+          confidence: "high",
+        },
+      });
+    }
+
     // Java nullability annotations check
     const javaFiles = context.files.filter(
       (f) => f.endsWith(".java") && !f.includes("build/") && !f.includes("target/"),

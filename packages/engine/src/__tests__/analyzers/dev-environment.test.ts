@@ -83,6 +83,25 @@ describe("devEnvironmentAnalyzer (P4)", () => {
       expect(statusFinding?.message).toContain("fail");
     });
 
+    it("adds bonus for customizations.vscode field (modern format)", async () => {
+      const withCustomizations = createMockContext({
+        ".devcontainer/devcontainer.json": JSON.stringify({
+          name: "dev",
+          image: "node:20",
+          customizations: { vscode: { settings: { "editor.formatOnSave": true } } },
+        }),
+      });
+      const withoutSettings = createMockContext({
+        ".devcontainer/devcontainer.json": JSON.stringify({
+          name: "dev",
+          image: "node:20",
+        }),
+      });
+      const r1 = await devEnvironmentAnalyzer.analyze(withCustomizations);
+      const r2 = await devEnvironmentAnalyzer.analyze(withoutSettings);
+      expect(r1.score).toBeGreaterThan(r2.score);
+    });
+
     it("adds bonus for settings field", async () => {
       const withSettings = createMockContext({
         ".devcontainer/devcontainer.json": JSON.stringify({

@@ -542,6 +542,86 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     });
   });
 
+  describe("ARI-BLD-011: Linting & formatting configuration", () => {
+    it("adds +5 when both ESLint and Prettier configs are present", async () => {
+      const withBoth = createMockContext({
+        "eslint.config.js": "export default {};",
+        ".prettierrc": "{}",
+      });
+      const withNeither = createMockContext({});
+      const r1 = await buildDeterminismAnalyzer.analyze(withBoth);
+      const r2 = await buildDeterminismAnalyzer.analyze(withNeither);
+      expect(r1.score - r2.score).toBe(5);
+    });
+
+    it("emits info finding when both are configured", async () => {
+      const ctx = createMockContext({
+        "eslint.config.mjs": "export default {};",
+        "prettier.config.js": "export default {};",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-011");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+      expect(finding?.message).toContain("Linting and formatting configured");
+    });
+
+    it("emits low finding when only ESLint is configured (no bonus)", async () => {
+      const ctx = createMockContext({
+        ".eslintrc.json": "{}",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-011");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("low");
+      expect(finding?.message).toContain("formatter");
+    });
+
+    it("emits low finding when only Prettier is configured (no bonus)", async () => {
+      const ctx = createMockContext({
+        ".prettierrc.json": "{}",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-011");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("low");
+      expect(finding?.message).toContain("linter");
+    });
+
+    it("emits low finding when neither is configured", async () => {
+      const ctx = createMockContext({});
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-011");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("low");
+      expect(finding?.message).toContain("linter and formatter");
+    });
+
+    it("detects ESLint config in package.json eslintConfig field", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          eslintConfig: { rules: {} },
+          prettier: { singleQuote: true },
+        }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-011");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("detects Prettier config in package.json prettier field", async () => {
+      const ctx = createMockContext({
+        "eslint.config.js": "export default {};",
+        "package.json": JSON.stringify({ prettier: { singleQuote: true } }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-011");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

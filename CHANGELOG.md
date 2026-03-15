@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.14.0] — 2026-03-16
+
+### Added
+- **Engine (P6):** Added `ARI-BLD-011` — ESLint + Prettier config detection (+5 points when both configured). Detects 10+ ESLint config formats, 11+ Prettier config formats, and `eslintConfig`/`prettier` fields in package.json.
+- **Repo:** Added `doctor` script to root package.json — validates Node version and pnpm availability for new contributor onboarding.
+- **Repo:** Added TypeScript `references` array to root tsconfig.json pointing to all three workspace packages.
+
+### Changed
+- **Engine (P4):** Updated devcontainer settings detection to recognize `customizations.vscode` (modern VS Code devcontainer format) alongside legacy top-level `settings` field.
+
+### Metrics
+- **Self-scan score:** 90/100 (L5 Autonomous) — up from 88/100
+- **P4 Dev Environment:** 100/100 — up from 95/100 (+5)
+- **P6 Build Determinism:** 95/100 — up from 85/100 (+10)
+- **Tests:** 771 total across 38 test files — no regressions
+
 ## [3.13.0] — 2026-03-16
 
 ### Added
