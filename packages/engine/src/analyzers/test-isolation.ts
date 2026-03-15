@@ -319,7 +319,14 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       const content = await context.readFile(testFile);
       if (!content) continue;
 
+      // Detect properly-scoped env var tests (save process.env to const + afterEach restore)
+      const hasEnvRestore =
+        /\bafterEach\s*\(/.test(content) && /\bconst\s+\w+\s*=\s*process\.env\b/.test(content);
+
       for (const ap of ANTI_PATTERNS) {
+        // Skip env-var access flag when env is properly saved/restored
+        if (ap.code === "ARI-TST-005" && hasEnvRestore) continue;
+
         if (ap.pattern.test(content)) {
           antiPatternCount++;
           findings.push({
@@ -344,11 +351,14 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       }
     }
 
-    // Filesystem dependency detection in tests
+    // Filesystem dependency detection in tests (skip files with mocked fs)
     let fsDependencyCount = 0;
     for (const testFile of filtered) {
       const content = await context.readFile(testFile);
       if (!content) continue;
+
+      // Skip if fs is properly mocked via vi.mock/jest.mock
+      if (/\b(vi|jest)\.mock\s*\(\s*['"](?:node:)?fs['"/]/.test(content)) continue;
 
       for (const fsPattern of FS_DEPENDENCY_PATTERNS) {
         if (fsPattern.test(content)) {
@@ -450,8 +460,16 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       const content = await context.readFile(testFile);
       if (!content) continue;
 
+      // Detect if process.env is properly saved/restored in afterEach
+      // (process.env is a single object, so saving it covers all process.env.X mutations)
+      const hasAfterEach = /\bafterEach\s*\(/.test(content);
+      const restoresProcessEnv = hasAfterEach && /\bconst\s+\w+\s*=\s*process\.env\b/.test(content);
+
       let fileHasMutation = false;
       for (const gm of GLOBAL_MUTATION_PATTERNS) {
+        // Skip process.env mutations when env is properly saved/restored
+        if (restoresProcessEnv && /process\.env/.test(gm.pattern.source)) continue;
+
         if (gm.pattern.test(content)) {
           if (!fileHasMutation) {
             globalMutationCount++;
@@ -637,11 +655,21 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       {
         name: "shared-mutable-state",
         impact: 2,
-        test: (c: string) =>
-          GLOBAL_MUTATION_PATTERNS.some((gm) => gm.pattern.test(c)) ||
-          (/\b(beforeAll|before)\s*\(/.test(c) &&
-            /^\s*(let|var)\s+\w+/.test(c) &&
-            /\w+\s*=\s*/.test(c)),
+        test: (c: string) => {
+          const hasAfter = /\bafterEach\s*\(/.test(c);
+          const restoresEnv = hasAfter && /\bconst\s+\w+\s*=\s*process\.env\b/.test(c);
+          // Check if any un-restored global mutation patterns remain
+          const hasUnrestoredMutation = GLOBAL_MUTATION_PATTERNS.some((gm) => {
+            if (restoresEnv && /process\.env/.test(gm.pattern.source)) return false;
+            return gm.pattern.test(c);
+          });
+          return (
+            hasUnrestoredMutation ||
+            (/\b(beforeAll|before)\s*\(/.test(c) &&
+              /^\s*(let|var)\s+\w+/.test(c) &&
+              /\w+\s*=\s*/.test(c))
+          );
+        },
       },
       {
         name: "unordered-assertions",
@@ -662,7 +690,11 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       {
         name: "filesystem-dependencies",
         impact: 5,
-        test: (c: string) => FS_DEPENDENCY_PATTERNS.some((fp) => fp.test(c)),
+        test: (c: string) => {
+          // Skip if fs is properly mocked
+          if (/\b(vi|jest)\.mock\s*\(\s*['"](?:node:)?fs['"/]/.test(c)) return false;
+          return FS_DEPENDENCY_PATTERNS.some((fp) => fp.test(c));
+        },
       },
       {
         name: "hardcoded-credentials",
@@ -738,15 +770,24 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       score += 15;
     }
 
-    // Check for mock/stub infrastructure
-    const hasMockInfra = context.files.some((f) => /__mocks__|\.mock\.|mock\//i.test(f));
+    // Check for mock/stub infrastructure (directory conventions or vi.mock/jest.mock usage)
+    let hasMockInfra = context.files.some((f) => /__mocks__|\.mock\.|mock\//i.test(f));
+    if (!hasMockInfra) {
+      for (const tf of sampled.slice(0, 5)) {
+        const c = await context.readFile(tf);
+        if (c && /\b(vi|jest)\.(mock|spyOn)\s*\(/.test(c)) {
+          hasMockInfra = true;
+          break;
+        }
+      }
+    }
     if (hasMockInfra) {
       score += 10;
     }
 
-    // Check for test config (jest.config, vitest.config, etc.)
+    // Check for test config (jest.config, vitest.config, vitest.workspace, etc.)
     const hasTestConfig = context.files.some((f) =>
-      /jest\.config|vitest\.config|pytest\.ini|conftest\.py|\.mocharc/i.test(f),
+      /jest\.config|vitest\.(config|workspace)|pytest\.ini|conftest\.py|\.mocharc/i.test(f),
     );
     if (hasTestConfig) {
       score += 5;
