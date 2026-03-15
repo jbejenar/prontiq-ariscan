@@ -7,7 +7,17 @@
  * - ! negation patterns
  * - Empty lines ignored
  * - Trailing slashes indicate directories
+ * - # @category: <name> annotations (RFC-0002)
  */
+
+/** Well-known .agentignore categories per RFC-0002. */
+export type AgentignoreCategory =
+  | "generated"
+  | "data"
+  | "binary"
+  | "vendor"
+  | "sensitive"
+  | (string & Record<never, never>);
 
 /** A parsed .agentignore rule. */
 export interface AgentignoreRule {
@@ -19,6 +29,8 @@ export interface AgentignoreRule {
   directoryOnly: boolean;
   /** The normalized pattern (without leading ! and trailing /). */
   normalizedPattern: string;
+  /** Category from the nearest preceding `# @category:` annotation. */
+  category?: AgentignoreCategory;
 }
 
 /** Parsed .agentignore file. */
@@ -28,16 +40,23 @@ export interface AgentignoreFile {
   comments: number;
   /** Number of blank lines. */
   blanks: number;
+  /** Count of rules per category. */
+  categories: Map<string, number>;
 }
 
 /**
  * Parse a .agentignore file content into structured rules.
  */
+/** Regex for `# @category: <name>` annotations. */
+const CATEGORY_RE = /^#\s*@category:\s*(\S+)/;
+
 export function parseAgentignore(content: string): AgentignoreFile {
   const lines = content.split("\n");
   const rules: AgentignoreRule[] = [];
+  const categories = new Map<string, number>();
   let comments = 0;
   let blanks = 0;
+  let currentCategory: AgentignoreCategory | undefined;
 
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
@@ -48,8 +67,12 @@ export function parseAgentignore(content: string): AgentignoreFile {
       continue;
     }
 
-    // Skip comments
+    // Check for category annotation before counting as comment
     if (line.startsWith("#")) {
+      const categoryMatch = CATEGORY_RE.exec(line);
+      if (categoryMatch) {
+        currentCategory = categoryMatch[1] as AgentignoreCategory;
+      }
       comments++;
       continue;
     }
@@ -62,15 +85,22 @@ export function parseAgentignore(content: string): AgentignoreFile {
     const directoryOnly = stripped.endsWith("/");
     const normalizedPattern = directoryOnly ? stripped.slice(0, -1) : stripped;
 
-    rules.push({
+    const rule: AgentignoreRule = {
       pattern: line,
       negated,
       directoryOnly,
       normalizedPattern,
-    });
+    };
+
+    if (currentCategory) {
+      rule.category = currentCategory;
+      categories.set(currentCategory, (categories.get(currentCategory) ?? 0) + 1);
+    }
+
+    rules.push(rule);
   }
 
-  return { rules, comments, blanks };
+  return { rules, comments, blanks, categories };
 }
 
 /**
@@ -157,23 +187,31 @@ function gitignorePatternToRegex(pattern: string): string {
   }
 }
 
-/** Default .agentignore patterns by language ecosystem. */
+/** Default .agentignore patterns by language ecosystem (RFC-0002 categorized). */
 export function getDefaultPatterns(primaryLanguage?: string): string[] {
   const universal = [
-    "# Build artifacts",
+    "# @category: generated",
     "dist/",
     "build/",
     ".next/",
+    ".nuxt/",
     "out/",
     ".turbo/",
+    "*.generated.*",
+    "*.min.js",
+    "*.min.css",
+    "*.map",
+    "*.d.ts",
+    "*.tsbuildinfo",
     "",
-    "# Dependencies",
+    "# @category: vendor",
     "node_modules/",
     "vendor/",
     ".venv/",
     "__pycache__/",
+    "third_party/",
     "",
-    "# Lockfiles",
+    "# @category: data",
     "package-lock.json",
     "pnpm-lock.yaml",
     "yarn.lock",
@@ -181,13 +219,26 @@ export function getDefaultPatterns(primaryLanguage?: string): string[] {
     "go.sum",
     "poetry.lock",
     "composer.lock",
+    "**/fixtures/**",
+    "**/__snapshots__/**",
+    "**/testdata/**",
     "",
-    "# Generated files",
-    "*.generated.*",
-    "*.min.js",
-    "*.min.css",
-    "*.map",
-    "*.d.ts",
+    "# @category: binary",
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.gif",
+    "*.svg",
+    "*.ico",
+    "*.woff",
+    "*.woff2",
+    "*.ttf",
+    "*.eot",
+    "",
+    "# @category: sensitive",
+    ".env*",
+    "**/credentials/**",
+    "**/secrets/**",
     "",
     "# Coverage & reports",
     "coverage/",
@@ -201,11 +252,25 @@ export function getDefaultPatterns(primaryLanguage?: string): string[] {
   ];
 
   const languageSpecific: Record<string, string[]> = {
-    python: ["", "# Python", "*.pyc", "*.egg-info/", ".tox/", ".mypy_cache/", ".pytest_cache/"],
+    typescript: ["", "# TypeScript / JavaScript", "storybook-static/", ".cache/", ".parcel-cache/"],
+    javascript: ["", "# JavaScript", "storybook-static/", ".cache/", ".parcel-cache/"],
+    python: [
+      "",
+      "# Python",
+      "*.pyc",
+      "*.pyo",
+      "*.egg-info/",
+      "*.whl",
+      ".eggs/",
+      ".tox/",
+      ".mypy_cache/",
+      ".ruff_cache/",
+      ".pytest_cache/",
+    ],
     go: ["", "# Go", "*.test"],
-    rust: ["", "# Rust", "target/"],
-    java: ["", "# Java", "*.class", "target/", ".gradle/", "*.jar"],
-    "c#": ["", "# C#", "bin/", "obj/", "*.dll"],
+    rust: ["", "# Rust", "target/", "*.rlib"],
+    java: ["", "# Java", "*.class", "*.jar", "*.war", "*.ear", "target/", ".gradle/", ".mvn/"],
+    "c#": ["", "# C# / .NET", "bin/", "obj/", "*.dll", "*.nupkg", ".vs/"],
     ruby: ["", "# Ruby", "*.gem", ".bundle/"],
   };
 

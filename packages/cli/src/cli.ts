@@ -124,137 +124,170 @@ Exit codes:
       process.exit(2);
     }
 
-    // Budget-only mode: analyze token budget and exit
     if (args.budget) {
-      if (!args.quiet) {
-        process.stderr.write(`\nAnalyzing token budget for ${repoPath}...\n`);
-      }
-      try {
-        const context = await createRepoContext(repoPath);
-        const budgetResult = await analyzeTokenBudget(context);
-        if (args.json) {
-          process.stdout.write(formatBudgetJson(budgetResult));
-        } else {
-          process.stdout.write(formatBudgetTerminal(budgetResult));
-        }
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        process.stderr.write(`Error: Budget analysis failed: ${message}\n`);
-        process.exit(2);
-      }
+      await handleBudgetMode(repoPath, args.json, args.quiet);
       return;
     }
 
-    // Fix mode: generate missing config files
     if (args.fix) {
-      if (!args.quiet) {
-        process.stderr.write(`\nGenerating fix proposals for ${repoPath}...\n`);
-      }
-      try {
-        const context = await createRepoContext(repoPath);
-        const detection = await detect(context);
-        const proposals = await generateFixProposals(context, detection);
-
-        const forceMode = args.force === true;
-
-        // In force mode, alreadyExists proposals become overwrites instead of skips
-        const actionable = proposals.filter((p) => !p.alreadyExists);
-        const overwrites = forceMode ? proposals.filter((p) => p.alreadyExists) : [];
-        const skipped = forceMode ? [] : proposals.filter((p) => p.alreadyExists);
-
-        if (actionable.length === 0 && overwrites.length === 0) {
-          process.stderr.write("\nAll files already exist. Nothing to generate.\n");
-          if (!forceMode && proposals.some((p) => p.alreadyExists)) {
-            process.stderr.write("Use --fix --force to overwrite existing files.\n");
-          }
-          return;
-        }
-
-        if (args.dryRun) {
-          process.stdout.write(formatDryRun(actionable, skipped, overwrites));
-        } else {
-          await applyProposals(repoPath, actionable, skipped, args.quiet, overwrites);
-        }
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        process.stderr.write(`Error: Fix generation failed: ${message}\n`);
-        process.exit(2);
-      }
+      await handleFixMode(repoPath, args.force, args.dryRun, args.quiet);
       return;
     }
 
-    // Build CLI overrides (only include values explicitly set by user)
-    const cliOverrides: Record<string, unknown> = {};
-    const cliThreshold = parseInt(args.threshold, 10);
-    if (cliThreshold > 0) {
-      cliOverrides.threshold = cliThreshold;
-    }
-    if (args.json) {
-      cliOverrides.format = "json";
-    } else if (args.format !== "terminal") {
-      cliOverrides.format = args.format;
-    }
-
-    // Resolve config: CLI flags > .ariscan.yml > defaults
-    const config = await resolveConfig({
-      repoPath,
-      configPath: args.config,
-      cliOverrides,
-    });
-
-    const format = args.json ? "json" : (config.format ?? args.format);
-
-    if (!args.quiet && format === "terminal") {
-      process.stderr.write(`\nScanning ${repoPath}...\n`);
-    }
-
-    // Stream per-pillar progress in terminal mode (non-quiet)
-    const showProgress = !args.quiet && format === "terminal";
-    const onProgress: OnProgress | undefined = showProgress
-      ? (event) => {
-          const name = PILLAR_NAMES[event.pillar] ?? event.pillar;
-          if (event.status === "done") {
-            process.stderr.write(`  ✓ ${event.pillar} ${name} (${event.elapsed}ms)\n`);
-          }
-        }
-      : undefined;
-
-    let result: ScanResult;
-    try {
-      result = await scan(repoPath, config, onProgress);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`Error: Scan failed: ${message}\n`);
-      process.exit(2);
-    }
-
-    // Generate badge if requested
-    if (args.badge) {
-      const badgePath = resolve(args.badge);
-      const svg = generateBadgeSvg(result);
-      await writeFile(badgePath, svg, "utf-8");
-      if (!args.quiet) {
-        process.stderr.write(`Badge written to ${badgePath}\n`);
-        process.stderr.write(generateBadgeSnippets(args.badge));
-      }
-    }
-
-    if (format === "json") {
-      process.stdout.write(formatJson(result));
-    } else if (format === "sarif") {
-      process.stdout.write(formatSarif(result));
-    } else if (format === "markdown") {
-      process.stdout.write(formatMarkdown(result));
-    } else {
-      process.stdout.write(formatTerminal(result, { verbose: args.verbose, quiet: args.quiet }));
-    }
-
-    const threshold = config.threshold ?? cliThreshold;
-    if (threshold > 0 && result.score < threshold) {
-      process.exit(1);
-    }
+    await handleScanMode(repoPath, args);
   },
 });
+
+/** Handle --budget mode: analyze token budget and exit. */
+async function handleBudgetMode(repoPath: string, json: boolean, quiet: boolean): Promise<void> {
+  if (!quiet) {
+    process.stderr.write(`\nAnalyzing token budget for ${repoPath}...\n`);
+  }
+  try {
+    const context = await createRepoContext(repoPath);
+    const budgetResult = await analyzeTokenBudget(context);
+    if (json) {
+      process.stdout.write(formatBudgetJson(budgetResult));
+    } else {
+      process.stdout.write(formatBudgetTerminal(budgetResult));
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Error: Budget analysis failed: ${message}\n`);
+    process.exit(2);
+  }
+}
+
+/** Handle --fix mode: generate missing config files. */
+async function handleFixMode(
+  repoPath: string,
+  force: boolean,
+  dryRun: boolean,
+  quiet: boolean,
+): Promise<void> {
+  if (!quiet) {
+    process.stderr.write(`\nGenerating fix proposals for ${repoPath}...\n`);
+  }
+  try {
+    const context = await createRepoContext(repoPath);
+    const detection = await detect(context);
+    const proposals = await generateFixProposals(context, detection);
+
+    const forceMode = force === true;
+    const actionable = proposals.filter((p) => !p.alreadyExists);
+    const overwrites = forceMode ? proposals.filter((p) => p.alreadyExists) : [];
+    const skipped = forceMode ? [] : proposals.filter((p) => p.alreadyExists);
+
+    if (actionable.length === 0 && overwrites.length === 0) {
+      process.stderr.write("\nAll files already exist. Nothing to generate.\n");
+      if (!forceMode && proposals.some((p) => p.alreadyExists)) {
+        process.stderr.write("Use --fix --force to overwrite existing files.\n");
+      }
+      return;
+    }
+
+    if (dryRun) {
+      process.stdout.write(formatDryRun(actionable, skipped, overwrites));
+    } else {
+      await applyProposals(repoPath, actionable, skipped, quiet, overwrites);
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Error: Fix generation failed: ${message}\n`);
+    process.exit(2);
+  }
+}
+
+/** Handle default scan mode: scan, format output, apply threshold. */
+async function handleScanMode(
+  repoPath: string,
+  args: {
+    json: boolean;
+    format: string;
+    config?: string;
+    threshold: string;
+    quiet: boolean;
+    verbose: boolean;
+    badge?: string;
+  },
+): Promise<void> {
+  const cliOverrides: Record<string, unknown> = {};
+  const cliThreshold = parseInt(args.threshold, 10);
+  if (cliThreshold > 0) {
+    cliOverrides.threshold = cliThreshold;
+  }
+  if (args.json) {
+    cliOverrides.format = "json";
+  } else if (args.format !== "terminal") {
+    cliOverrides.format = args.format;
+  }
+
+  const config = await resolveConfig({
+    repoPath,
+    configPath: args.config,
+    cliOverrides,
+  });
+
+  const format = args.json ? "json" : (config.format ?? args.format);
+
+  if (!args.quiet && format === "terminal") {
+    process.stderr.write(`\nScanning ${repoPath}...\n`);
+  }
+
+  const showProgress = !args.quiet && format === "terminal";
+  const onProgress: OnProgress | undefined = showProgress
+    ? (event) => {
+        const name = PILLAR_NAMES[event.pillar] ?? event.pillar;
+        if (event.status === "done") {
+          process.stderr.write(`  ✓ ${event.pillar} ${name} (${event.elapsed}ms)\n`);
+        }
+      }
+    : undefined;
+
+  let result: ScanResult;
+  try {
+    result = await scan(repoPath, config, onProgress);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Error: Scan failed: ${message}\n`);
+    process.exit(2);
+  }
+
+  if (args.badge) {
+    const badgePath = resolve(args.badge);
+    const svg = generateBadgeSvg(result);
+    await writeFile(badgePath, svg, "utf-8");
+    if (!args.quiet) {
+      process.stderr.write(`Badge written to ${badgePath}\n`);
+      process.stderr.write(generateBadgeSnippets(args.badge));
+    }
+  }
+
+  outputScanResult(result, format, args.verbose, args.quiet);
+
+  const threshold = config.threshold ?? cliThreshold;
+  if (threshold > 0 && result.score < threshold) {
+    process.exit(1);
+  }
+}
+
+/** Write scan result to stdout in the requested format. */
+function outputScanResult(
+  result: ScanResult,
+  format: string,
+  verbose: boolean,
+  quiet: boolean,
+): void {
+  if (format === "json") {
+    process.stdout.write(formatJson(result));
+  } else if (format === "sarif") {
+    process.stdout.write(formatSarif(result));
+  } else if (format === "markdown") {
+    process.stdout.write(formatMarkdown(result));
+  } else {
+    process.stdout.write(formatTerminal(result, { verbose, quiet }));
+  }
+}
 
 /** Classify a fix proposal for dry-run display. */
 function classifyFix(p: FixProposal): "AUTO-APPLY" | "SUGGEST" | "MANUAL" | "SKIPPED" {

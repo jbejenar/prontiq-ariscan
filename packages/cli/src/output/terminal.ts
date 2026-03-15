@@ -65,6 +65,114 @@ function formatPillar(pillar: PillarResult): string {
   return lines.join("\n");
 }
 
+/** Format a single finding line with severity, code, confidence, and message. */
+function formatFindingLine(finding: ScanResult["findings"][0]): string[] {
+  const color = severityColor(finding.severity);
+  const conf = finding.confidence ? pc.dim(` [${finding.confidence}]`) : "";
+  const lines: string[] = [];
+  lines.push(
+    `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)}${conf} ${finding.message}`,
+  );
+  if (finding.remediation) {
+    lines.push(`           ${pc.dim("→")} ${finding.remediation.description}`);
+  }
+  if (finding.file) {
+    lines.push(
+      `           ${pc.dim("in")} ${finding.file}${finding.line ? `:${finding.line}` : ""}`,
+    );
+  }
+  return lines;
+}
+
+/** Render the verbose details: per-pillar summaries, detection, context files, remaining findings. */
+function formatVerboseSection(result: ScanResult): string[] {
+  const lines: string[] = [];
+
+  // Per-pillar summaries
+  lines.push("");
+  lines.push(pc.dim(`  ${"─".repeat(60)}`));
+  lines.push(pc.bold("  Pillar Details"));
+  lines.push("");
+
+  for (const pillar of result.pillars) {
+    lines.push(
+      `  ${pc.bold(pillar.pillar)} ${pc.dim("confidence:")} ${pillar.confidence}  ${pc.dim("summary:")} ${pillar.summary}`,
+    );
+  }
+
+  // Detection info
+  if (result.detection) {
+    lines.push(...formatDetectionSection(result.detection));
+  }
+
+  // Context files
+  if (result.contextFiles && result.contextFiles.length > 0) {
+    lines.push("");
+    lines.push(pc.dim(`  ${"─".repeat(60)}`));
+    lines.push(pc.bold("  Context Files"));
+    lines.push("");
+
+    for (const cf of result.contextFiles) {
+      const status = cf.parseStatus ? ` [${cf.parseStatus}]` : "";
+      const size = cf.size ? ` (${cf.size} bytes)` : "";
+      lines.push(`  ${pc.dim(cf.type.padEnd(22))} ${cf.path}${size}${status}`);
+    }
+  }
+
+  // All remaining findings (non-critical, non-high)
+  const remaining = result.findings.filter(
+    (f) => f.severity !== "critical" && f.severity !== "high",
+  );
+  if (remaining.length > 0) {
+    lines.push("");
+    lines.push(pc.dim(`  ${"─".repeat(60)}`));
+    lines.push(pc.bold("  All Findings"));
+    lines.push("");
+
+    for (const finding of remaining) {
+      const color = severityColor(finding.severity);
+      const conf = finding.confidence ? pc.dim(` [${finding.confidence}]`) : "";
+      lines.push(
+        `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)}${conf} ${finding.message}`,
+      );
+      if (finding.remediation) {
+        lines.push(`           ${pc.dim("→")} ${finding.remediation.description}`);
+      }
+    }
+  }
+
+  return lines;
+}
+
+/** Render language/framework/monorepo detection info. */
+function formatDetectionSection(detection: NonNullable<ScanResult["detection"]>): string[] {
+  const lines: string[] = [];
+  lines.push("");
+  lines.push(pc.dim(`  ${"─".repeat(60)}`));
+  lines.push(pc.bold("  Detection"));
+  lines.push("");
+
+  if (detection.languages.length > 0) {
+    const langs = detection.languages
+      .map(
+        (l) => `${l.language} (${Math.round(l.confidence * 100)}%${l.primary ? ", primary" : ""})`,
+      )
+      .join(", ");
+    lines.push(`  ${pc.dim("Languages:")} ${langs}`);
+  }
+  if (detection.frameworks.length > 0) {
+    const fws = detection.frameworks
+      .map((f) => `${f.framework} (${Math.round(f.confidence * 100)}%)`)
+      .join(", ");
+    lines.push(`  ${pc.dim("Frameworks:")} ${fws}`);
+  }
+  if (detection.monorepo) {
+    lines.push(`  ${pc.dim("Monorepo:")} ${detection.monorepo.tool}`);
+  }
+
+  return lines;
+}
+
 export function formatTerminal(result: ScanResult, options: TerminalOptions = {}): string {
   // Quiet mode: single-line summary suitable for CI pipelines
   if (options.quiet) {
@@ -105,7 +213,7 @@ export function formatTerminal(result: ScanResult, options: TerminalOptions = {}
     lines.push(formatPillar(pillar));
   }
 
-  // Top findings
+  // Top findings (critical + high)
   const topFindings = result.findings
     .filter((f) => f.severity === "critical" || f.severity === "high")
     .slice(0, 5);
@@ -117,98 +225,13 @@ export function formatTerminal(result: ScanResult, options: TerminalOptions = {}
     lines.push("");
 
     for (const finding of topFindings) {
-      const color = severityColor(finding.severity);
-      const conf = finding.confidence ? pc.dim(` [${finding.confidence}]`) : "";
-      lines.push(
-        `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)}${conf} ${finding.message}`,
-      );
-      if (finding.remediation) {
-        lines.push(`           ${pc.dim("→")} ${finding.remediation.description}`);
-      }
-      if (finding.file) {
-        lines.push(
-          `           ${pc.dim("in")} ${finding.file}${finding.line ? `:${finding.line}` : ""}`,
-        );
-      }
+      lines.push(...formatFindingLine(finding));
     }
   }
 
-  // Verbose: per-pillar summaries, detection info, and all findings
+  // Verbose details
   if (options.verbose) {
-    // Per-pillar summaries
-    lines.push("");
-    lines.push(pc.dim(`  ${"─".repeat(60)}`));
-    lines.push(pc.bold("  Pillar Details"));
-    lines.push("");
-
-    for (const pillar of result.pillars) {
-      lines.push(
-        `  ${pc.bold(pillar.pillar)} ${pc.dim("confidence:")} ${pillar.confidence}  ${pc.dim("summary:")} ${pillar.summary}`,
-      );
-    }
-
-    // Detection info
-    if (result.detection) {
-      lines.push("");
-      lines.push(pc.dim(`  ${"─".repeat(60)}`));
-      lines.push(pc.bold("  Detection"));
-      lines.push("");
-
-      if (result.detection.languages.length > 0) {
-        const langs = result.detection.languages
-          .map(
-            (l) =>
-              `${l.language} (${Math.round(l.confidence * 100)}%${l.primary ? ", primary" : ""})`,
-          )
-          .join(", ");
-        lines.push(`  ${pc.dim("Languages:")} ${langs}`);
-      }
-      if (result.detection.frameworks.length > 0) {
-        const fws = result.detection.frameworks
-          .map((f) => `${f.framework} (${Math.round(f.confidence * 100)}%)`)
-          .join(", ");
-        lines.push(`  ${pc.dim("Frameworks:")} ${fws}`);
-      }
-      if (result.detection.monorepo) {
-        lines.push(`  ${pc.dim("Monorepo:")} ${result.detection.monorepo.tool}`);
-      }
-    }
-
-    // Context files
-    if (result.contextFiles && result.contextFiles.length > 0) {
-      lines.push("");
-      lines.push(pc.dim(`  ${"─".repeat(60)}`));
-      lines.push(pc.bold("  Context Files"));
-      lines.push("");
-
-      for (const cf of result.contextFiles) {
-        const status = cf.parseStatus ? ` [${cf.parseStatus}]` : "";
-        const size = cf.size ? ` (${cf.size} bytes)` : "";
-        lines.push(`  ${pc.dim(cf.type.padEnd(22))} ${cf.path}${size}${status}`);
-      }
-    }
-
-    // All remaining findings
-    const remaining = result.findings.filter(
-      (f) => f.severity !== "critical" && f.severity !== "high",
-    );
-    if (remaining.length > 0) {
-      lines.push("");
-      lines.push(pc.dim(`  ${"─".repeat(60)}`));
-      lines.push(pc.bold("  All Findings"));
-      lines.push("");
-
-      for (const finding of remaining) {
-        const color = severityColor(finding.severity);
-        const conf = finding.confidence ? pc.dim(` [${finding.confidence}]`) : "";
-        lines.push(
-          `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)}${conf} ${finding.message}`,
-        );
-        if (finding.remediation) {
-          lines.push(`           ${pc.dim("→")} ${finding.remediation.description}`);
-        }
-      }
-    }
+    lines.push(...formatVerboseSection(result));
   }
 
   // Footer
