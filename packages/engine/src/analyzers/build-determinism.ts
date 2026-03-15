@@ -1,5 +1,6 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
+import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
+import { buildPillarResult, anyFileExists } from "./shared.js";
 
 const PILLAR: PillarId = "P6";
 
@@ -117,13 +118,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       "Gemfile.lock",
       "composer.lock",
     ];
-    let hasLockfile = false;
-    for (const lf of lockfiles) {
-      if (await context.fileExists(lf)) {
-        hasLockfile = true;
-        break;
-      }
-    }
+    const hasLockfile = await anyFileExists(context, lockfiles);
 
     if (hasLockfile) {
       score += 20;
@@ -323,13 +318,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       ".eslintrc.yaml",
       ".eslintrc",
     ];
-    let hasEslint = false;
-    for (const ec of eslintConfigs) {
-      if (await context.fileExists(ec)) {
-        hasEslint = true;
-        break;
-      }
-    }
+    let hasEslint = await anyFileExists(context, eslintConfigs);
     if (!hasEslint && pkg) {
       const eslintConfig = (pkg as Record<string, unknown>)["eslintConfig"];
       if (eslintConfig) {
@@ -350,13 +339,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       "prettier.config.cjs",
       "prettier.config.mjs",
     ];
-    let hasPrettier = false;
-    for (const pc of prettierConfigs) {
-      if (await context.fileExists(pc)) {
-        hasPrettier = true;
-        break;
-      }
-    }
+    let hasPrettier = await anyFileExists(context, prettierConfigs);
     if (!hasPrettier && pkg) {
       const prettierField = (pkg as Record<string, unknown>)["prettier"];
       if (prettierField) {
@@ -386,6 +369,61 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
         remediation: {
           action: "create-file",
           description: `Add ${missing} configuration (e.g. ESLint + Prettier) to enforce consistent code style`,
+          confidence: "high",
+        },
+      });
+    }
+
+    // --- ARI-BLD-012: Pre-commit hooks ---
+    const preCommitTools: string[] = [];
+    if (await context.fileExists(".husky/pre-commit")) preCommitTools.push("Husky");
+    if (await context.fileExists(".lefthook.yml")) preCommitTools.push("Lefthook");
+    if (await context.fileExists("lefthook.yml")) preCommitTools.push("Lefthook");
+    if (await context.fileExists(".pre-commit-config.yaml")) preCommitTools.push("pre-commit");
+
+    const hasLintStaged =
+      (pkg && (pkg as Record<string, unknown>)["lint-staged"]) ||
+      (await context.fileExists(".lintstagedrc")) ||
+      (await context.fileExists(".lintstagedrc.json")) ||
+      (await context.fileExists("lint-staged.config.js")) ||
+      (await context.fileExists("lint-staged.config.mjs"));
+
+    if (preCommitTools.length > 0 && hasLintStaged) {
+      score += 5;
+      findings.push({
+        code: "ARI-BLD-012",
+        severity: "info",
+        pillar: PILLAR,
+        message: `Pre-commit hooks configured (${preCommitTools[0]} + lint-staged) — agents get immediate feedback on style violations before CI`,
+        confidence: "high",
+      });
+    } else if (preCommitTools.length > 0) {
+      score += 3;
+      findings.push({
+        code: "ARI-BLD-012",
+        severity: "low",
+        pillar: PILLAR,
+        message: `Pre-commit hooks detected (${preCommitTools[0]}) but no lint-staged configuration — consider adding lint-staged for targeted pre-commit checks`,
+        confidence: "high",
+        remediation: {
+          action: "add-dependency",
+          description:
+            "Add lint-staged to run linting/formatting only on staged files for faster pre-commit checks",
+          confidence: "high",
+        },
+      });
+    } else {
+      findings.push({
+        code: "ARI-BLD-012",
+        severity: "low",
+        pillar: PILLAR,
+        message:
+          "No pre-commit hooks configured — agents may push code that fails linting or formatting checks",
+        confidence: "medium",
+        remediation: {
+          action: "configure-tool",
+          description:
+            "Add pre-commit hooks (Husky, Lefthook, or pre-commit) with lint-staged for immediate feedback on style violations",
           confidence: "high",
         },
       });
@@ -561,16 +599,12 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       }
     }
 
-    score = Math.min(100, Math.max(0, score));
-
-    return {
-      pillar: PILLAR,
-      name: PILLAR_NAMES[PILLAR],
+    return buildPillarResult(
+      PILLAR,
       score,
-      weight: PILLAR_WEIGHTS[PILLAR],
-      confidence: tsconfig ? "high" : "medium",
+      tsconfig ? "high" : "medium",
       findings,
-      summary: `TypeScript strict: ${tsconfig ? "detected" : "no tsconfig"}, Lockfile: ${hasLockfile}, Build: ${scripts["build"] ? "yes" : "no"}`,
-    };
+      `TypeScript strict: ${tsconfig ? "detected" : "no tsconfig"}, Lockfile: ${hasLockfile}, Build: ${scripts["build"] ? "yes" : "no"}`,
+    );
   },
 };

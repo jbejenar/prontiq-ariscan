@@ -1,5 +1,6 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
+import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
+import { buildPillarResult } from "./shared.js";
 
 const PILLAR: PillarId = "P8";
 
@@ -548,8 +549,6 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
       });
     }
 
-    score = Math.min(100, Math.max(0, score));
-
     // --- Sort findings by severity for risk-priority ordering (AC#1) ---
     findings.sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 4) - (SEVERITY_ORDER[b.severity] ?? 4));
 
@@ -578,14 +577,12 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     const aiScorePercent =
       aiSpecificMax > 0 ? Math.round((aiSpecificScore / aiSpecificMax) * 100) : 0;
 
-    return {
-      pillar: PILLAR,
-      name: PILLAR_NAMES[PILLAR],
+    return buildPillarResult(
+      PILLAR,
       score,
-      weight: PILLAR_WEIGHTS[PILLAR],
-      confidence: "medium",
+      "medium",
       findings,
-      summary: `CODEOWNERS: ${codeownersStatus}, Secrets scanning: ${secretsScanningStatus}, Dep audit: ${depAuditStatus}, SAST: ${sastStatus}, Branch protection: ${branchProtectionStatus}, License compliance: ${licenseComplianceStatus}, .gitignore: ${gitignoreStatus} | AI-specific security: ${aiScorePercent}% (${aiSpecificScore}/${aiSpecificMax})`,
-    };
+      `CODEOWNERS: ${codeownersStatus}, Secrets scanning: ${secretsScanningStatus}, Dep audit: ${depAuditStatus}, SAST: ${sastStatus}, Branch protection: ${branchProtectionStatus}, License compliance: ${licenseComplianceStatus}, .gitignore: ${gitignoreStatus} | AI-specific security: ${aiScorePercent}% (${aiSpecificScore}/${aiSpecificMax})`,
+    );
   },
 };

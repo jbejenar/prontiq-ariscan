@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.15.0] — 2026-03-16
+
+### Added
+- **Engine (P5):** Added `ARI-DOC-005` — contributing guide detection (+5 points for CONTRIBUTING.md or docs/contributing*).
+- **Engine (P5):** Added `ARI-DOC-006` — architecture documentation detection (+5 points for ARCHITECTURE.md or docs/architecture*).
+- **Engine (P6):** Added `ARI-BLD-012` — pre-commit hooks detection (+5 for hooks+lint-staged, +3 for hooks only). Detects Husky, Lefthook, and pre-commit.
+- **Engine:** Added `shared.ts` with `buildPillarResult`, `clampScore`, `anyFileExists`, `findFirstExisting` utilities.
+- **Tests:** Added 8 new test files: analyzer-factory, registry, shared utilities, mock helpers, engine/schema barrel exports.
+
+### Changed
+- **Engine:** Refactored all 8 analyzers to use shared `buildPillarResult()` and `anyFileExists()` utilities, reducing code duplication.
+
+### Metrics
+- **Self-scan score:** 92/100 (L5 Autonomous) — up from 90/100
+- **P3 Test Isolation:** 85/100 — up from 80/100 (+5)
+- **P5 Doc Readability:** 80/100 — up from 70/100 (+10)
+- **P6 Build Determinism:** 100/100 — up from 95/100 (+5)
+- **Tests:** 841 total across 44 test files — no regressions
+
 ## [3.14.0] — 2026-03-16
 
 ### Added

@@ -1,5 +1,6 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
+import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
+import { buildPillarResult, anyFileExists } from "./shared.js";
 
 const PILLAR: PillarId = "P4";
 
@@ -132,13 +133,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       "Makefile",
       "justfile",
     ];
-    let hasSetup = false;
-    for (const s of setupScripts) {
-      if (await context.fileExists(s)) {
-        hasSetup = true;
-        break;
-      }
-    }
+    let hasSetup = await anyFileExists(context, setupScripts);
 
     const pkg = await context.readJson<Record<string, unknown>>("package.json");
     const scripts = (pkg?.["scripts"] ?? {}) as Record<string, string>;
@@ -172,13 +167,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       ".python-version",
       "rust-toolchain.toml",
     ];
-    let hasVersionPinning = false;
-    for (const vf of versionFiles) {
-      if (await context.fileExists(vf)) {
-        hasVersionPinning = true;
-        break;
-      }
-    }
+    let hasVersionPinning = await anyFileExists(context, versionFiles);
     if (pkg?.["engines"]) {
       hasVersionPinning = true;
     }
@@ -542,16 +531,12 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       confidence: "medium",
     });
 
-    score = Math.min(100, Math.max(0, score));
-
-    return {
-      pillar: PILLAR,
-      name: PILLAR_NAMES[PILLAR],
+    return buildPillarResult(
+      PILLAR,
       score,
-      weight: PILLAR_WEIGHTS[PILLAR],
-      confidence: "medium",
+      "medium",
       findings,
-      summary: `Dev environment: devcontainer=${devcontainerStatus}, setup=${hasSetup}, versions=${hasVersionPinning}`,
-    };
+      `Dev environment: devcontainer=${devcontainerStatus}, setup=${hasSetup}, versions=${hasVersionPinning}`,
+    );
   },
 };

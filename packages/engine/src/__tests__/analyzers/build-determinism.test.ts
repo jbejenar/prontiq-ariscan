@@ -622,6 +622,71 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     });
   });
 
+  describe("ARI-BLD-012: Pre-commit hooks", () => {
+    it("adds +5 when pre-commit hooks and lint-staged are both configured", async () => {
+      const withHooks = createMockContext({
+        ".husky/pre-commit": "#!/bin/sh\npnpm lint-staged",
+        "package.json": JSON.stringify({ "lint-staged": { "*.ts": ["eslint --fix"] } }),
+      });
+      const withoutHooks = createMockContext({});
+      const r1 = await buildDeterminismAnalyzer.analyze(withHooks);
+      const r2 = await buildDeterminismAnalyzer.analyze(withoutHooks);
+      expect(r1.score - r2.score).toBe(5);
+    });
+
+    it("adds +3 for pre-commit hooks without lint-staged", async () => {
+      const ctx = createMockContext({
+        ".husky/pre-commit": "#!/bin/sh\npnpm test",
+      });
+      const baseline = createMockContext({});
+      const r1 = await buildDeterminismAnalyzer.analyze(ctx);
+      const r2 = await buildDeterminismAnalyzer.analyze(baseline);
+      expect(r1.score - r2.score).toBe(3);
+    });
+
+    it("emits info finding when fully configured", async () => {
+      const ctx = createMockContext({
+        ".husky/pre-commit": "#!/bin/sh\npnpm lint-staged",
+        "package.json": JSON.stringify({ "lint-staged": { "*.ts": ["eslint --fix"] } }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-012");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("emits low finding when no hooks configured", async () => {
+      const ctx = createMockContext({});
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-012");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("low");
+    });
+
+    it("detects Lefthook as pre-commit tool", async () => {
+      const ctx = createMockContext({
+        ".lefthook.yml": "pre-commit:\n  commands: {}",
+        ".lintstagedrc": "{}",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-012");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+      expect(finding?.message).toContain("Lefthook");
+    });
+
+    it("detects pre-commit-config.yaml", async () => {
+      const ctx = createMockContext({
+        ".pre-commit-config.yaml": "repos: []",
+        "lint-staged.config.js": "export default {};",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-012");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

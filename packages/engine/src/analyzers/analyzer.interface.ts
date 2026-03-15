@@ -1,4 +1,4 @@
-import type { PillarId, PillarResult, Confidence } from "@prontiq/ariscan-schema";
+import type { PillarId, PillarResult } from "@prontiq/ariscan-schema";
 
 /**
  * Context provided to each analyzer about the repository being scanned.
@@ -31,16 +31,4 @@ export interface PillarAnalyzer {
   supports(context: RepoContext): Promise<boolean>;
   /** Run the analysis and return a scored result */
   analyze(context: RepoContext): Promise<PillarResult>;
-}
-
-/**
- * Helper to create a PillarResult with common defaults.
- */
-export function createPillarResult(
-  partial: Omit<PillarResult, "confidence"> & { confidence?: Confidence },
-): PillarResult {
-  return {
-    confidence: "medium",
-    ...partial,
-  };
 }

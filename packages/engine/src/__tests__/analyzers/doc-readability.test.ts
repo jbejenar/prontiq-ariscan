@@ -244,6 +244,68 @@ describe("docReadabilityAnalyzer (P5)", () => {
     });
   });
 
+  describe("ARI-DOC-005: Contributing guide detection", () => {
+    it("adds +5 for CONTRIBUTING.md", async () => {
+      const ctx = createMockContext({
+        "CONTRIBUTING.md": "# Contributing\n\nPlease follow these guidelines.",
+      });
+      const baseline = createMockContext({});
+      const r1 = await docReadabilityAnalyzer.analyze(ctx);
+      const r2 = await docReadabilityAnalyzer.analyze(baseline);
+      expect(r1.score - r2.score).toBe(5);
+    });
+
+    it("detects docs/contributing.md", async () => {
+      const ctx = createMockContext({
+        "docs/contributing.md": "# Contributing Guide",
+      });
+      const result = await docReadabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-DOC-005");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("emits low finding when no contributing guide exists", async () => {
+      const ctx = createMockContext({});
+      const result = await docReadabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-DOC-005");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("low");
+      expect(finding?.remediation).toBeDefined();
+    });
+  });
+
+  describe("ARI-DOC-006: Architecture documentation detection", () => {
+    it("adds +5 for ARCHITECTURE.md", async () => {
+      const ctx = createMockContext({
+        "ARCHITECTURE.md": "# Architecture\n\nSystem overview.",
+      });
+      const baseline = createMockContext({});
+      const r1 = await docReadabilityAnalyzer.analyze(ctx);
+      const r2 = await docReadabilityAnalyzer.analyze(baseline);
+      expect(r1.score - r2.score).toBe(5);
+    });
+
+    it("detects docs/architecture/ directory", async () => {
+      const ctx = createMockContext({
+        "docs/architecture/overview.md": "# Architecture Overview",
+      });
+      const result = await docReadabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-DOC-006");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("emits low finding when no architecture docs exist", async () => {
+      const ctx = createMockContext({});
+      const result = await docReadabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-DOC-006");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("low");
+      expect(finding?.remediation).toBeDefined();
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

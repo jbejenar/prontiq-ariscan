@@ -1,5 +1,6 @@
-import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
+import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
+import { buildPillarResult } from "./shared.js";
 
 const PILLAR: PillarId = "P1";
 
@@ -522,8 +523,6 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
       });
     }
 
-    score = Math.min(100, Math.max(0, score));
-
     // Build summary with file metadata
     let summary: string;
     if (discoveredFiles.length > 0) {
@@ -539,14 +538,6 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
       summary = "No agent context files found";
     }
 
-    return {
-      pillar: PILLAR,
-      name: PILLAR_NAMES[PILLAR],
-      score,
-      weight: PILLAR_WEIGHTS[PILLAR],
-      confidence: "medium",
-      findings,
-      summary,
-    };
+    return buildPillarResult(PILLAR, score, "medium", findings, summary);
   },
 };

@@ -121,7 +121,9 @@
           "summary": "Prose-only runbooks, no machine-readable format"
         },
         "ARI-DOC-003": { "severity": "low", "summary": "Low JSDoc coverage" },
-        "ARI-DOC-004": { "severity": "medium", "summary": "README references stale file paths" }
+        "ARI-DOC-004": { "severity": "medium", "summary": "README references stale file paths" },
+        "ARI-DOC-005": { "severity": "low", "summary": "No contributing guide found" },
+        "ARI-DOC-006": { "severity": "low", "summary": "No architecture documentation found" }
       }
     },
     "P6": {
@@ -149,7 +151,12 @@
           "summary": "Java project lacks nullability annotations"
         },
         "ARI-BLD-009": { "severity": "medium", "summary": "C# nullable reference types disabled" },
-        "ARI-BLD-010": { "severity": "info", "summary": "Build tool assessment" }
+        "ARI-BLD-010": { "severity": "info", "summary": "Build tool assessment" },
+        "ARI-BLD-011": { "severity": "info", "summary": "Linting & formatting configuration" },
+        "ARI-BLD-012": {
+          "severity": "low",
+          "summary": "Pre-commit hooks configuration status"
+        }
       }
     },
     "P7": {
