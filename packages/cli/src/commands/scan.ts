@@ -2,7 +2,9 @@ import { defineCommand } from "citty";
 import { resolve } from "node:path";
 import { access } from "node:fs/promises";
 import { scan } from "@prontiq/ariscan-engine";
+import type { OnProgress } from "@prontiq/ariscan-engine";
 import type { ScanConfig, ScanResult } from "@prontiq/ariscan-schema";
+import { PILLAR_NAMES } from "@prontiq/ariscan-schema";
 import { formatTerminal } from "../output/terminal.js";
 import { formatJson, formatJsonSchema } from "../output/json.js";
 import { formatMarkdown } from "../output/markdown.js";
@@ -60,9 +62,20 @@ export async function runScan(options: ScanOptions): Promise<void> {
     process.stderr.write(`\nScanning ${repoPath}...\n\n`);
   }
 
+  // Stream per-pillar progress in terminal mode (non-quiet)
+  const showProgress = !options.quiet && format === "terminal";
+  const onProgress: OnProgress | undefined = showProgress
+    ? (event) => {
+        const name = PILLAR_NAMES[event.pillar] ?? event.pillar;
+        if (event.status === "done") {
+          process.stderr.write(`  ✓ ${event.pillar} ${name} (${event.elapsed}ms)\n`);
+        }
+      }
+    : undefined;
+
   let result: ScanResult;
   try {
-    result = await scan(repoPath, scanConfig);
+    result = await scan(repoPath, scanConfig, onProgress);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`Error: Scan failed: ${message}\n`);

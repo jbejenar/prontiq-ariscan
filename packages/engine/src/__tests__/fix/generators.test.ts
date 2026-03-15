@@ -935,6 +935,116 @@ describe("generateFixProposals", () => {
 
       expect(compose?.content).toContain("      - POSTGRES_USER=dev");
     });
+
+    it("generates elasticsearch service when @elastic/elasticsearch dep detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { "@elastic/elasticsearch": "^8.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("elasticsearch:");
+      expect(compose?.content).toContain("elasticsearch:8.15.0");
+      expect(compose?.content).toContain("9200");
+      expect(compose?.content).toContain("discovery.type=single-node");
+    });
+
+    it("generates kafka + zookeeper services when kafkajs dep detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { kafkajs: "^2.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("zookeeper:");
+      expect(compose?.content).toContain("kafka:");
+      expect(compose?.content).toContain("confluentinc/cp-kafka:7.7.0");
+      expect(compose?.content).toContain("9092");
+      expect(compose?.content).toContain("2181");
+    });
+
+    it("generates minio service when minio dep detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { minio: "^7.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("minio:");
+      expect(compose?.content).toContain("minio/minio:latest");
+      expect(compose?.content).toContain("9000");
+      expect(compose?.content).toContain("9001");
+      expect(compose?.content).toContain("MINIO_ROOT_USER=dev");
+    });
+
+    it("generates all three new services together", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: {
+            "@elastic/elasticsearch": "^8.0.0",
+            kafkajs: "^2.0.0",
+            minio: "^7.0.0",
+          },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("elasticsearch:");
+      expect(compose?.content).toContain("kafka:");
+      expect(compose?.content).toContain("zookeeper:");
+      expect(compose?.content).toContain("minio:");
+    });
+
+    it("detects elasticsearch from Python elasticsearch-py", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "requirements.txt": "elasticsearch-py==8.0.0\nflask==3.0.0",
+      });
+
+      const proposals = await generateFixProposals(ctx, pythonDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("elasticsearch:");
+    });
+
+    it("detects kafka from Go segmentio/kafka-go", async () => {
+      const goDetection: DetectionResult = {
+        languages: [{ language: "go", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      };
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "go.mod": "module example.com/app\nrequire github.com/segmentio/kafka-go v0.4.0",
+      });
+
+      const proposals = await generateFixProposals(ctx, goDetection);
+      const compose = proposals.find((p) => p.path === "docker-compose.yml");
+
+      expect(compose).toBeDefined();
+      expect(compose?.content).toContain("kafka:");
+      expect(compose?.content).toContain("zookeeper:");
+    });
   });
 
   describe("PR template generator", () => {

@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.8.0] — 2026-03-15
+
+### Added
+- **Engine + CLI (P1.01 AC#5):** Streaming progress output — `scan()` now accepts optional `onProgress` callback emitting `ScanProgressEvent` with pillar ID, status (`start`/`done`), and elapsed time. CLI displays per-pillar checkmarks with timing in terminal mode (e.g., `✓ P1 Agent Context Quality (55ms)`). Progress is suppressed in `--quiet` and `--json` modes. Backward-compatible: existing callers unaffected. 3 new integration tests. New exports: `ScanProgressEvent`, `OnProgress`.
+- **Engine (P2.06):** Docker-compose templates expanded — Elasticsearch (8.15.0, single-node dev config), Kafka (Confluent 7.7.0 + Zookeeper), and MinIO (S3-compatible object storage) service detection and generation. Detects dependencies across Node.js, Python, and Go ecosystems. All services include healthchecks and sensible dev defaults. 7 new tests.
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Tests:** 526 engine tests passing (up from 517), 22 test files
+- **Roadmap progress:** P1.01 AC#5 streaming output shipped, P2.06 docker-compose coverage expanded to 8 services
+
 ## [3.7.0] — 2026-03-14
 
 ### Added
