@@ -1,30 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { analyzeTokenBudget, formatTokenCount } from "../../budget/budget-analyzer.js";
-import type { RepoContext } from "../../analyzers/analyzer.interface.js";
-
-/** Create a mock RepoContext with specified files and their contents. */
-function createMockContext(fileMap: Record<string, string>): RepoContext {
-  const files = Object.keys(fileMap).sort();
-  return {
-    rootPath: "/mock/repo",
-    files: Object.freeze(files),
-    async readFile(path: string) {
-      return fileMap[path] ?? null;
-    },
-    async fileExists(path: string) {
-      return path in fileMap;
-    },
-    async readJson<T = unknown>(path: string): Promise<T | null> {
-      const content = fileMap[path];
-      if (!content) return null;
-      try {
-        return JSON.parse(content) as T;
-      } catch {
-        return null;
-      }
-    },
-  };
-}
+import { createMockContext } from "../helpers.js";
 
 describe("analyzeTokenBudget", () => {
   it("produces a result with correct totals", async () => {

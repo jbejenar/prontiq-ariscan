@@ -1,33 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { generateFixProposals } from "../../fix/generators.js";
-import type { RepoContext } from "../../analyzers/analyzer.interface.js";
 import type { DetectionResult } from "@prontiq/ariscan-schema";
-
-function createMockContext(
-  fileMap: Record<string, string>,
-  extraFiles: string[] = [],
-): RepoContext {
-  const allFiles = [...Object.keys(fileMap), ...extraFiles].sort();
-  return {
-    rootPath: "/mock/repo",
-    files: Object.freeze(allFiles),
-    async readFile(path: string) {
-      return fileMap[path] ?? null;
-    },
-    async fileExists(path: string) {
-      return path in fileMap || extraFiles.includes(path);
-    },
-    async readJson<T = unknown>(path: string): Promise<T | null> {
-      const content = fileMap[path];
-      if (!content) return null;
-      try {
-        return JSON.parse(content) as T;
-      } catch {
-        return null;
-      }
-    },
-  };
-}
+import { createMockContext } from "../helpers.js";
 
 const nodeDetection: DetectionResult = {
   languages: [{ language: "typescript", confidence: 0.9, primary: true }],

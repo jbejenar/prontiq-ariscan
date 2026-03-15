@@ -22,6 +22,52 @@ import { resolveConfig } from "./config-loader.js";
 import { PILLAR_NAMES } from "@prontiq/ariscan-schema";
 import type { ScanResult } from "@prontiq/ariscan-schema";
 
+async function resolveRepoPath(path: string): Promise<string> {
+  const repoPath = resolve(path);
+  try {
+    await access(repoPath);
+  } catch {
+    process.stderr.write(`Error: Path does not exist: ${repoPath}\n`);
+    process.exit(2);
+  }
+  return repoPath;
+}
+
+async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
+  if (args.telemetryShow) {
+    await handleTelemetryShow();
+    return;
+  }
+  if (args.telemetry) {
+    await handleTelemetrySet(args.telemetry as string);
+    return;
+  }
+  if (args.jsonSchema) {
+    process.stdout.write(formatJsonSchema());
+    return;
+  }
+
+  const repoPath = await resolveRepoPath(args.path as string);
+
+  if (args.budget) {
+    await handleBudgetMode(repoPath, args.json as boolean, args.quiet as boolean);
+    return;
+  }
+  if (args.fix) {
+    await handleFixMode(
+      repoPath,
+      args.force as boolean,
+      args.dryRun as boolean,
+      args.quiet as boolean,
+    );
+    return;
+  }
+  if (args.noTelemetry) {
+    process.env["ARISCAN_TELEMETRY"] = "false";
+  }
+  await handleScanMode(repoPath, args as Parameters<typeof handleScanMode>[1]);
+}
+
 const main = defineCommand({
   meta: {
     name: "ariscan",
@@ -128,46 +174,7 @@ Exit codes:
     },
   },
   async run({ args }) {
-    if (args.telemetryShow) {
-      await handleTelemetryShow();
-      return;
-    }
-
-    if (args.telemetry) {
-      await handleTelemetrySet(args.telemetry);
-      return;
-    }
-
-    if (args.jsonSchema) {
-      process.stdout.write(formatJsonSchema());
-      return;
-    }
-
-    const repoPath = resolve(args.path);
-
-    try {
-      await access(repoPath);
-    } catch {
-      process.stderr.write(`Error: Path does not exist: ${repoPath}\n`);
-      process.exit(2);
-    }
-
-    if (args.budget) {
-      await handleBudgetMode(repoPath, args.json, args.quiet);
-      return;
-    }
-
-    if (args.fix) {
-      await handleFixMode(repoPath, args.force, args.dryRun, args.quiet);
-      return;
-    }
-
-    // Set single-run telemetry override before scan
-    if (args.noTelemetry) {
-      process.env["ARISCAN_TELEMETRY"] = "false";
-    }
-
-    await handleScanMode(repoPath, args);
+    await dispatchCommand(args);
   },
 });
 
