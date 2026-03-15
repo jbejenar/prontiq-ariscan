@@ -115,7 +115,7 @@ describe("setTelemetryConsent", () => {
     const writeCall = vi.mocked(fs.writeFile).mock.calls[0];
     const written = JSON.parse((writeCall?.[1] as string) ?? "{}");
     expect(written.consentedAt).toBeDefined();
-    expect(new Date(written.consentedAt).getTime()).not.toBeNaN();
+    expect(written.consentedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 });
 

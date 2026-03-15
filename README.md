@@ -50,36 +50,36 @@ Security acts as a **gate**: below 40% on Pillar 8 caps the overall level at L2 
 ## Quick Start
 
 ```bash
-# Via npx (once published)
+# Scan the current directory
 npx @prontiq/ariscan-cli .
 
-# From source
-node packages/cli/dist/cli.js .
-
 # JSON output for CI
-node packages/cli/dist/cli.js . --json
+npx @prontiq/ariscan-cli . --json
 
 # SARIF output for GitHub Code Scanning
-node packages/cli/dist/cli.js . --format sarif
+npx @prontiq/ariscan-cli . --format sarif
 
 # Markdown report (includes "Quick Start: Top 3 Actions")
-node packages/cli/dist/cli.js . --format markdown
+npx @prontiq/ariscan-cli . --format markdown
 
 # With threshold (exit code 1 if score below)
-node packages/cli/dist/cli.js . --threshold 50
+npx @prontiq/ariscan-cli . --threshold 50
 
 # Token budget analysis
-node packages/cli/dist/cli.js . --budget
+npx @prontiq/ariscan-cli . --budget
 
 # Safe fix generation — scaffold a new repo to L3 Capable (61/100)
-node packages/cli/dist/cli.js . --fix --dry-run   # preview changes
-node packages/cli/dist/cli.js . --fix              # apply changes
+npx @prontiq/ariscan-cli . --fix --dry-run   # preview changes
+npx @prontiq/ariscan-cli . --fix              # apply changes
 
 # Generate badge SVG
-node packages/cli/dist/cli.js . --badge badge.svg
+npx @prontiq/ariscan-cli . --badge badge.svg
 
 # Export JSON Schema
-node packages/cli/dist/cli.js --json-schema > ariscan.schema.json
+npx @prontiq/ariscan-cli --json-schema > ariscan.schema.json
+
+# From source (after pnpm build)
+pnpm selftest
 ```
 
 **Exit codes:** `0` = pass, `1` = below threshold, `2` = runtime error.
@@ -115,7 +115,7 @@ npx @prontiq/ariscan-cli .
 | `.github/pull_request_template.md` | P8 Security | PR template with AI-Code Review Checklist |
 | `docs/decisions/000-template.md` | P5 Docs | ADR template for architecture decisions |
 | `CHANGELOG.md` | P5 Docs | Keep-a-Changelog template |
-| `src/providers/storage.provider.ts` | P3 Isolation | DI-ready storage provider skeleton |
+| `providers/storage.provider.ts` | P3 Isolation | DI-ready storage provider skeleton |
 | `.env.example` | P5 Docs | Environment variable documentation (when env vars detected) |
 | `docker-compose.yml` | P3 Isolation | Service dependencies (when PostgreSQL/Redis/etc. detected) |
 | DI wiring example | P3 Isolation | Framework-specific DI example (NestJS, FastAPI, Spring Boot, Go) |
@@ -132,11 +132,11 @@ The core scanning engine is functional. What's built:
 - **@prontiq/ariscan-schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig, Confidence)
 - **@prontiq/ariscan-engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification, context budget analyzer, `.agentignore` parser, safe `--fix` generators (up to 15 files including AGENTS.md, .agentignore, .devcontainer, tsconfig, .nvmrc, pre-commit hooks, CODEOWNERS, PR template, ADR template, CHANGELOG, docker-compose, .gitleaks.toml, provider skeleton, env var docs, DI wiring examples)
 - **@prontiq/ariscan-cli** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export; `--budget` token analysis; `--fix`/`--dry-run` safe file generation
-- **613 tests** across 22 test files
+- **646 tests** across 26 test files
 - **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
 - **Test fixtures** — hostile-repo (L1), capable-repo (L3)
 - **JSON Schema** — `ariscan.schema.json` in repo root for output validation
-- **Dogfooding** — Self-scan: 76/100 (L4 Productive)
+- **Dogfooding** — Self-scan: 81/100 (L5 Autonomous)
 
 ---
 
