@@ -44,12 +44,12 @@ export interface AgentignoreFile {
   categories: Map<string, number>;
 }
 
-/**
- * Parse a .agentignore file content into structured rules.
- */
 /** Regex for `# @category: <name>` annotations. */
 const CATEGORY_RE = /^#\s*@category:\s*(\S+)/;
 
+/**
+ * Parse a .agentignore file content into structured rules.
+ */
 export function parseAgentignore(content: string): AgentignoreFile {
   const lines = content.split("\n");
   const rules: AgentignoreRule[] = [];
