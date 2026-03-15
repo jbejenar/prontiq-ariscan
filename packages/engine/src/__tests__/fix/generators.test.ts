@@ -1334,4 +1334,142 @@ describe("generateFixProposals", () => {
       expect(agentignore?.content).toContain(".mypy_cache/");
     });
   });
+
+  describe("queue provider generation (P2.06)", () => {
+    it("generates queue provider when SQS dependency detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { "@aws-sdk/client-sqs": "^3.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const queue = proposals.find((p) => p.path === "src/providers/queue.provider.ts");
+
+      expect(queue).toBeDefined();
+      expect(queue?.content).toContain("interface QueueProvider");
+      expect(queue?.content).toContain("class InMemoryQueueProvider");
+      expect(queue?.content).toContain("send<T>(queue: string");
+      expect(queue?.content).toContain("receive<T>(queue: string");
+      expect(queue?.content).toContain("ack(queue: string");
+      expect(queue?.criterion).toBe("ARI-TST-002");
+    });
+
+    it("generates queue provider when kafkajs detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { kafkajs: "^2.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const queue = proposals.find((p) => p.path === "src/providers/queue.provider.ts");
+      expect(queue).toBeDefined();
+    });
+
+    it("generates queue provider when amqplib detected in source", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "src/worker.ts": 'import amqplib from "amqplib";',
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const queue = proposals.find((p) => p.path === "src/providers/queue.provider.ts");
+      expect(queue).toBeDefined();
+    });
+
+    it("does not generate queue provider when no queue deps detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { express: "^4.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const queue = proposals.find((p) => p.path === "src/providers/queue.provider.ts");
+      expect(queue).toBeUndefined();
+    });
+
+    it("does not generate queue provider for Python projects", async () => {
+      const ctx = createMockContext({
+        "requirements.txt": "confluent-kafka==2.0.0",
+      });
+
+      const proposals = await generateFixProposals(ctx, pythonDetection);
+      const queue = proposals.find((p) => p.path === "src/providers/queue.provider.ts");
+      expect(queue).toBeUndefined();
+    });
+  });
+
+  describe("email provider generation (P2.06)", () => {
+    it("generates email provider when SendGrid dependency detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { "@sendgrid/mail": "^7.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const email = proposals.find((p) => p.path === "src/providers/email.provider.ts");
+
+      expect(email).toBeDefined();
+      expect(email?.content).toContain("interface EmailProvider");
+      expect(email?.content).toContain("class InMemoryEmailProvider");
+      expect(email?.content).toContain("send(message: EmailMessage)");
+      expect(email?.content).toContain("sendBatch(messages: EmailMessage[])");
+      expect(email?.content).toContain("readonly sent: EmailMessage[]");
+      expect(email?.criterion).toBe("ARI-TST-002");
+    });
+
+    it("generates email provider when nodemailer detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { nodemailer: "^6.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const email = proposals.find((p) => p.path === "src/providers/email.provider.ts");
+      expect(email).toBeDefined();
+    });
+
+    it("generates email provider when resend detected in source", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+        "src/notify.ts": 'import { Resend } from "resend";',
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const email = proposals.find((p) => p.path === "src/providers/email.provider.ts");
+      expect(email).toBeDefined();
+    });
+
+    it("does not generate email provider when no email deps detected", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          name: "test",
+          dependencies: { express: "^4.0.0" },
+        }),
+      });
+
+      const proposals = await generateFixProposals(ctx, nodeDetection);
+      const email = proposals.find((p) => p.path === "src/providers/email.provider.ts");
+      expect(email).toBeUndefined();
+    });
+
+    it("does not generate email provider for Python projects", async () => {
+      const ctx = createMockContext({
+        "requirements.txt": "sendgrid==6.0.0",
+      });
+
+      const proposals = await generateFixProposals(ctx, pythonDetection);
+      const email = proposals.find((p) => p.path === "src/providers/email.provider.ts");
+      expect(email).toBeUndefined();
+    });
+  });
 });

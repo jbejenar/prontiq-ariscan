@@ -31,4 +31,4 @@ export {
   shouldIgnore,
   getDefaultPatterns,
 } from "./agentignore/index.js";
-export type { AgentignoreRule, AgentignoreFile } from "./agentignore/index.js";
+export type { AgentignoreRule, AgentignoreFile, AgentignoreCategory } from "./agentignore/index.js";

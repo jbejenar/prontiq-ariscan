@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.9.0] — 2026-03-15
+
+### Added
+- **Engine (P2.05):** `.agentignore` category annotations — parser now supports RFC-0002 `# @category: <name>` annotations. Rules inherit the active category. `AgentignoreFile.categories` tracks per-category rule counts. New `AgentignoreCategory` type exported. 8 new tests.
+- **Engine (P2.05):** Expanded ecosystem defaults — `getDefaultPatterns()` now emits categorized patterns (`generated`, `vendor`, `data`, `binary`, `sensitive`) per RFC-0002. Added TypeScript, JavaScript language-specific patterns. Enriched Python (ruff, pyo, whl), Java (war, ear, mvn), C#/.NET (nupkg, vs) defaults. Binary and sensitive categories in universal defaults.
+- **Engine (P2.06):** Queue provider template — `--fix` generates `src/providers/queue.provider.ts` with `QueueProvider` interface (`send`, `receive`, `ack`, `purge`) and `InMemoryQueueProvider` test double when messaging deps detected (SQS, Kafka, RabbitMQ, BullMQ). 5 new tests.
+- **Engine (P2.06):** Email provider template — `--fix` generates `src/providers/email.provider.ts` with `EmailProvider` interface (`send`, `sendBatch`) and `InMemoryEmailProvider` test double when email deps detected (SES, SendGrid, Nodemailer, Postmark, Mailgun, Resend). 5 new tests.
+- **Engine (P2.06):** `detectDependencyPatterns()` helper — shared utility for scanning package.json, requirements.txt, pyproject.toml, and source files for dependency patterns.
+
+### Changed
+- **CLI (ARI-NAV-007):** Reduced cognitive complexity in terminal formatter — extracted `formatFindingLine()`, `formatVerboseSection()`, and `formatDetectionSection()` helpers from `formatTerminal()`.
+- **CLI (ARI-NAV-007):** Reduced cognitive complexity in CLI entry — extracted `handleBudgetMode()`, `handleFixMode()`, `handleScanMode()`, and `outputScanResult()` from the monolithic `run()` handler.
+- **Engine:** Test isolation filter updated to skip `fix/generators.test` (contains cloud SDK strings as fixture data, not actual SDK usage).
+
+### Metrics
+- **Self-scan score:** 76/100 (L4 Productive) — no regression
+- **Tests:** 646 total (550 engine + 28 schema + 68 CLI), up from 622. 18 engine test files.
+- **Roadmap progress:** P2.05 completed, P2.06 provider patterns shipped, ARI-NAV-007 addressed
+
 ## [3.8.0] — 2026-03-15
 
 ### Added

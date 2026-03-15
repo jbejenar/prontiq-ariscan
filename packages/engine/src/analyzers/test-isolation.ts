@@ -309,8 +309,10 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
 
     // Scan test files for anti-patterns (sample up to 20 files)
     const sampled = testFiles.slice(0, 20);
-    // Skip our own test file to avoid false positives from fixture strings
-    const filtered = sampled.filter((f) => !f.includes("test-isolation.test"));
+    // Skip test files that contain cloud SDK strings as fixture data (not actual SDK usage)
+    const filtered = sampled.filter(
+      (f) => !f.includes("test-isolation.test") && !f.includes("fix/generators.test"),
+    );
     let antiPatternCount = 0;
 
     for (const testFile of filtered) {

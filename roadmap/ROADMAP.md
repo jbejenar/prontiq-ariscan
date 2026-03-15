@@ -1938,7 +1938,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Token estimation, categorization, prioritization, savings calculation.
 - **Out of scope:** Actual token counting via LLM tokenizer APIs (use local estimation), real-time budget monitoring.
 
-### Ticket P2.05 — `.agentignore` Spec v1 (🔴) 🔧 Partial
+### Ticket P2.05 — `.agentignore` Spec v1 (🔴) ✅ Done (updated 2026-03-15)
 
 - **User story:** As a developer, I need a standard way to tell AI agents which files to skip, similar to how `.gitignore` tells Git which files to ignore.
 - **Problem statement:** There is no standard mechanism for excluding low-value or noisy paths from agent context. Agents waste significant tokens reading build artifacts, generated code, lockfiles, and coverage reports that provide no useful signal. The goal is for `.agentignore` to become as standard as `.gitignore` — every repository has one.
@@ -1969,7 +1969,7 @@ Community plugins will follow the `ariscan-plugin-*` npm naming convention. Plug
 - **In scope:** Spec authoring, parser implementation, generation command, default patterns.
 - **Out of scope:** Agent vendor integration (advocacy/partnerships), enforcement mechanism.
 
-### Ticket P2.06 — Guided Remediation Templates (🔴) 🔧 In Progress (updated 2026-03-14)
+### Ticket P2.06 — Guided Remediation Templates (🔴) 🔧 In Progress (updated 2026-03-15)
 
 - **User story:** As a developer who just got my scan results, I need ready-to-apply fixes for the most common issues so I can improve my score without deep expertise.
 - **Problem statement:** Scoring without remediation creates friction. The gap between "here's your score" and "here's how to fix it" is where users drop off. Templates provide copy-pasteable, tested solutions for the most common readiness issues.
