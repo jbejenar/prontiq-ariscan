@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.12.0] — 2026-03-16
+
+### Added
+- **Tests (P3):** Added 13 new test files covering scan orchestrator, repo-context, detection module, schema config/telemetry, and all CLI output formatters (markdown, sarif, badge, terminal, json, budget, scan-command, config-command). Test count 646 → 763 across 38 test files.
+
+### Changed
+- **Docs:** Updated AGENTS.md file structure section — added 15 missing entries for detection/, telemetry/, config-loader.ts, commands/config.ts, output formatters (markdown, sarif, badge), and schema/telemetry.ts.
+
+### Metrics
+- **Self-scan score:** 83/100 (L5 Autonomous) — up from 82/100
+- **P3 Test Isolation:** 65/100 — up from 55/100 (test-to-source ratio 0.56 → 0.84)
+- **Tests:** 763 total across 38 test files — no regressions
+
 ## [3.11.0] — 2026-03-15
 
 ### Changed
