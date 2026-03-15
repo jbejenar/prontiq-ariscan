@@ -91,6 +91,7 @@ packages/schema/src/
   pillar.ts             — PillarId, PILLAR_NAMES, PILLAR_WEIGHTS
   config.ts             — configuration types
   scan-result.ts        — Finding, PillarResult, ScanResult, Confidence types
+  telemetry.ts          — telemetry event schemas
 
 packages/engine/src/
   analyzers/
@@ -112,6 +113,16 @@ packages/engine/src/
     token-estimator.ts    — file classification and token estimation
     budget-analyzer.ts    — budget analysis, hotspots, compression recommendations
     index.ts              — barrel export
+  detection/
+    frameworks.ts         — framework detection (NestJS, FastAPI, Spring Boot, etc.)
+    languages.ts          — language detection from file extensions
+    monorepo.ts           — monorepo structure detection
+    index.ts              — barrel export
+  telemetry/
+    consent.ts            — opt-in/opt-out consent management
+    payload.ts            — telemetry event payload construction
+    sender.ts             — telemetry event dispatch
+    index.ts              — barrel export
   fix/
     generators.ts         — safe --fix generators (up to 15 files: AGENTS.md, .agentignore, .devcontainer, tsconfig, .nvmrc, pre-commit, CODEOWNERS, PR template, ADR, CHANGELOG, docker-compose, .gitleaks.toml, provider skeleton, env var docs, DI wiring examples)
     index.ts              — barrel export
@@ -124,12 +135,17 @@ packages/engine/src/
 packages/cli/src/
   cli.ts                 — CLI entry (citty)
   index.ts               — public API
+  config-loader.ts       — loads and merges .ariscanrc / CLI flags
   commands/
     scan.ts              — scan subcommand
+    config.ts            — config subcommand (show/validate config)
   output/                — output formatting
     json.ts              — JSON output formatter
     terminal.ts          — terminal/text output formatter
     budget.ts            — token budget output formatter
+    markdown.ts          — Markdown report formatter
+    sarif.ts             — SARIF output formatter (GitHub Code Scanning)
+    badge.ts             — SVG badge generator
 ```
 
 ## Common Tasks
