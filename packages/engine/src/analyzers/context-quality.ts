@@ -131,9 +131,93 @@ function normalizeForComparison(text: string): string {
   );
 }
 
-/** Pattern matching common CLI tool invocations and short operational commands */
-const COMMAND_LIKE_PATTERN =
-  /^(pnpm|npm|npx|yarn|cargo|go|make|pip|poetry|docker|git|brew|apt|dnf|curl|wget|mkdir|cp|mv|rm|cd)\b/i;
+/**
+ * Detect whether a segment looks like a CLI command rather than prose.
+ * Uses syntax-based heuristics instead of a tool-name whitelist so that
+ * commands from any ecosystem (turbo, vitest, eslint, uv, pytest, dotnet,
+ * tsx, node, etc.) are recognized.
+ *
+ * A segment is command-like if it:
+ *  - starts with a single lowercase/kebab-case word (the executable), AND
+ *  - the rest contains flags (--foo, -x), sub-commands, file paths, or
+ *    other non-prose tokens; OR
+ *  - is 2-4 words where every word is lowercase/kebab-case with no
+ *    sentence-ending punctuation (typical of `tool subcommand arg`).
+ */
+function isCommandLike(segment: string): boolean {
+  const trimmed = segment.trim();
+  const words = trimmed.split(/\s+/);
+  if (words.length < 2) return false;
+
+  const first = words[0] ?? "";
+  // Executable names are lowercase, may contain hyphens or dots (e.g. docker-compose, node.js)
+  if (!/^[a-z][a-z0-9._-]*$/i.test(first)) return false;
+  // Reject if the first word looks like a common English article/pronoun/verb
+  // (reduces false positives on short prose fragments)
+  const PROSE_STARTERS = new Set([
+    "the",
+    "this",
+    "that",
+    "these",
+    "those",
+    "a",
+    "an",
+    "it",
+    "its",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "if",
+    "for",
+    "but",
+    "and",
+    "or",
+    "so",
+    "we",
+    "our",
+    "you",
+    "your",
+    "can",
+    "will",
+    "may",
+    "has",
+    "have",
+    "had",
+    "do",
+    "does",
+    "did",
+    "not",
+    "no",
+    "all",
+    "each",
+    "every",
+    "some",
+    "any",
+    "when",
+    "where",
+    "how",
+    "what",
+    "which",
+    "who",
+  ]);
+  if (PROSE_STARTERS.has(first.toLowerCase())) return false;
+
+  // Check if remaining tokens contain flag-like (--flag, -x) or path-like patterns
+  const rest = words.slice(1);
+  const hasFlag = rest.some((w) => /^-{1,2}[a-zA-Z]/.test(w));
+  const hasPath = rest.some((w) => /[/.\\]/.test(w));
+  if (hasFlag || hasPath) return true;
+
+  // Short all-lowercase segments with no sentence punctuation: likely commands
+  if (words.length <= 4 && trimmed === trimmed.toLowerCase() && !/[,;:!?]/.test(trimmed)) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * Split text into meaningful sentences/segments for comparison.
@@ -157,7 +241,7 @@ function splitSegments(text: string): string[] {
   // - Prose segments: >= 5 words (avoids false positives on short phrases)
   return raw.filter((s) => {
     const wordCount = s.split(/\s+/).length;
-    if (COMMAND_LIKE_PATTERN.test(s.trim())) return wordCount >= 2;
+    if (isCommandLike(s)) return wordCount >= 2;
     return wordCount >= 5;
   });
 }
