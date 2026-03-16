@@ -103,7 +103,7 @@ async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
 const main = defineCommand({
   meta: {
     name: "ariscan",
-    version: "0.1.0",
+    version: "0.2.0",
     description: `Measure and improve repository readiness for AI coding agents
 
 Examples:

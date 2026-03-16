@@ -6,7 +6,7 @@ import type { ScanResult } from "@prontiq/ariscan-schema";
 function makeScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
   return {
     metadata: {
-      version: "0.1.0",
+      version: "0.2.0",
       timestamp: "2026-01-01T00:00:00Z",
       duration: 500,
       repoPath: "/some/repo",
@@ -62,7 +62,7 @@ describe("buildTelemetryPayload", () => {
     expect(payload.scan_id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
     );
-    expect(payload.version).toBe("0.1.0");
+    expect(payload.version).toBe("0.2.0");
     expect(payload.platform).toBeTruthy();
     expect(payload.language).toBe("typescript");
     expect(payload.score_bucket).toBe("66-80");

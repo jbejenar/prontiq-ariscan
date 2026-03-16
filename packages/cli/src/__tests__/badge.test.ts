@@ -5,7 +5,7 @@ import { generateBadgeSvg, generateBadgeSnippets, formatBadge } from "../output/
 
 const mockResult: ScanResult = {
   metadata: {
-    version: "0.1.0",
+    version: "0.2.0",
     timestamp: "2026-03-08T00:00:00.000Z",
     duration: 500,
     repoPath: "/test/repo",

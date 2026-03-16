@@ -11,7 +11,7 @@ import { getTelemetryConsent } from "../../telemetry/consent.js";
 
 const mockPayload: TelemetryPayload = {
   scan_id: "00000000-0000-0000-0000-000000000001",
-  version: "0.1.0",
+  version: "0.2.0",
   platform: "darwin",
   language: "typescript",
   score_bucket: "66-80",

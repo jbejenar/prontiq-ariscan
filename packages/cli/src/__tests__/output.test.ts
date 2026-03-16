@@ -8,7 +8,7 @@ import { generateBadgeSvg, generateBadgeSnippets } from "../output/badge.js";
 
 const mockResult: ScanResult = {
   metadata: {
-    version: "0.1.0",
+    version: "0.2.0",
     timestamp: "2026-03-08T00:00:00.000Z",
     duration: 1234,
     repoPath: "/test/repo",
@@ -69,7 +69,7 @@ describe("formatJson", () => {
     const parsed = JSON.parse(output);
     expect(parsed.score).toBe(62);
     expect(parsed.level).toBe("L3");
-    expect(parsed.metadata.version).toBe("0.1.0");
+    expect(parsed.metadata.version).toBe("0.2.0");
     expect(parsed.pillars).toHaveLength(2);
     expect(parsed.findings).toHaveLength(1);
   });
@@ -291,7 +291,7 @@ describe("formatMarkdown", () => {
     expect(output).toContain("## Suggested Remediations");
     expect(output).toContain("Create an AGENTS.md file");
     expect(output).toContain("1234ms");
-    expect(output).toContain("v0.1.0");
+    expect(output).toContain("v0.2.0");
   });
 
   it("includes pillar score bars", () => {
@@ -489,7 +489,7 @@ describe("formatSarif", () => {
     const parsed = JSON.parse(formatSarif(mockResult));
     const driver = parsed.runs[0].tool.driver;
     expect(driver.name).toBe("ariscan");
-    expect(driver.version).toBe("0.1.0");
+    expect(driver.version).toBe("0.2.0");
   });
 
   it("maps findings to SARIF results", () => {

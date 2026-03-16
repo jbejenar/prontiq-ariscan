@@ -165,7 +165,7 @@ describe("aggregateResults", () => {
       makePillarResult("P8", 50),
     ];
     const result = aggregateResults(pillars, {
-      version: "0.1.0",
+      version: "0.2.0",
       repoPath: "/test",
       duration: 100,
     });
@@ -173,6 +173,6 @@ describe("aggregateResults", () => {
     expect(result.level).toBe("L3");
     expect(result.securityGateTriggered).toBe(false);
     expect(result.pillars).toHaveLength(8);
-    expect(result.metadata.version).toBe("0.1.0");
+    expect(result.metadata.version).toBe("0.2.0");
   });
 });
