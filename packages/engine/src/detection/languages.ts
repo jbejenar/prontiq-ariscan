@@ -157,7 +157,7 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
           }
         } else {
           // Glob-style markers: check if any file matches the pattern
-          const pattern = marker.replace("*", "");
+          const pattern = marker.replaceAll("*", "");
           if (files.some((f) => f.endsWith(pattern))) {
             hasMarker = true;
             break;
@@ -187,7 +187,7 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
           break;
         }
       } else {
-        const pattern = marker.replace("*", "");
+        const pattern = marker.replaceAll("*", "");
         if (files.some((f) => f.endsWith(pattern))) {
           confidence = Math.min(1, confidence + spec.markerBoost);
           break;
