@@ -1289,6 +1289,52 @@ describe("contextQualityAnalyzer (P1)", () => {
       }
     });
 
+    it("resolves package root past docs/README.md to package.json (Bug 11 regression)", async () => {
+      // packages/foo/docs/README.md exists alongside packages/foo/docs/AGENTS.md
+      // but the package root is packages/foo/ (has package.json + README.md).
+      // The walk must skip docs/README.md and resolve to packages/foo/.
+      const rootReadme = "# Root\nCompletely unrelated root-level content.";
+      const docsReadme =
+        "# Docs\nThis is the docs folder README with unrelated documentation index.";
+      const localReadme = [
+        "# Foo Package",
+        "This package provides the foo integration for data transformation.",
+        "Run pnpm build to compile the TypeScript source code.",
+        "Run pnpm test to run the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from environment variables at startup.",
+        "Error handling follows the Result pattern for safety.",
+        "All public APIs are documented with TSDoc style comments.",
+      ].join("\n");
+      const nestedAgents = [
+        "# Foo Agent Guide",
+        "This package provides the foo integration for data transformation.",
+        "Run pnpm build to compile the TypeScript source code.",
+        "Run pnpm test to run the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from environment variables at startup.",
+        "Error handling follows the Result pattern for safety.",
+        "All public APIs are documented with TSDoc style comments.",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md": rootReadme,
+        "packages/foo/README.md": localReadme,
+        "packages/foo/package.json": '{"name": "@myorg/foo"}',
+        "packages/foo/docs/README.md": docsReadme,
+        "packages/foo/docs/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.file === "packages/foo/docs/AGENTS.md",
+      );
+      // Should find redundancy because it resolves to packages/foo/ (has package.json),
+      // NOT packages/foo/docs/ (has README.md but no package.json)
+      expect(finding).toBeDefined();
+      if (finding) {
+        expect(finding.message).toMatch(/\d+\.\d%/);
+      }
+    });
+
     it("emits ARI-CTX-011 for duplicated nested AGENTS.md", async () => {
       const readme = [
         "# Project",

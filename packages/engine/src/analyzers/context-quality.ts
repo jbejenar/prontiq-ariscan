@@ -1121,31 +1121,50 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         // For nested AGENTS.md files, augment the corpus with package-local docs
         let effectiveRefDocs = referenceDocs;
         if (cf.endsWith("/AGENTS.md") && cf !== "AGENTS.md") {
-          // Walk upward from the AGENTS.md path to find the nearest package root
-          // (a directory containing package.json, README*, or a workspace marker).
-          // This handles layouts like packages/foo/docs/AGENTS.md or packages/foo/.github/AGENTS.md
-          // where the package root is packages/foo/, not the immediate parent.
+          // Walk upward from the AGENTS.md path to find the nearest package root.
+          // Prefer package.json (strongest signal) over README-bearing directories,
+          // so that layouts like packages/foo/docs/AGENTS.md resolve to packages/foo/
+          // even when packages/foo/docs/README.md exists.
           const parts = cf.split("/");
           parts.pop(); // remove "AGENTS.md"
           let pkgDir = parts.join("/") + "/"; // start from immediate parent
-          while (parts.length > 0) {
-            const candidate = parts.join("/") + "/";
-            const hasBoundary = context.files.some((f) => {
+
+          // Pass 1: walk upward looking for a directory with package.json
+          const partsForPkg = [...parts];
+          let foundPkgJson = false;
+          while (partsForPkg.length > 0) {
+            const candidate = partsForPkg.join("/") + "/";
+            const hasPkgJson = context.files.some((f) => {
               if (!f.startsWith(candidate)) return false;
               const rest = f.slice(candidate.length);
-              if (rest.includes("/")) return false;
-              const upper = rest.toUpperCase();
-              return (
-                rest === "package.json" ||
-                upper.startsWith("README") ||
-                upper.startsWith("CONTRIBUTING")
-              );
+              return rest === "package.json";
             });
-            if (hasBoundary) {
+            if (hasPkgJson) {
               pkgDir = candidate;
+              foundPkgJson = true;
               break;
             }
-            parts.pop();
+            partsForPkg.pop();
+          }
+
+          // Pass 2 (fallback): if no package.json found, look for README/CONTRIBUTING
+          if (!foundPkgJson) {
+            const partsForReadme = [...parts];
+            while (partsForReadme.length > 0) {
+              const candidate = partsForReadme.join("/") + "/";
+              const hasBoundary = context.files.some((f) => {
+                if (!f.startsWith(candidate)) return false;
+                const rest = f.slice(candidate.length);
+                if (rest.includes("/")) return false;
+                const upper = rest.toUpperCase();
+                return upper.startsWith("README") || upper.startsWith("CONTRIBUTING");
+              });
+              if (hasBoundary) {
+                pkgDir = candidate;
+                break;
+              }
+              partsForReadme.pop();
+            }
           }
           const localDocs: Array<{ path: string; content: string }> = [];
           // Gather README* and CONTRIBUTING* files from the package root
