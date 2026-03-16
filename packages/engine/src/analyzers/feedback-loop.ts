@@ -515,10 +515,22 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
     }
 
     // --- Enhanced latency inference from package.json scripts ---
-    if (hasTestCmd) {
-      const testCmd = scripts["test"] ?? "";
-      const hasParallel = /--parallel|--maxWorkers|--pool\s*forks|--shard/i.test(testCmd);
-      const hasFailFast = /--bail|--failFast/i.test(testCmd);
+    // Check all test-related script entries (test, test:unit, test:ci, test:watch, etc.)
+    // to catch repos where the main loop lives in a variant entry rather than "test".
+    {
+      const testScriptEntries = Object.entries(scripts).filter(
+        ([key]) => key === "test" || key.startsWith("test:"),
+      );
+      let hasParallel = false;
+      let hasFailFast = false;
+      for (const [, cmd] of testScriptEntries) {
+        if (/--parallel|--maxWorkers|--pool\s*forks|--shard/i.test(cmd)) {
+          hasParallel = true;
+        }
+        if (/--bail|--failFast/i.test(cmd)) {
+          hasFailFast = true;
+        }
+      }
       if (hasParallel) {
         latencySignals.push("parallel execution");
       }

@@ -220,6 +220,32 @@ describe("testIsolationAnalyzer (P3)", () => {
       expect(finding).toBeDefined();
       expect(finding?.message).toContain("abstraction");
     });
+
+    it("does not award abstraction bonus for generic *Service/*Client in non-provider files", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/user.ts": "export interface UserService { getUser(id: string): Promise<unknown>; }",
+        "src/api.ts": "export interface ApiClient { fetch(url: string): Promise<unknown>; }",
+        "src/payment.ts":
+          "export abstract class PaymentGateway { abstract charge(amount: number): void; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeUndefined();
+    });
+
+    it("still awards bonus for *Service in provider-named files", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/di/container.ts":
+          "export interface DatabaseService { query(sql: string): Promise<unknown>; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeDefined();
+    });
   });
 
   describe("direct SDK imports in tests (ARI-TST-017)", () => {

@@ -303,6 +303,37 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       expect(fbk009?.message).toContain("fail-fast");
     });
 
+    it("detects parallel flags in test:unit script when test entry has no flags", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          scripts: {
+            test: "npm run test:unit && npm run test:e2e",
+            "test:unit": "vitest run --parallel",
+            "test:e2e": "playwright test",
+          },
+        }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk009 = result.findings.find((f) => f.code === "ARI-FBK-009");
+      expect(fbk009).toBeDefined();
+      expect(fbk009?.message).toContain("parallel execution");
+    });
+
+    it("detects fail-fast in test:watch script", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          scripts: {
+            test: "jest",
+            "test:watch": "jest --watch --bail",
+          },
+        }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk009 = result.findings.find((f) => f.code === "ARI-FBK-009");
+      expect(fbk009).toBeDefined();
+      expect(fbk009?.message).toContain("fail-fast");
+    });
+
     it("infers latency from Makefile test targets", async () => {
       const ctx = createMockContext({
         Makefile: "test:\n\tpytest\n\nlint:\n\tflake8 src/",

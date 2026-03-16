@@ -767,21 +767,29 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
 
     // Distinguish abstracted interfaces from direct SDK usage
     // Scan provider-named files first, then broaden to other source files
-    const ABSTRACTION_PATTERN = /\binterface\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i;
-    const ABSTRACT_CLASS_PATTERN =
+    // In provider-named files, accept broader suffixes (Provider|Service|Repository|Client|Gateway)
+    const BROAD_INTERFACE = /\binterface\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i;
+    const BROAD_ABSTRACT_CLASS =
       /\babstract\s+class\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i;
+    // In non-provider files, only match genuine DI boundary types (Provider|Repository)
+    // to avoid false positives from ordinary *Service/*Client application types
+    const NARROW_INTERFACE = /\binterface\s+\w*(Provider|Repository)\b/i;
+    const NARROW_ABSTRACT_CLASS = /\babstract\s+class\s+\w*(Provider|Repository)\b/i;
 
     let hasAbstractedInterface = false;
     // First pass: files with provider/factory/container/inject in the name
+    // Use broad patterns here — file naming already signals DI context
     for (const pf of providerFiles.slice(0, 10)) {
       const content = await context.readFile(pf);
       if (!content) continue;
-      if (ABSTRACTION_PATTERN.test(content) || ABSTRACT_CLASS_PATTERN.test(content)) {
+      if (BROAD_INTERFACE.test(content) || BROAD_ABSTRACT_CLASS.test(content)) {
         hasAbstractedInterface = true;
         break;
       }
     }
     // Second pass: scan other non-test source files for abstraction declarations.
+    // Uses narrow patterns (*Provider/*Repository only) to avoid false positives
+    // from ordinary application types like UserService or ApiClient.
     // Capped at 50 reads to bound disk I/O on large repos. Files in common
     // abstraction directories (src/, lib/, core/, common/, shared/) are checked
     // first so the cap does not cause non-deterministic misses based on sort order.
@@ -804,7 +812,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       for (const sf of sourceFiles.slice(0, MAX_FALLBACK_READS)) {
         const content = await context.readFile(sf);
         if (!content) continue;
-        if (ABSTRACTION_PATTERN.test(content) || ABSTRACT_CLASS_PATTERN.test(content)) {
+        if (NARROW_INTERFACE.test(content) || NARROW_ABSTRACT_CLASS.test(content)) {
           hasAbstractedInterface = true;
           break;
         }
