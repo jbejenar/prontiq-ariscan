@@ -781,6 +781,71 @@ describe("contextQualityAnalyzer (P1)", () => {
     });
   });
 
+  describe("zero-segment additionality (Bug 5)", () => {
+    it("does not award additionality bonus for files with no comparable segments", async () => {
+      const readme = "# Project\nA brief description of the project.";
+      // Very short AGENTS.md where all segments are < 5 words after normalization
+      const agentsMd = [
+        "# AGENTS.md",
+        "## Build",
+        "```bash",
+        "pnpm install",
+        "pnpm build",
+        "pnpm test",
+        "```",
+        "## Notes",
+        "Short.",
+        "Tiny.",
+        "Small.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Should not get the +5 additionality bonus since no segments were analyzed
+      // Summary should indicate no comparable segments
+      expect(result.summary).toContain("no comparable segments");
+    });
+  });
+
+  describe("moderate redundancy finding (Bug 4)", () => {
+    it("emits ARI-CTX-011 info finding for 30-50% redundancy", async () => {
+      // Create content where ~40% of segments match README
+      const sharedLines = [
+        "This project uses TypeScript with strict mode enabled for type safety",
+        "Dependencies are managed with pnpm workspaces and turborepo orchestration",
+      ];
+      const uniqueLines = [
+        "The analyzer engine follows a provider pattern for dependency injection",
+        "Each pillar has exactly one analyzer implementing the PillarAnalyzer interface",
+        "Finding codes follow the stable pattern ARI then PILLAR then three digit number",
+      ];
+      const readme = ["# Project", ...sharedLines.map((s) => s + ".")].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        ...sharedLines.map((s) => s + "."),
+        ...uniqueLines.map((s) => s + "."),
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.severity === "info",
+      );
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("redundancy");
+    });
+  });
+
   describe("LLM-generated file penalty (ARI-CTX-012)", () => {
     it("emits ARI-CTX-012 for boilerplate file with high redundancy", async () => {
       const readme = [

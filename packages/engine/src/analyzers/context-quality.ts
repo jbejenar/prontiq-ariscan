@@ -251,9 +251,10 @@ function computeAdditionality(
     }
   }
 
+  // When no comparable segments exist, report -1 to signal indeterminate result
   const redundancyPct =
-    totalSegments > 0 ? Math.round((matchedSegments / totalSegments) * 1000) / 10 : 0;
-  const additionalityPct = Math.round((100 - redundancyPct) * 10) / 10;
+    totalSegments > 0 ? Math.round((matchedSegments / totalSegments) * 1000) / 10 : -1;
+  const additionalityPct = redundancyPct >= 0 ? Math.round((100 - redundancyPct) * 10) / 10 : -1;
 
   const methodology = [
     `Sentence-level Jaccard similarity (threshold ≥ ${SIMILARITY_THRESHOLD}).`,
@@ -770,8 +771,11 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         const result = computeAdditionality(content, cf, referenceDocs);
         additionalityResults.push({ path: cf, result });
 
-        // ARI-CTX-011: High redundancy
-        if (result.redundancyPct > 50) {
+        // Skip scoring when no comparable segments were analyzed (indeterminate)
+        if (result.redundancyPct < 0) {
+          // No segments to compare — do not award bonus or apply penalty
+        } else if (result.redundancyPct > 50) {
+          // ARI-CTX-011: High redundancy
           const topDuplicates = result.duplicateLines
             .slice(0, 3)
             .map((d) => `L${d.line}: "${d.text}" (similar to ${d.matchedIn})`)
@@ -818,11 +822,30 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
             score -= 5;
           }
         } else if (result.redundancyPct > 30) {
-          // Moderate redundancy — info-level finding, minor deduction
+          // ARI-CTX-011: Moderate redundancy — emit info-level finding with deduction
+          findings.push({
+            code: "ARI-CTX-011",
+            severity: "info",
+            pillar: PILLAR,
+            file: cf,
+            message: [
+              `${cf} has ${result.redundancyPct.toFixed(1)}% content redundancy with existing repo documentation.`,
+              result.methodology,
+              "Consider reducing overlap with README or CONTRIBUTING to improve additionality.",
+            ].join(" "),
+            confidence: "low",
+            remediation: {
+              action: "modify-config",
+              path: cf,
+              description:
+                "Review content that overlaps with README, CONTRIBUTING, or CI config. Remove duplicated sections and focus on project-specific guidance.",
+              confidence: "low",
+            },
+          });
           score -= 3;
         }
 
-        // Additionality bonus for high-quality context
+        // Additionality bonus for high-quality context (only when measurable)
         if (result.additionalityPct > 80) {
           score += 5;
         }
@@ -869,9 +892,10 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
       summary = `Found ${foundContextFiles.length} context file(s): ${fileDetails}`;
       if (additionalityResults.length > 0) {
         const addDetails = additionalityResults
-          .map(
-            (a) =>
-              `${a.path}: ${a.result.additionalityPct.toFixed(1)}% additionality, ${a.result.redundancyPct.toFixed(1)}% redundancy`,
+          .map((a) =>
+            a.result.redundancyPct < 0
+              ? `${a.path}: no comparable segments`
+              : `${a.path}: ${a.result.additionalityPct.toFixed(1)}% additionality, ${a.result.redundancyPct.toFixed(1)}% redundancy`,
           )
           .join("; ");
         summary += `. Additionality: ${addDetails}`;
