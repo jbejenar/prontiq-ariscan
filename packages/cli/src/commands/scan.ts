@@ -10,7 +10,7 @@ import { formatTerminal } from "../output/terminal.js";
 import { formatJson, formatNdjson, formatJsonSchema } from "../output/json.js";
 import { formatMarkdown } from "../output/markdown.js";
 import { formatSarif } from "../output/sarif.js";
-import { resolveConfig } from "../config-loader.js";
+import { resolveFullConfig } from "../config-loader.js";
 
 export interface ScanOptions {
   path: string;
@@ -74,7 +74,7 @@ export async function runScan(options: ScanOptions): Promise<void> {
   const repoPath = await validateRepoPath(options.path);
   const cliOverrides = buildCliOverrides(options);
 
-  const scanConfig = await resolveConfig({
+  const { scanConfig } = await resolveFullConfig({
     repoPath,
     configPath: options.config,
     cliOverrides,

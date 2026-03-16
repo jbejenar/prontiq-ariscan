@@ -12,13 +12,15 @@ import {
 } from "@prontiq/ariscan-engine";
 import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
 import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
+import { policyCommand } from "./commands/policy.js";
 import { formatTerminal } from "./output/terminal.js";
 import { formatJson, formatNdjson, formatJsonSchema } from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
 import { formatSarif } from "./output/sarif.js";
 import { generateBadgeSvg, generateBadgeSnippets } from "./output/badge.js";
 import { formatBudgetTerminal, formatBudgetJson } from "./output/budget.js";
-import { resolveConfig } from "./config-loader.js";
+import { resolveFullConfig } from "./config-loader.js";
+import type { ResolvedPolicyMeta } from "./config-loader.js";
 import { PILLAR_NAMES } from "@prontiq/ariscan-schema";
 import type { ScanResult } from "@prontiq/ariscan-schema";
 
@@ -72,6 +74,13 @@ async function handleRepoCommands(
 async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
   if (await handleFlagCommands(args)) return;
 
+  // Detect `ariscan policy ...` subcommand
+  if (args.path === "policy") {
+    const { runMain } = await import("citty");
+    await runMain(policyCommand);
+    return;
+  }
+
   const repoPath = await resolveRepoPath(args.path as string);
   if (await handleRepoCommands(repoPath, args)) return;
 
@@ -97,6 +106,8 @@ Examples:
   npx @prontiq/ariscan-cli . --fix              # Generate missing config files
   npx @prontiq/ariscan-cli . --fix --dry-run   # Preview changes without writing
   npx @prontiq/ariscan-cli . --fix --force     # Overwrite existing files
+  npx @prontiq/ariscan-cli policy init          # Generate starter policy
+  npx @prontiq/ariscan-cli policy validate      # Validate policy file
 
 Exit codes:
   0  Score meets or exceeds threshold (default: 0)
@@ -275,7 +286,7 @@ async function handleScanMode(
     cliOverrides.format = args.format;
   }
 
-  const config = await resolveConfig({
+  const { scanConfig: config, policyMeta } = await resolveFullConfig({
     repoPath,
     configPath: args.config,
     cliOverrides,
@@ -327,8 +338,47 @@ async function handleScanMode(
 
   outputScanResult(result, format, args.verbose, args.quiet);
 
-  const threshold = config.threshold ?? cliThreshold;
-  if (threshold > 0 && result.score < threshold) {
+  applyEnforcement(result, config.threshold ?? cliThreshold, policyMeta);
+}
+
+/**
+ * Apply enforcement mode: check composite + per-pillar thresholds and exit accordingly.
+ * - warn: print warnings, exit 0
+ * - fail/block: print warnings, exit 1 if any violation
+ */
+function applyEnforcement(
+  result: ScanResult,
+  compositeThreshold: number,
+  policyMeta: ResolvedPolicyMeta,
+): void {
+  const enforcement = policyMeta.enforcement ?? "fail";
+  const violations: string[] = [];
+
+  // Check composite threshold
+  if (compositeThreshold > 0 && result.score < compositeThreshold) {
+    violations.push(`Composite score ${result.score} is below threshold ${compositeThreshold}`);
+  }
+
+  // Check per-pillar thresholds
+  if (policyMeta.pillarThresholds) {
+    for (const [pillarId, threshold] of Object.entries(policyMeta.pillarThresholds)) {
+      const pillarResult = result.pillars.find((p) => p.pillar === pillarId);
+      if (pillarResult && pillarResult.score < threshold) {
+        const name = PILLAR_NAMES[pillarResult.pillar] ?? pillarId;
+        violations.push(
+          `${pillarId} (${name}) score ${pillarResult.score} is below threshold ${threshold}`,
+        );
+      }
+    }
+  }
+
+  if (violations.length === 0) return;
+
+  for (const v of violations) {
+    process.stderr.write(`${enforcement === "warn" ? "Warning" : "Error"}: ${v}\n`);
+  }
+
+  if (enforcement === "fail" || enforcement === "block") {
     process.exit(1);
   }
 }

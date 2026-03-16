@@ -5,6 +5,7 @@ import { FileConfig } from "@prontiq/ariscan-schema";
 import type {
   FileConfig as FileConfigType,
   ScanConfig as ScanConfigType,
+  Suppression as SuppressionType,
 } from "@prontiq/ariscan-schema";
 
 const CONFIG_FILENAME = ".ariscan.yml";
@@ -50,6 +51,128 @@ export async function loadConfigFile(configPath: string): Promise<FileConfigType
   return FileConfig.parse(parsed);
 }
 
+/**
+ * Resolve inheritance: if `extends` is set, load parent config and deep-merge
+ * (child values override parent). Only local file paths are supported.
+ */
+export async function resolveInheritance(
+  config: FileConfigType,
+  configPath: string,
+  visited: Set<string> = new Set(),
+): Promise<FileConfigType> {
+  if (!config.extends) return config;
+
+  const parentPath = resolve(dirname(configPath), config.extends);
+  const normalizedParent = resolve(parentPath);
+
+  if (visited.has(normalizedParent)) {
+    throw new Error(`Circular policy inheritance detected: ${normalizedParent}`);
+  }
+  visited.add(normalizedParent);
+
+  const parentConfig = await loadConfigFile(parentPath);
+  const resolvedParent = await resolveInheritance(parentConfig, parentPath, visited);
+
+  // Deep-merge: child overrides parent
+  return mergeConfigs(resolvedParent, config);
+}
+
+function mergePillarRecord(
+  parent?: Record<string, number>,
+  child?: Record<string, number>,
+): Record<string, number> | undefined {
+  if (!parent && !child) return undefined;
+  const merged = { ...parent, ...child };
+  return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
+function mergeConfigs(parent: FileConfigType, child: FileConfigType): FileConfigType {
+  const mergedPillarThresholds = mergePillarRecord(
+    parent.thresholds?.pillars as Record<string, number> | undefined,
+    child.thresholds?.pillars as Record<string, number> | undefined,
+  );
+
+  return {
+    ...parent,
+    ...child,
+    // Don't carry `extends` forward after resolution
+    extends: undefined,
+    // Merge pillars object
+    pillars:
+      parent.pillars || child.pillars
+        ? {
+            exclude: child.pillars?.exclude ?? parent.pillars?.exclude,
+            weights: mergePillarRecord(parent.pillars?.weights, child.pillars?.weights),
+          }
+        : undefined,
+    // Merge thresholds
+    thresholds:
+      parent.thresholds || child.thresholds
+        ? {
+            composite: child.thresholds?.composite ?? parent.thresholds?.composite,
+            ...(mergedPillarThresholds ? { pillars: mergedPillarThresholds } : {}),
+          }
+        : undefined,
+    // Merge suppressions (child appends to parent)
+    suppressions:
+      parent.suppressions || child.suppressions
+        ? [...(parent.suppressions ?? []), ...(child.suppressions ?? [])]
+        : undefined,
+    // Child profiles override parent profiles by name
+    profiles:
+      parent.profiles || child.profiles ? { ...parent.profiles, ...child.profiles } : undefined,
+  };
+}
+
+/**
+ * Resolve active profile: merge profile's weights/thresholds into base config.
+ */
+export function resolveProfile(config: FileConfigType): FileConfigType {
+  if (!config.activeProfile || !config.profiles) return config;
+
+  const profile = config.profiles[config.activeProfile];
+  if (!profile) {
+    throw new Error(
+      `Active profile "${config.activeProfile}" not found. Available: ${Object.keys(config.profiles).join(", ")}`,
+    );
+  }
+
+  const result = { ...config };
+
+  if (profile.thresholds) {
+    const mergedPillarThresholds = mergePillarRecord(
+      result.thresholds?.pillars as Record<string, number> | undefined,
+      profile.thresholds.pillars as Record<string, number> | undefined,
+    );
+    result.thresholds = {
+      composite: profile.thresholds.composite ?? result.thresholds?.composite,
+      ...(mergedPillarThresholds ? { pillars: mergedPillarThresholds } : {}),
+    };
+  }
+
+  if (profile.weights) {
+    result.pillars = {
+      ...result.pillars,
+      weights: { ...result.pillars?.weights, ...profile.weights },
+    };
+  }
+
+  return result;
+}
+
+/**
+ * Filter out expired suppressions. Returns only active suppressions.
+ */
+export function filterSuppressions(
+  suppressions: SuppressionType[],
+  now: Date = new Date(),
+): SuppressionType[] {
+  return suppressions.filter((s) => {
+    if (s.expiry === "no-expiry") return true;
+    return new Date(s.expiry) >= now;
+  });
+}
+
 function applyWeightOverrides(
   pillars: NonNullable<ScanConfigType["pillars"]>,
   weights: Record<string, number>,
@@ -82,6 +205,12 @@ function buildPillarConfig(
   return Object.keys(pillars).length > 0 ? pillars : undefined;
 }
 
+/** Resolved policy metadata that doesn't map directly to ScanConfig fields. */
+export interface ResolvedPolicyMeta {
+  enforcement?: "warn" | "fail" | "block";
+  pillarThresholds?: Record<string, number>;
+}
+
 /**
  * Convert a FileConfig (YAML structure) into a partial ScanConfig
  * that can be merged with CLI flags.
@@ -89,8 +218,10 @@ function buildPillarConfig(
 export function fileConfigToScanConfig(fileConfig: FileConfigType): Partial<ScanConfigType> {
   const result: Partial<ScanConfigType> = {};
 
-  if (fileConfig.threshold !== undefined) {
-    result.threshold = fileConfig.threshold;
+  // Resolve threshold: thresholds.composite takes precedence over flat threshold
+  const compositeThreshold = fileConfig.thresholds?.composite ?? fileConfig.threshold;
+  if (compositeThreshold !== undefined) {
+    result.threshold = compositeThreshold;
   }
 
   if (fileConfig.format !== undefined) {
@@ -104,7 +235,34 @@ export function fileConfigToScanConfig(fileConfig: FileConfigType): Partial<Scan
     }
   }
 
+  // Pass through active suppressions (expired ones already filtered)
+  if (fileConfig.suppressions && fileConfig.suppressions.length > 0) {
+    result.suppressions = fileConfig.suppressions;
+  }
+
   return result;
+}
+
+/**
+ * Extract policy metadata (enforcement mode, per-pillar thresholds) from FileConfig.
+ */
+export function extractPolicyMeta(fileConfig: FileConfigType): ResolvedPolicyMeta {
+  const meta: ResolvedPolicyMeta = {};
+
+  if (fileConfig.enforcement) {
+    meta.enforcement = fileConfig.enforcement;
+  }
+
+  if (fileConfig.thresholds?.pillars) {
+    meta.pillarThresholds = fileConfig.thresholds.pillars;
+  }
+
+  return meta;
+}
+
+export interface ResolvedConfig {
+  scanConfig: Partial<ScanConfigType>;
+  policyMeta: ResolvedPolicyMeta;
 }
 
 /**
@@ -116,6 +274,18 @@ export async function resolveConfig(options: {
   configPath?: string;
   cliOverrides: Partial<ScanConfigType>;
 }): Promise<Partial<ScanConfigType>> {
+  const resolved = await resolveFullConfig(options);
+  return resolved.scanConfig;
+}
+
+/**
+ * Resolve config with full policy metadata.
+ */
+export async function resolveFullConfig(options: {
+  repoPath: string;
+  configPath?: string;
+  cliOverrides: Partial<ScanConfigType>;
+}): Promise<ResolvedConfig> {
   const { repoPath, configPath, cliOverrides } = options;
 
   // Load config file
@@ -125,6 +295,17 @@ export async function resolveConfig(options: {
   if (resolvedConfigPath) {
     try {
       fileConfig = await loadConfigFile(resolvedConfigPath);
+
+      // Resolve inheritance chain
+      fileConfig = await resolveInheritance(fileConfig, resolvedConfigPath);
+
+      // Resolve active profile
+      fileConfig = resolveProfile(fileConfig);
+
+      // Filter expired suppressions
+      if (fileConfig.suppressions) {
+        fileConfig = { ...fileConfig, suppressions: filterSuppressions(fileConfig.suppressions) };
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       process.stderr.write(
@@ -135,13 +316,13 @@ export async function resolveConfig(options: {
 
   // Convert file config to scan config
   const fromFile = fileConfig ? fileConfigToScanConfig(fileConfig) : {};
+  const policyMeta = fileConfig ? extractPolicyMeta(fileConfig) : {};
 
   // Merge: CLI flags > config file > defaults
-  // Only include CLI overrides that were explicitly set (not defaults)
-  const merged: Partial<ScanConfigType> = {
+  const scanConfig: Partial<ScanConfigType> = {
     ...fromFile,
     ...cliOverrides,
   };
 
-  return merged;
+  return { scanConfig, policyMeta };
 }
