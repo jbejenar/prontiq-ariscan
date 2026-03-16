@@ -158,6 +158,10 @@ export function getJsonSchemaObject(): Record<string, unknown> {
           },
         },
       },
+      devcontainerDetected: {
+        type: "boolean",
+        description: "Whether a devcontainer configuration was detected in the repository.",
+      },
     },
     $defs: {
       finding: {

@@ -220,6 +220,10 @@
           }
         }
       }
+    },
+    "devcontainerDetected": {
+      "type": "boolean",
+      "description": "Whether a devcontainer configuration was detected in the repository."
     }
   },
   "$defs": {
