@@ -394,7 +394,7 @@ function hasBuriedCriticalInfo(content: string): boolean {
  * Looks for patterns like `path/to/file.ts`, `./src/`, `packages/foo/`, etc.
  */
 function extractReferencedPaths(content: string): string[] {
-  const pathPattern = /(?:^|[\s`"])((?:\.\.?\/)?[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_.-]+)+)/gm;
+  const pathPattern = /(?:^|[\s`"])((?:\.\.?\/)?[a-zA-Z0-9_-]+\/[a-zA-Z0-9_./-]+)/gm;
   const paths: string[] = [];
   let match: RegExpExecArray | null;
   while ((match = pathPattern.exec(content)) !== null) {
