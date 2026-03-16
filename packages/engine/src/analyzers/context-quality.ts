@@ -209,7 +209,7 @@ function normalizeConfigContent(content: string, path: string): string {
   }
   // Generic structured config: strip punctuation that hurts Jaccard matching
   return content
-    .replace(/[{}[\]"',;()]/g, " ")
+    .replace(/[{}[\]"',;()<>]/g, " ")
     .replace(/[^\S\n]+/g, " ")
     .trim();
 }
@@ -234,9 +234,8 @@ function normalizeForComparison(text: string): string {
       // Remove bold/italic marker characters (*, _) left after other stripping
       .replace(/\*+/g, "")
       .replace(/_+/g, "")
-      // Remove HTML tags
-      .replace(/<[a-zA-Z/][^>]*>/g, "")
-      // Remove any remaining angle brackets
+      // Remove all angle brackets (strips HTML tags and any fragments —
+      // safe because this text is only used for similarity comparison, never rendered)
       .replace(/[<>]/g, "")
       // Remove list-item markers (-, *, numbered) but keep the text on its own line
       .replace(/^\s*[-*]\s+/gm, "")
