@@ -100,6 +100,54 @@ function createLargeRepoContext(fileCount: number): RepoContext {
   };
 }
 
+describe("performance: file-list processing", () => {
+  it("allocates, sorts, and freezes 100k file paths in <1 second", () => {
+    const startTime = performance.now();
+
+    // Measures in-memory file-list processing (allocation, sort, freeze).
+    // This covers the post-walk phase of repo-context.ts — the array
+    // construction that happens after fast-glob returns raw paths.
+    // End-to-end discovery (filesystem walking via fast-glob) requires
+    // a real filesystem and is not testable with mock contexts.
+    const files: string[] = [];
+    const dirs = [
+      "src/components",
+      "src/utils",
+      "src/services",
+      "src/hooks",
+      "src/pages",
+      "src/api",
+      "src/models",
+      "src/types",
+      "lib/core",
+      "lib/helpers",
+      "tests/unit",
+      "tests/integration",
+      "docs",
+      "scripts",
+      "config",
+    ];
+    const extensions = [".ts", ".tsx", ".js", ".jsx", ".json", ".md", ".css", ".yaml"];
+
+    for (let i = 0; i < 100_000; i++) {
+      const dir = dirs[i % dirs.length];
+      const ext = extensions[i % extensions.length];
+      files.push(`${dir}/file-${i}${ext}`);
+    }
+    files.sort();
+    Object.freeze(files);
+
+    const elapsed = performance.now() - startTime;
+
+    // P1.03: file-list processing must complete in <1 second for 100k paths
+    expect(elapsed).toBeLessThan(1000);
+    expect(files.length).toBe(100_000);
+
+    // eslint-disable-next-line no-console
+    console.log(`File-list processing: 100k paths sorted and frozen in ${Math.round(elapsed)}ms`);
+  });
+});
+
 describe("performance: 100k file repo", () => {
   it("completes all 8 analyzer passes within 60 seconds on 100k files", async () => {
     const context = createLargeRepoContext(100_000);

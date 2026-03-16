@@ -139,8 +139,7 @@ describe("testIsolationAnalyzer (P3)", () => {
   });
 
   describe("DI / provider / factory patterns", () => {
-    it("adds points when provider/factory files exist", async () => {
-      // Use enough test files to keep ratio stable in the same bracket
+    it("adds points when provider/factory files exist (filename-based)", async () => {
       const baseFiles: Record<string, string> = {};
       for (let i = 0; i < 5; i++) {
         baseFiles[`src/mod${i}.ts`] = `export const m${i} = ${i};`;
@@ -154,8 +153,150 @@ describe("testIsolationAnalyzer (P3)", () => {
 
       const diResult = await testIsolationAnalyzer.analyze(createMockContext(withDI));
       const noDiResult = await testIsolationAnalyzer.analyze(createMockContext(baseFiles));
-      // Provider pattern adds 15 points (ratio stays in same bracket since 5/6 >= 0.8)
+      // Provider pattern adds 15 points for filename-only (no interface detected)
       expect(diResult.score - noDiResult.score).toBe(15);
+    });
+
+    it("awards bonus for abstracted interface in provider files", async () => {
+      const baseFiles: Record<string, string> = {};
+      for (let i = 0; i < 5; i++) {
+        baseFiles[`src/mod${i}.ts`] = `export const m${i} = ${i};`;
+        baseFiles[`src/mod${i}.test.ts`] = "test('works', () => {});";
+      }
+
+      const withAbstracted: Record<string, string> = {
+        ...baseFiles,
+        "src/storage/storage-provider.ts":
+          "export interface StorageProvider { put(key: string, data: Buffer): Promise<void>; }",
+      };
+      const withPlain: Record<string, string> = {
+        ...baseFiles,
+        "src/container/provider.ts": "export class ServiceProvider {}",
+      };
+
+      const abstractedResult = await testIsolationAnalyzer.analyze(
+        createMockContext(withAbstracted),
+      );
+      const plainResult = await testIsolationAnalyzer.analyze(createMockContext(withPlain));
+      // Abstracted gets 20 points vs 15 for plain filename match
+      expect(abstractedResult.score).toBeGreaterThan(plainResult.score);
+    });
+
+    it("emits ARI-TST-016 info for abstracted provider interfaces", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/services/db-provider.ts":
+          "export interface DbProvider { query(sql: string): Promise<unknown>; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+      expect(finding?.message).toContain("abstraction");
+    });
+
+    it("detects abstract class patterns as abstracted interfaces", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/services/base-provider.ts":
+          "export abstract class BaseProvider { abstract connect(): void; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeDefined();
+    });
+
+    it("detects abstraction in files without provider/factory in the name", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/storage.ts":
+          "export interface StorageProvider { put(key: string, data: Buffer): Promise<void>; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("abstraction");
+    });
+
+    it("does not award abstraction bonus for generic *Service/*Client in non-provider files", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/user.ts": "export interface UserService { getUser(id: string): Promise<unknown>; }",
+        "src/api.ts": "export interface ApiClient { fetch(url: string): Promise<unknown>; }",
+        "src/payment.ts":
+          "export abstract class PaymentGateway { abstract charge(amount: number): void; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeUndefined();
+    });
+
+    it("does not award abstraction bonus for generic *Service in provider-named files", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/di/container.ts":
+          "export interface DatabaseService { query(sql: string): Promise<unknown>; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeUndefined();
+    });
+
+    it("awards bonus for *Gateway in provider-named files", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/di/container.ts":
+          "export interface PaymentGateway { charge(amount: number): Promise<void>; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeDefined();
+    });
+  });
+
+  describe("direct SDK imports in tests (ARI-TST-017)", () => {
+    it("penalizes direct SDK imports in test files", async () => {
+      const cleanFiles: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => { expect(1).toBe(1); });",
+      };
+      const sdkFiles: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts":
+          "import { S3Client } from '@aws-sdk/client-s3';\ntest('works', () => {});",
+      };
+
+      const cleanResult = await testIsolationAnalyzer.analyze(createMockContext(cleanFiles));
+      const sdkResult = await testIsolationAnalyzer.analyze(createMockContext(sdkFiles));
+      expect(cleanResult.score).toBeGreaterThan(sdkResult.score);
+    });
+
+    it("emits ARI-TST-017 finding for direct SDK imports", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts":
+          "import { BlobServiceClient } from '@azure/storage-blob';\ntest('works', () => {});",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-017");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("medium");
+      expect(finding?.message).toContain("Direct SDK imports");
+    });
+
+    it("does not emit ARI-TST-017 when no SDK imports in tests", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => { expect(1).toBe(1); });",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      expect(result.findings.some((f) => f.code === "ARI-TST-017")).toBe(false);
     });
   });
 

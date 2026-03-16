@@ -306,19 +306,24 @@ async function handleScanMode(
     process.exit(2);
   }
 
-  // Fire-and-forget telemetry (only if consent is active)
-  const telemetryPayload = buildTelemetryPayload(result, result.metadata.duration);
-  sendTelemetry(telemetryPayload);
-
+  let badgeGenerated = false;
   if (args.badge) {
     const badgePath = resolve(args.badge);
     const svg = generateBadgeSvg(result);
     await writeFile(badgePath, svg, "utf-8");
+    badgeGenerated = true;
     if (!args.quiet) {
       process.stderr.write(`Badge written to ${badgePath}\n`);
       process.stderr.write(generateBadgeSnippets(args.badge));
     }
   }
+
+  // Fire-and-forget telemetry (only if consent is active)
+  const telemetryPayload = buildTelemetryPayload(result, result.metadata.duration, {
+    format,
+    badgeGenerated,
+  });
+  sendTelemetry(telemetryPayload);
 
   outputScanResult(result, format, args.verbose, args.quiet);
 

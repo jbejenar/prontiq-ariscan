@@ -25,7 +25,8 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
     let localScore = 0;
 
     // Test command (local)
-    const hasTestCmd = !!scripts["test"];
+    const hasTestCmd =
+      !!scripts["test"] || Object.keys(scripts).some((key) => key.startsWith("test:"));
     if (hasTestCmd) {
       localScore += 20;
       // Watch mode
@@ -447,6 +448,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
 
     let latencyLabel: "measured" | "inferred" | "unknown" = "unknown";
     let latencyEstimate = "unknown";
+    const latencySignals: string[] = [];
 
     if (testRunnerConfig) {
       const timeoutMatch = testRunnerConfig.match(/timeout\s*[:=]\s*(\d+)/);
@@ -494,7 +496,11 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
       }
     } else if (hasTestCmd) {
       // Has test command but no recognized config file
-      const testCmd = scripts["test"] ?? "";
+      // Check scripts.test first, then fall back to test:* entries (test:unit, test:ci, etc.)
+      const allTestCmds = Object.entries(scripts)
+        .filter(([key]) => key === "test" || key.startsWith("test:"))
+        .map(([, cmd]) => cmd);
+      const testCmd = allTestCmds.join(" ");
       if (/vitest/i.test(testCmd)) {
         latencyLabel = "inferred";
         latencyEstimate = "fast (vitest)";
@@ -513,11 +519,136 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
       }
     }
 
+    // --- Enhanced latency inference from package.json scripts ---
+    // Check all test-related script entries (test, test:unit, test:ci, test:watch, etc.)
+    // to catch repos where the main loop lives in a variant entry rather than "test".
+    {
+      const testScriptEntries = Object.entries(scripts).filter(
+        ([key]) => key === "test" || key.startsWith("test:"),
+      );
+      let hasParallel = false;
+      let hasFailFast = false;
+      for (const [, cmd] of testScriptEntries) {
+        if (/--parallel|--maxWorkers|--pool\s*forks|--shard/i.test(cmd)) {
+          hasParallel = true;
+        }
+        if (/--bail|--failFast/i.test(cmd)) {
+          hasFailFast = true;
+        }
+      }
+      if (hasParallel) {
+        latencySignals.push("parallel execution");
+      }
+      if (hasFailFast) {
+        latencySignals.push("fail-fast");
+      }
+      // Upgrade latency from unknown to inferred when script flags provide evidence
+      if ((hasParallel || hasFailFast) && latencyLabel === "unknown") {
+        latencyLabel = "inferred";
+        latencyEstimate = hasParallel ? "fast (parallel scripts)" : "medium (fail-fast scripts)";
+        score += hasParallel ? 3 : 2;
+      }
+    }
+
+    // --- Latency inference from Makefile ---
+    const makefileContent = await context.readFile("Makefile");
+    if (makefileContent) {
+      if (/^(?:test|check|lint|typecheck):/m.test(makefileContent)) {
+        if (latencyLabel === "unknown") {
+          latencyLabel = "inferred";
+          latencyEstimate = "medium (Makefile targets)";
+          score += 2;
+        }
+        latencySignals.push("Makefile targets");
+      }
+    }
+
+    // --- Latency inference from pyproject.toml ---
+    const pyprojectContent = await context.readFile("pyproject.toml");
+    if (pyprojectContent) {
+      const pytestTimeoutMatch = pyprojectContent.match(
+        /\[tool\.pytest\.ini_options\][\s\S]*?timeout\s*=\s*(\d+)/,
+      );
+      if (pytestTimeoutMatch && pytestTimeoutMatch[1]) {
+        const pytestTimeout = parseInt(pytestTimeoutMatch[1], 10);
+        // Only apply pytest measured result when no stronger measured signal exists
+        if (latencyLabel !== "measured") {
+          latencyLabel = "measured";
+          if (pytestTimeout <= 30) {
+            latencyEstimate = `fast (pytest timeout: ${pytestTimeout}s)`;
+            score += 5;
+          } else if (pytestTimeout <= 60) {
+            latencyEstimate = `medium (pytest timeout: ${pytestTimeout}s)`;
+            score += 3;
+          } else {
+            latencyEstimate = `slow (pytest timeout: ${pytestTimeout}s)`;
+          }
+        }
+        latencySignals.push(`pytest timeout=${pytestTimeout}s`);
+      } else if (latencyLabel === "unknown") {
+        latencyLabel = "inferred";
+        latencyEstimate = "medium (pyproject.toml)";
+        score += 2;
+        latencySignals.push("pyproject.toml");
+      }
+    }
+
+    // --- Latency inference from CI config timeout values ---
+    for (const wf of workflowFiles) {
+      const content = await context.readFile(wf);
+      if (!content) continue;
+      const ciTimeoutMatch = content.match(/timeout-minutes\s*:\s*(\d+)/);
+      if (ciTimeoutMatch && ciTimeoutMatch[1]) {
+        const ciTimeout = parseInt(ciTimeoutMatch[1], 10);
+        latencySignals.push(`CI timeout=${ciTimeout}min`);
+        if (latencyLabel === "unknown") {
+          latencyLabel = "inferred";
+          if (ciTimeout <= 5) {
+            latencyEstimate = `fast (CI timeout: ${ciTimeout}min)`;
+            score += 4;
+          } else if (ciTimeout <= 15) {
+            latencyEstimate = `medium (CI timeout: ${ciTimeout}min)`;
+            score += 2;
+          } else {
+            latencyEstimate = `slow (CI timeout: ${ciTimeout}min)`;
+          }
+        }
+        break;
+      }
+    }
+
+    // Check .gitlab-ci.yml for timeout
+    if (latencySignals.every((s) => !s.startsWith("CI timeout"))) {
+      const gitlabCi = await context.readFile(".gitlab-ci.yml");
+      if (gitlabCi) {
+        const gitlabTimeoutMatch = gitlabCi.match(/timeout\s*:\s*(\d+)\s*(m|min|minutes)/i);
+        if (gitlabTimeoutMatch && gitlabTimeoutMatch[1]) {
+          const gitlabTimeout = parseInt(gitlabTimeoutMatch[1], 10);
+          latencySignals.push(`CI timeout=${gitlabTimeout}min`);
+          if (latencyLabel === "unknown") {
+            latencyLabel = "inferred";
+            if (gitlabTimeout <= 5) {
+              latencyEstimate = `fast (CI timeout: ${gitlabTimeout}min)`;
+              score += 4;
+            } else if (gitlabTimeout <= 15) {
+              latencyEstimate = `medium (CI timeout: ${gitlabTimeout}min)`;
+              score += 2;
+            } else {
+              latencyEstimate = `slow (CI timeout: ${gitlabTimeout}min)`;
+            }
+          }
+        }
+      }
+    }
+
+    const signalsSuffix =
+      latencySignals.length > 0 ? ` [signals: ${latencySignals.join(", ")}]` : "";
+
     findings.push({
       code: "ARI-FBK-009",
       severity: "info",
       pillar: PILLAR,
-      message: `Estimated feedback latency: ${latencyEstimate} (confidence: ${latencyLabel})`,
+      message: `Estimated feedback latency: ${latencyEstimate} (confidence: ${latencyLabel})${signalsSuffix}`,
       confidence:
         latencyLabel === "measured" ? "high" : latencyLabel === "inferred" ? "medium" : "low",
       evidence: {

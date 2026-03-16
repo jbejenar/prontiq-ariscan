@@ -963,9 +963,9 @@ The AI coding agent ecosystem is fragmented across multiple context file formats
 
 ### Performance
 
-- [ ] Discovery completes in <1 second for repos up to 100k files.
-  - `Verify:` Run discovery on 100k-file fixture and measure duration
-  - `Evidence:`
+- [ ] Discovery completes in <1 second for repos up to 100k files. [BLOCKED: requires end-to-end benchmark with real or temp-backed filesystem fixture; current benchmark only measures post-walk file-list processing (~32ms), not actual discovery/filesystem walking]
+  - `Verify:` Run end-to-end discovery on 100k-file fixture (real or temp-backed filesystem) and measure duration
+  - `Partial evidence:` File-list processing benchmark in performance.test.ts: 100k files listed and sorted in ~32ms. This covers post-walk array processing only, not filesystem discovery. Added 2026-03-16.
 
 ### Telemetry (non-blocking)
 
@@ -1143,9 +1143,9 @@ DORA 2024 found that AI adoption actually *decreased* delivery throughput by 1.5
 
 ### Functional
 
-- [ ] Parse `package.json` scripts, `Makefile`, `pyproject.toml`, CI config files to infer feedback latency.
+- [x] Parse `package.json` scripts, `Makefile`, `pyproject.toml`, CI config files to infer feedback latency.
   - `Verify:` Run scan on fixture with all config types and confirm latency estimates in output
-  - `Evidence:` Partial — parses package.json scripts, checks Makefile/pyproject.toml existence, CI presence. Only presence checks, no latency inference.
+  - `Evidence:` Parses package.json scripts for parallel/fail-fast flags, Makefile targets (test/lint/typecheck), pyproject.toml pytest timeout settings, CI workflow timeout-minutes, and .gitlab-ci.yml timeout. Latency signals annotated in ARI-FBK-009 output. Added 2026-03-16.
 - [x] Estimated execution times for: unit tests, type checking, linting, full CI pipeline.
   - `Verify:` Run scan and check for ARI-FBK-009 finding with estimated times
   - `Evidence:` ARI-FBK-009: estimated feedback latency with measured/inferred/unknown confidence labels. Added 2026-03-09.
@@ -1283,10 +1283,9 @@ Test isolation is elevated to 18% weight (from 12.5% equal weight) because resea
 
 ### Functional
 
-<!-- REVIEW: Original marked done but criterion "Provider pattern detection clearly distinguishes direct SDK usage from abstracted interfaces" lacks completion evidence. -->
-- [ ] Provider pattern detection clearly distinguishes direct SDK usage from abstracted interfaces.
+- [x] Provider pattern detection clearly distinguishes direct SDK usage from abstracted interfaces.
   - `Verify:` Run scan on fixture with both patterns and confirm correct classification
-  - `Evidence:` Filename heuristic only, not structural code analysis (partial)
+  - `Evidence:` Structural code analysis: detects interface/abstract class patterns in provider files (ARI-TST-016, +20 bonus) and direct SDK imports in test files (ARI-TST-017, penalty). Filename heuristic retained as fallback (+15). Added 2026-03-16.
 
 ### Telemetry (non-blocking)
 

@@ -34,5 +34,10 @@ export {
 
 export { PillarOverride, ScanConfig, FileConfig } from "./config.js";
 
-export { ScoreBucket, scoreToBucket, telemetryPayloadSchema } from "./telemetry.js";
+export {
+  ScoreBucket,
+  scoreToBucket,
+  PillarScoreBucket,
+  telemetryPayloadSchema,
+} from "./telemetry.js";
 export type { TelemetryPayload } from "./telemetry.js";

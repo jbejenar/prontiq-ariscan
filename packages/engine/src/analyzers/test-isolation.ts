@@ -756,14 +756,135 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       score -= Math.min(10, highRiskFileCount * 2);
     }
 
-    // Check for DI/provider patterns (match filename only, exclude .devcontainer paths)
-    const hasProviderPattern = context.files.some((f) => {
+    // Check for DI/provider patterns (filename + code content analysis)
+    const providerFiles = context.files.filter((f) => {
       if (/\.devcontainer/i.test(f)) return false;
+      if (TEST_FILE_PATTERNS.some((p) => p.test(f))) return false;
       const filename = f.split("/").pop() ?? f;
       return /provider|factory|container|inject/i.test(filename);
     });
-    if (hasProviderPattern) {
-      score += 15;
+    const hasProviderPattern = providerFiles.length > 0;
+
+    // Distinguish abstracted interfaces from direct SDK usage
+    // Scan provider-named files first, then broaden to other source files
+    // In provider-named files, accept DI boundary suffixes (Provider|Repository|Factory|Gateway)
+    // but NOT generic *Service/*Client which are ordinary application types
+    const BROAD_INTERFACE = /\binterface\s+\w*(Provider|Repository|Factory|Gateway)\b/i;
+    const BROAD_ABSTRACT_CLASS = /\babstract\s+class\s+\w*(Provider|Repository|Factory|Gateway)\b/i;
+    // In non-provider files, only match the most specific DI boundary types (Provider|Repository)
+    const NARROW_INTERFACE = /\binterface\s+\w*(Provider|Repository)\b/i;
+    const NARROW_ABSTRACT_CLASS = /\babstract\s+class\s+\w*(Provider|Repository)\b/i;
+
+    let hasAbstractedInterface = false;
+    // First pass: files with provider/factory/container/inject in the name
+    // Use broad patterns here — file naming already signals DI context
+    for (const pf of providerFiles) {
+      const content = await context.readFile(pf);
+      if (!content) continue;
+      if (BROAD_INTERFACE.test(content) || BROAD_ABSTRACT_CLASS.test(content)) {
+        hasAbstractedInterface = true;
+        break;
+      }
+    }
+    // Second pass: scan other non-test source files for abstraction declarations.
+    // Uses narrow patterns (*Provider/*Repository only) to avoid false positives
+    // from ordinary application types like UserService or ApiClient.
+    // Capped at 50 reads to bound disk I/O on large repos. Files in common
+    // abstraction directories (src/, lib/, core/, common/, shared/) are checked
+    // first so the cap does not cause non-deterministic misses based on sort order.
+    if (!hasAbstractedInterface) {
+      const ABSTRACTION_DIR = /(^|\/)(src|lib|core|common|shared)\//i;
+      const sourceFiles = context.files.filter((f) => {
+        if (TEST_FILE_PATTERNS.some((p) => p.test(f))) return false;
+        if (providerFiles.includes(f)) return false;
+        if (!/\.(ts|js|tsx|jsx)$/i.test(f)) return false;
+        if (/node_modules|\.d\.ts$|dist\//i.test(f)) return false;
+        return true;
+      });
+      // Prioritise files in common abstraction directories
+      sourceFiles.sort((a, b) => {
+        const aDir = ABSTRACTION_DIR.test(a) ? 0 : 1;
+        const bDir = ABSTRACTION_DIR.test(b) ? 0 : 1;
+        return aDir - bDir;
+      });
+      const MAX_FALLBACK_READS = 50;
+      for (const sf of sourceFiles.slice(0, MAX_FALLBACK_READS)) {
+        const content = await context.readFile(sf);
+        if (!content) continue;
+        if (NARROW_INTERFACE.test(content) || NARROW_ABSTRACT_CLASS.test(content)) {
+          hasAbstractedInterface = true;
+          break;
+        }
+      }
+    }
+
+    // Detect direct SDK imports in test files (penalty for tight coupling)
+    const SDK_IMPORT_PATTERNS = [
+      /import\s.*from\s+['"]aws-sdk/,
+      /import\s.*from\s+['"]@aws-sdk\//,
+      /import\s.*from\s+['"]@google-cloud\//,
+      /import\s.*from\s+['"]@azure\//,
+      /import\s.*from\s+['"]firebase/,
+      /import\s.*from\s+['"]stripe/,
+      /import\s.*from\s+['"]twilio/,
+      /require\s*\(\s*['"]aws-sdk/,
+      /require\s*\(\s*['"]@aws-sdk\//,
+      /require\s*\(\s*['"]@google-cloud\//,
+      /require\s*\(\s*['"]@azure\//,
+    ];
+    let directSdkInTestCount = 0;
+    for (const testFile of sampled) {
+      const content = await context.readFile(testFile);
+      if (!content) continue;
+      if (SDK_IMPORT_PATTERNS.some((p) => p.test(content))) {
+        directSdkInTestCount++;
+      }
+    }
+
+    if (hasAbstractedInterface) {
+      score += 20; // bonus: properly abstracted provider interfaces
+      findings.push({
+        code: "ARI-TST-016",
+        severity: "info",
+        pillar: PILLAR,
+        message:
+          "Provider abstraction detected: interface/abstract class patterns found in source files",
+        confidence: "medium",
+        evidence: {
+          paper: "Berndt et al., 2026",
+          finding:
+            "Abstracted provider interfaces reduce test flakiness by decoupling from external SDKs",
+          confidence: "medium",
+        },
+      });
+    } else if (hasProviderPattern) {
+      score += 15; // basic provider pattern (filename-based only)
+    }
+
+    if (directSdkInTestCount > 0) {
+      score -= Math.min(10, directSdkInTestCount * 3);
+      findings.push({
+        code: "ARI-TST-017",
+        severity: "medium",
+        pillar: PILLAR,
+        message: `Direct SDK imports found in ${directSdkInTestCount} test file(s) — tests are tightly coupled to external services`,
+        confidence: "medium",
+        remediation: {
+          action: "refactor",
+          description:
+            "Replace direct SDK imports in tests with injected interfaces or mocks. " +
+            "Example: instead of `import { S3Client } from '@aws-sdk/client-s3'` in tests, " +
+            "define an interface `interface StorageClient { put(key: string, data: Buffer): Promise<void> }` " +
+            "and pass a mock implementation in tests.",
+          confidence: "medium",
+        },
+        evidence: {
+          paper: "Berndt et al., 2026",
+          finding:
+            "Direct SDK coupling in tests increases flakiness and agent token waste by ~200-500 tokens per retry",
+          confidence: "medium",
+        },
+      });
     }
 
     // Check for mock/stub infrastructure (directory conventions or vi.mock/jest.mock usage)

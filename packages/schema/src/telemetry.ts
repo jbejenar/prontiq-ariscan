@@ -16,6 +16,13 @@ export function scoreToBucket(score: number): ScoreBucket {
   return "81-100";
 }
 
+/** Per-pillar score bucket entry for telemetry. */
+export const PillarScoreBucket = z.object({
+  pillar_id: z.string(),
+  score_bucket: ScoreBucket,
+});
+export type PillarScoreBucket = z.infer<typeof PillarScoreBucket>;
+
 /**
  * Anonymous telemetry payload — contains NO PII, no repo name, no file paths.
  * Sent only when the user has explicitly opted in.
@@ -37,5 +44,15 @@ export const telemetryPayloadSchema = z.object({
   pillar_count: z.number().int().nonnegative(),
   /** Total number of findings. */
   finding_count: z.number().int().nonnegative(),
+  /** Per-pillar score buckets — no raw scores, only bucketed. */
+  pillar_scores: z.array(PillarScoreBucket).optional(),
+  /** Output format used (e.g. "terminal", "json", "markdown", "sarif", "ndjson"). */
+  format: z.string().optional(),
+  /** Whether a badge was generated. */
+  badge_generated: z.boolean().optional(),
+  /** Number of detected languages. */
+  language_count: z.number().int().nonnegative().optional(),
+  /** Number of detected frameworks. */
+  framework_count: z.number().int().nonnegative().optional(),
 });
 export type TelemetryPayload = z.infer<typeof telemetryPayloadSchema>;
