@@ -173,7 +173,8 @@
         "ARI-NAV-005": { "severity": "high", "summary": "Potential circular dependency" },
         "ARI-NAV-006": { "severity": "low", "summary": "Unused source files detected" },
         "ARI-NAV-007": { "severity": "high", "summary": "Function with poor cognitive complexity" },
-        "ARI-NAV-008": { "severity": "medium", "summary": "Code duplication detected" }
+        "ARI-NAV-008": { "severity": "medium", "summary": "Code duplication detected" },
+        "ARI-NAV-009": { "severity": "medium", "summary": "Structural clarity for retrieval" }
       }
     },
     "P8": {

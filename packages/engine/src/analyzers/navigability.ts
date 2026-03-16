@@ -241,6 +241,10 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         "low",
         [],
         "No source files to analyze for navigability",
+        [
+          "Shippey et al., 2022 — Cognitive complexity >15 correlates with 3x higher defect density",
+          "Microsoft, 2023 — Consistent naming decreases defects 40%",
+        ],
       );
     }
 
@@ -762,6 +766,77 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       });
     }
 
+    // --- ARI-NAV-009: Structural clarity for retrieval ---
+    // Evaluate predictable patterns that help agents find code: barrel files, layer separation
+    const allBarrelFiles = context.files.filter((f) =>
+      /index\.[jt]sx?$|mod\.rs$|__init__\.py$/.test(f),
+    );
+    const dirsWithBarrels = new Set(
+      allBarrelFiles.map((f) => f.split("/").slice(0, -1).join("/") || "."),
+    );
+    const barrelCoverage = dirs.size > 0 ? dirsWithBarrels.size / dirs.size : 0;
+
+    // Check for conventional layer directories that aid navigation
+    const layerDirs = [
+      "src",
+      "lib",
+      "utils",
+      "services",
+      "models",
+      "components",
+      "controllers",
+      "handlers",
+      "middleware",
+      "types",
+      "schemas",
+      "config",
+    ];
+    const presentLayers = layerDirs.filter((d) =>
+      context.files.some((f) => f.startsWith(d + "/") || f.includes("/" + d + "/")),
+    );
+    const hasLayerSeparation = presentLayers.length >= 3;
+
+    const structuralClarityGood = barrelCoverage >= 0.4 && hasLayerSeparation;
+    const structuralClarityModerate = barrelCoverage >= 0.2 || hasLayerSeparation;
+
+    if (structuralClarityGood) {
+      score += 5;
+      findings.push({
+        code: "ARI-NAV-009",
+        severity: "info",
+        pillar: PILLAR,
+        message: `Good structural clarity: ${dirsWithBarrels.size}/${dirs.size} directories have barrel/index files, ${presentLayers.length} conventional layers detected`,
+        confidence: "medium",
+      });
+    } else if (!structuralClarityModerate) {
+      score -= 5;
+      findings.push({
+        code: "ARI-NAV-009",
+        severity: "medium",
+        pillar: PILLAR,
+        message: `Low structural clarity for retrieval: ${dirsWithBarrels.size}/${dirs.size} directories have barrel/index files${presentLayers.length < 3 ? ", few conventional layer directories" : ""}`,
+        confidence: "low",
+        remediation: {
+          action: "refactor",
+          description:
+            "Add barrel/index files to module directories and organize code into conventional layers (src/, utils/, services/, models/) for predictable navigation",
+          confidence: "low",
+        },
+        evidence: {
+          paper: "Barr et al., 2015",
+          finding:
+            "Predictable project structure reduces code search time and improves retrieval accuracy for automated tools",
+          confidence: "medium",
+        },
+      });
+    }
+
+    const structuralClarityLabel: "good" | "moderate" | "poor" = structuralClarityGood
+      ? "good"
+      : structuralClarityModerate
+        ? "moderate"
+        : "poor";
+
     // --- Threshold labels for all metrics (AC#2) ---
     const maxFilesPerDir =
       stuffedDirs.length > 0
@@ -817,7 +892,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         ? ` | Top issues: ${problemAreas.join(", ")}`
         : " | No major navigation issues";
 
-    const thresholdSummary = `depth:${depthLabel} dirs:${dirSizeLabel} naming:${namingLabel} imports:${importLabel} circular:${circularLabel} dead-code:${deadCodeLabel} duplication:${duplicationLabel}`;
+    const thresholdSummary = `depth:${depthLabel} dirs:${dirSizeLabel} naming:${namingLabel} imports:${importLabel} circular:${circularLabel} dead-code:${deadCodeLabel} duplication:${duplicationLabel} structure:${structuralClarityLabel}`;
 
     return buildPillarResult(
       PILLAR,
@@ -825,6 +900,10 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       sourceFiles.length > 10 ? "medium" : "low",
       findings,
       `${sourceFiles.length} source files across ${dirs.size} directories, max depth ${maxDepth}, naming ${Math.round(consistency * 100)}% consistent | Thresholds: ${thresholdSummary}${costlyPaths}`,
+      [
+        "Shippey et al., 2022 — Cognitive complexity >15 correlates with 3x higher defect density",
+        "Microsoft, 2023 — Consistent naming decreases defects 40%",
+      ],
     );
   },
 };

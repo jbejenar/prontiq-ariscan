@@ -538,6 +538,9 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
       summary = "No agent context files found";
     }
 
-    return buildPillarResult(PILLAR, score, "medium", findings, summary);
+    return buildPillarResult(PILLAR, score, "medium", findings, summary, [
+      "Lulla et al., 2026 — Quality AGENTS.md reduces agent time 28.6%, tokens 16.6%",
+      "GitHub Next, 2024 — Contextual grounding improves Copilot accuracy 30%+",
+    ]);
   },
 };

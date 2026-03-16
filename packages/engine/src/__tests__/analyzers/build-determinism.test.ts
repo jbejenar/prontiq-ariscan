@@ -706,4 +706,74 @@ describe("buildDeterminismAnalyzer (P6)", () => {
       expect(result.score).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe("per-check confidence labeling (P1.10)", () => {
+    it("every finding has a confidence field", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: { strictNullChecks: true },
+        }),
+        "turbo.json": "{}",
+        "pnpm-workspace.yaml": "packages:\n  - packages/*",
+        "package.json": JSON.stringify({
+          scripts: { build: "webpack --mode production" },
+          packageManager: "pnpm@9.0.0",
+        }),
+        "package-lock.json": "{}",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      for (const finding of result.findings) {
+        expect(finding.confidence).toBeDefined();
+        expect(["high", "medium", "low"]).toContain(finding.confidence);
+      }
+    });
+
+    it("TypeScript strict mode check has high confidence", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: { strictNullChecks: true },
+        }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-001");
+      expect(finding).toBeDefined();
+      expect(finding?.confidence).toBe("high");
+    });
+
+    it("Go interface{}/any abuse check has medium confidence", async () => {
+      const goContent = Array(12).fill("func doStuff(x interface{}) {}").join("\n");
+      const ctx = createMockContext({
+        "go.mod": "module example.com/app\ngo 1.21",
+        "main.go": goContent,
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-004");
+      expect(finding).toBeDefined();
+      expect(finding?.confidence).toBe("medium");
+    });
+
+    it("Rust unwrap() check has medium confidence", async () => {
+      const rsContent = Array(25).fill("let x = some_result.unwrap();").join("\n");
+      const ctx = createMockContext({
+        "Cargo.toml": '[package]\nname = "app"',
+        "src/main.rs": rsContent,
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-005");
+      expect(finding).toBeDefined();
+      expect(finding?.confidence).toBe("medium");
+    });
+  });
+
+  describe("researchBasis (P1.13)", () => {
+    it("includes researchBasis in result", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.researchBasis).toBeDefined();
+      expect(Array.isArray(result.researchBasis)).toBe(true);
+      expect((result.researchBasis ?? []).length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

@@ -583,6 +583,10 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
       "medium",
       findings,
       `CODEOWNERS: ${codeownersStatus}, Secrets scanning: ${secretsScanningStatus}, Dep audit: ${depAuditStatus}, SAST: ${sastStatus}, Branch protection: ${branchProtectionStatus}, License compliance: ${licenseComplianceStatus}, .gitignore: ${gitignoreStatus} | AI-specific security: ${aiScorePercent}% (${aiSpecificScore}/${aiSpecificMax})`,
+      [
+        "Pearce et al., 2021 — AI-generated code has higher vulnerability rates than human code",
+        "Apiiro, 2025 — AI agents introduce 10,000+ new security findings/month; privilege escalation up 322%",
+      ],
     );
   },
 };

@@ -537,6 +537,10 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
       "medium",
       findings,
       `Dev environment: devcontainer=${devcontainerStatus}, setup=${hasSetup}, versions=${hasVersionPinning}`,
+      [
+        "VS Code Blog, 2022 — 94-96% drop-off rate with manual dev environment setup",
+        "GitHub Codespaces, 2023 — Containerized dev environments reduce onboarding time 75%",
+      ],
     );
   },
 };
