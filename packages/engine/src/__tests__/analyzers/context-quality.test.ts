@@ -388,6 +388,50 @@ describe("contextQualityAnalyzer (P1)", () => {
       const result = await contextQualityAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-CTX-006")).toBe(false);
     });
+
+    it("emits ARI-CTX-006 for single-directory references like src/ that do not exist", async () => {
+      const content = [
+        "# AGENTS.md",
+        "## Architecture",
+        "Source code lives in src/",
+        "Tests are in tests/",
+        "Also check ./lib/",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": content,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-006")).toBe(true);
+    });
+
+    it("does not emit ARI-CTX-006 for single-directory references that exist", async () => {
+      const content = [
+        "# AGENTS.md",
+        "## Architecture",
+        "Source code lives in src/",
+        "Also check ./lib/",
+        "Line 5",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": content,
+        "src/index.ts": "export {};",
+        "lib/utils.ts": "export {};",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-006")).toBe(false);
+    });
   });
 
   describe("boilerplate detection (ARI-CTX-007)", () => {
