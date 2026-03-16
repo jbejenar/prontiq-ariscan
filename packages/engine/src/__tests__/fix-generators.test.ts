@@ -30,6 +30,12 @@ const pyDetection: DetectionResult = {
   monorepo: null,
 };
 
+const jsDetection: DetectionResult = {
+  languages: [{ language: "JavaScript", confidence: 0.9, primary: true }],
+  frameworks: [],
+  monorepo: null,
+};
+
 const monorepoDetection: DetectionResult = {
   languages: [{ language: "TypeScript", confidence: 0.9, primary: true }],
   frameworks: [{ framework: "nestjs", confidence: 0.8 }],
@@ -187,6 +193,39 @@ describe("fix generators — env var schema (P2.06)", () => {
 
     const proposals = await generateFixProposals(ctx, tsDetection);
     const schema = proposals.find((p) => p.path === "src/config/env.ts");
+    expect(schema).toBeUndefined();
+  });
+
+  it("skips env var schema when JS config file already exists", async () => {
+    const ctx = createMockContext({
+      "package.json": JSON.stringify({ scripts: { start: "node index.js" } }),
+      "src/config/env.js": "module.exports = { port: process.env.PORT };",
+    });
+
+    const proposals = await generateFixProposals(ctx, jsDetection);
+    const schema = proposals.find((p) => p.path === "src/config/env.js");
+    expect(schema).toBeUndefined();
+  });
+
+  it("skips env var schema when src/env.js already exists in JS repo", async () => {
+    const ctx = createMockContext({
+      "package.json": JSON.stringify({ scripts: { start: "node index.js" } }),
+      "src/env.js": "module.exports = {};",
+    });
+
+    const proposals = await generateFixProposals(ctx, jsDetection);
+    const schema = proposals.find((p) => p.path === "src/config/env.js");
+    expect(schema).toBeUndefined();
+  });
+
+  it("skips env var schema when src/config.js already exists in JS repo", async () => {
+    const ctx = createMockContext({
+      "package.json": JSON.stringify({ scripts: { start: "node index.js" } }),
+      "src/config.js": "module.exports = {};",
+    });
+
+    const proposals = await generateFixProposals(ctx, jsDetection);
+    const schema = proposals.find((p) => p.path === "src/config/env.js");
     expect(schema).toBeUndefined();
   });
 });

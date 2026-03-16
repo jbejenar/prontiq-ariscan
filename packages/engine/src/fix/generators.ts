@@ -3069,11 +3069,17 @@ async function generateEnvVarSchema(
   // Only generate for TypeScript or Python
   if (langName !== "typescript" && langName !== "javascript" && langName !== "python") return null;
 
-  // Check if a typed config already exists
+  // Check if a typed config already exists (language-specific paths)
   const tsConfigPaths = ["src/config/env.ts", "src/env.ts", "src/config.ts"];
+  const jsConfigPaths = ["src/config/env.js", "src/env.js", "src/config.js"];
   const pyConfigPaths = ["src/config/env.py", "config/env.py", "src/config.py"];
 
-  const pathsToCheck = langName === "python" ? pyConfigPaths : tsConfigPaths;
+  const pathsToCheck =
+    langName === "python"
+      ? pyConfigPaths
+      : langName === "javascript"
+        ? jsConfigPaths
+        : tsConfigPaths;
   for (const p of pathsToCheck) {
     if (await context.fileExists(p)) return null;
   }
