@@ -6,8 +6,6 @@ import { scoreToBucket } from "@prontiq/ariscan-schema";
 export interface TelemetryOptions {
   /** Output format used (e.g. "terminal", "json"). */
   format?: string;
-  /** Fix generator names applied, if --fix was used. */
-  fixTypes?: string[];
   /** Whether a badge was generated. */
   badgeGenerated?: boolean;
 }
@@ -39,7 +37,6 @@ export function buildTelemetryPayload(
       score_bucket: scoreToBucket(p.score),
     })),
     format: options?.format,
-    fix_types: options?.fixTypes,
     badge_generated: options?.badgeGenerated,
     language_count: result.detection?.languages.length,
     framework_count: result.detection?.frameworks.length,

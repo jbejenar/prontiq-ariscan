@@ -89,15 +89,13 @@ describe("buildTelemetryPayload", () => {
     expect(payload.framework_count).toBe(0);
   });
 
-  it("includes format and fix options when provided", () => {
+  it("includes format and badge options when provided", () => {
     const result = makeScanResult();
     const payload = buildTelemetryPayload(result, 100, {
       format: "json",
-      fixTypes: ["agents-md", "devcontainer"],
       badgeGenerated: true,
     });
     expect(payload.format).toBe("json");
-    expect(payload.fix_types).toEqual(["agents-md", "devcontainer"]);
     expect(payload.badge_generated).toBe(true);
   });
 
@@ -105,7 +103,6 @@ describe("buildTelemetryPayload", () => {
     const result = makeScanResult();
     const payload = buildTelemetryPayload(result, 100);
     expect(payload.format).toBeUndefined();
-    expect(payload.fix_types).toBeUndefined();
     expect(payload.badge_generated).toBeUndefined();
   });
 

@@ -48,8 +48,6 @@ export const telemetryPayloadSchema = z.object({
   pillar_scores: z.array(PillarScoreBucket).optional(),
   /** Output format used (e.g. "terminal", "json", "markdown", "sarif", "ndjson"). */
   format: z.string().optional(),
-  /** Fix generator names applied, if --fix was used. */
-  fix_types: z.array(z.string()).optional(),
   /** Whether a badge was generated. */
   badge_generated: z.boolean().optional(),
   /** Number of detected languages. */

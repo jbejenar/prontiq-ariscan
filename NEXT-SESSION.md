@@ -8,7 +8,7 @@ Checkboxes checked this session: 3
 - P1.05: Enhanced feedback latency inference — parses package.json scripts (parallel/fail-fast flags), Makefile targets, pyproject.toml pytest timeout, CI workflow timeout-minutes, .gitlab-ci.yml timeout. Latency signals annotated in ARI-FBK-009.
 - P1.06: Provider pattern detection — structural code analysis distinguishes interface/abstract class patterns (ARI-TST-016, +20 bonus) from direct SDK imports in tests (ARI-TST-017, penalty). REVIEW flag removed.
 - P1.03: Discovery performance — partial evidence only (post-walk file-list processing benchmark: ~32ms). [BLOCKED] End-to-end discovery benchmark with real/temp-backed 100k-file fixture still needed.
-- Telemetry schema expansion — per-pillar score buckets, format, fix_types, badge_generated, language_count, framework_count added to payload. All optional for backward compat.
+- Telemetry schema expansion — per-pillar score buckets, format, badge_generated, language_count, framework_count added to payload. All optional for backward compat. (`fix_types` removed — no production caller in scan path; `--fix` mode returns before telemetry.)
 
 ### Ticket Status Changes
 - P1.05: in-progress → in-progress (latency inference complete, telemetry item remains)
