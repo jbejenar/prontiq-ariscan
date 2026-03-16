@@ -870,6 +870,48 @@ describe("contextQualityAnalyzer (P1)", () => {
     });
   });
 
+  describe("HTML-wrapped additionality (Bug 12)", () => {
+    it("detects duplicated content inside HTML tags as redundant", async () => {
+      // README has setup instructions in plain text
+      const readme = [
+        "# My Project",
+        "## Setup",
+        "Install dependencies and build the project:",
+        "pnpm install --frozen-lockfile",
+        "pnpm build --filter engine",
+        "pnpm test --run --reporter verbose",
+        "pnpm lint --fix --quiet",
+        "pnpm typecheck --noEmit --strict",
+      ].join("\n");
+      // AGENTS.md wraps the same content in <details>/<summary>/<code> HTML tags
+      const agentsMd = [
+        "# AGENTS.md",
+        "<details><summary>Setup</summary>",
+        "",
+        "Install dependencies and build the project:",
+        "<code>pnpm install --frozen-lockfile</code>",
+        "<code>pnpm build --filter engine</code>",
+        "<code>pnpm test --run --reporter verbose</code>",
+        "<code>pnpm lint --fix --quiet</code>",
+        "<code>pnpm typecheck --noEmit --strict</code>",
+        "",
+        "</details>",
+        "## Extra Guidance",
+        "This unique project-specific guidance is only in the agents file.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // HTML tags should be stripped, revealing the duplicated content underneath
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-011");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("redundancy");
+    });
+  });
+
   describe("zero-segment additionality (Bug 5)", () => {
     it("does not award additionality bonus for files with no comparable segments", async () => {
       const readme = "# Project\nA brief description of the project.";

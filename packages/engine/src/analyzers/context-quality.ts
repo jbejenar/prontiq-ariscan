@@ -215,28 +215,56 @@ function normalizeConfigContent(content: string, path: string): string {
 }
 
 /**
+ * Strip HTML tags and comments from text, replacing each with a space to
+ * preserve word boundaries. Uses character iteration instead of regex to
+ * avoid CodeQL incomplete-multi-character-sanitization false positives.
+ */
+function stripHtmlTags(text: string): string {
+  let result = "";
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "<") {
+      const close = text.indexOf(">", i + 1);
+      if (close !== -1) {
+        result += " ";
+        i = close + 1;
+      } else {
+        // No closing > — skip the lone <
+        i++;
+      }
+    } else {
+      result += text[i];
+      i++;
+    }
+  }
+  return result;
+}
+
+/**
  * Strip markdown formatting to extract plain text for comparison.
  * Removes code fences, headings markers, links, images, bold/italic markers.
  */
 function normalizeForComparison(text: string): string {
+  let normalized = text
+    // Strip fenced code block delimiters but keep content (commands/config may be duplicated)
+    .replace(/```[^\n]*\n?/g, "")
+    // Strip inline code backticks but keep content
+    .replace(/`([^`]+)`/g, "$1")
+    // Remove markdown headings markers
+    .replace(/^#{1,6}\s+/gm, "")
+    // Remove link syntax but keep text: [text](url) → text
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    // Remove image syntax
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "")
+    // Remove bold/italic marker characters (*, _) left after other stripping
+    .replace(/\*+/g, "")
+    .replace(/_+/g, "");
+
+  // Strip HTML tags/comments — replaces <tag> with space, preserves enclosed text
+  normalized = stripHtmlTags(normalized);
+
   return (
-    text
-      // Strip fenced code block delimiters but keep content (commands/config may be duplicated)
-      .replace(/```[^\n]*\n?/g, "")
-      // Strip inline code backticks but keep content
-      .replace(/`([^`]+)`/g, "$1")
-      // Remove markdown headings markers
-      .replace(/^#{1,6}\s+/gm, "")
-      // Remove link syntax but keep text: [text](url) → text
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-      // Remove image syntax
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, "")
-      // Remove bold/italic marker characters (*, _) left after other stripping
-      .replace(/\*+/g, "")
-      .replace(/_+/g, "")
-      // Remove all angle brackets (strips HTML tags and any fragments —
-      // safe because this text is only used for similarity comparison, never rendered)
-      .replace(/[<>]/g, "")
+    normalized
       // Remove list-item markers (-, *, numbered) but keep the text on its own line
       .replace(/^\s*[-*]\s+/gm, "")
       .replace(/^\s*\d+[.)]\s+/gm, "")
