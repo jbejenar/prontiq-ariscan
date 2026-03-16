@@ -862,7 +862,7 @@ Agent readiness criteria differ by language — TypeScript strict mode is irrele
 
 ### Telemetry (non-blocking)
 
-- [x] Detection accuracy rate — `detection_confidence` field emits primary language confidence (0–1)
+- [ ] Detection accuracy rate [DEFERRED: requires ground-truth benchmark data from P1.18 to compute accuracy — `detection_confidence` emits confidence, not accuracy]
 - [x] Languages per scan distribution — `language_count` field emits per-scan language count
 
 ## Scope
@@ -1290,7 +1290,7 @@ Test isolation is elevated to 18% weight (from 12.5% equal weight) because resea
 
 ### Telemetry (non-blocking)
 
-- [x] Anti-pattern distribution by category — `finding_counts_by_severity` field emits per-severity breakdown
+- [x] Anti-pattern distribution by category — `finding_counts_by_pillar` field emits per-pillar finding counts (category = pillar)
 - [x] Detection count per repo — `finding_count` field emits total findings per scan
 
 ## Scope

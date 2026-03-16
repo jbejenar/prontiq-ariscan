@@ -79,5 +79,7 @@ export const telemetryPayloadSchema = z.object({
       info: z.number().int().nonnegative(),
     })
     .optional(),
+  /** Finding counts grouped by pillar (anti-pattern category). */
+  finding_counts_by_pillar: z.record(z.string(), z.number().int().nonnegative()).optional(),
 });
 export type TelemetryPayload = z.infer<typeof telemetryPayloadSchema>;

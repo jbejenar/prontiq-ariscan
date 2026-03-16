@@ -32,6 +32,12 @@ export function buildTelemetryPayload(
     }
   }
 
+  // Aggregate finding counts by pillar (anti-pattern category)
+  const pillarCounts: Record<string, number> = {};
+  for (const f of result.findings) {
+    pillarCounts[f.pillar] = (pillarCounts[f.pillar] ?? 0) + 1;
+  }
+
   // Count distinct agent context file types
   const contextFileTypes = result.contextFiles
     ? new Set(result.contextFiles.map((cf) => cf.type)).size
@@ -61,5 +67,6 @@ export function buildTelemetryPayload(
     monorepo_detected: result.detection?.monorepo != null,
     detection_confidence: primaryLangEntry?.confidence,
     finding_counts_by_severity: severityCounts,
+    finding_counts_by_pillar: Object.keys(pillarCounts).length > 0 ? pillarCounts : undefined,
   };
 }
