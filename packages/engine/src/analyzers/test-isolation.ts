@@ -778,7 +778,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
     let hasAbstractedInterface = false;
     // First pass: files with provider/factory/container/inject in the name
     // Use broad patterns here — file naming already signals DI context
-    for (const pf of providerFiles.slice(0, 10)) {
+    for (const pf of providerFiles) {
       const content = await context.readFile(pf);
       if (!content) continue;
       if (BROAD_INTERFACE.test(content) || BROAD_ABSTRACT_CLASS.test(content)) {
