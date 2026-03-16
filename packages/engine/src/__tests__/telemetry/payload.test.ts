@@ -71,6 +71,44 @@ describe("buildTelemetryPayload", () => {
     expect(payload.finding_count).toBe(2);
   });
 
+  it("includes per-pillar score buckets", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.pillar_scores).toBeDefined();
+    expect(payload.pillar_scores).toHaveLength(1);
+    expect(payload.pillar_scores?.[0]).toEqual({
+      pillar_id: "P1",
+      score_bucket: "66-80",
+    });
+  });
+
+  it("includes detection counts", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.language_count).toBe(1);
+    expect(payload.framework_count).toBe(0);
+  });
+
+  it("includes format and fix options when provided", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100, {
+      format: "json",
+      fixTypes: ["agents-md", "devcontainer"],
+      badgeGenerated: true,
+    });
+    expect(payload.format).toBe("json");
+    expect(payload.fix_types).toEqual(["agents-md", "devcontainer"]);
+    expect(payload.badge_generated).toBe(true);
+  });
+
+  it("omits optional fields when not provided", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.format).toBeUndefined();
+    expect(payload.fix_types).toBeUndefined();
+    expect(payload.badge_generated).toBeUndefined();
+  });
+
   it("generates unique scan_id per call", () => {
     const result = makeScanResult();
     const p1 = buildTelemetryPayload(result, 100);
