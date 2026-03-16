@@ -207,6 +207,19 @@ describe("testIsolationAnalyzer (P3)", () => {
       const finding = result.findings.find((f) => f.code === "ARI-TST-016");
       expect(finding).toBeDefined();
     });
+
+    it("detects abstraction in files without provider/factory in the name", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/storage.ts":
+          "export interface StorageProvider { put(key: string, data: Buffer): Promise<void>; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("abstraction");
+    });
   });
 
   describe("direct SDK imports in tests (ARI-TST-017)", () => {

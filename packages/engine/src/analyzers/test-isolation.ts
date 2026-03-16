@@ -766,16 +766,37 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
     const hasProviderPattern = providerFiles.length > 0;
 
     // Distinguish abstracted interfaces from direct SDK usage
+    // Scan provider-named files first, then broaden to other source files
+    const ABSTRACTION_PATTERN = /\binterface\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i;
+    const ABSTRACT_CLASS_PATTERN =
+      /\babstract\s+class\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i;
+
     let hasAbstractedInterface = false;
+    // First pass: files with provider/factory/container/inject in the name
     for (const pf of providerFiles.slice(0, 10)) {
       const content = await context.readFile(pf);
       if (!content) continue;
-      if (
-        /\binterface\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i.test(content) ||
-        /\babstract\s+class\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i.test(content)
-      ) {
+      if (ABSTRACTION_PATTERN.test(content) || ABSTRACT_CLASS_PATTERN.test(content)) {
         hasAbstractedInterface = true;
         break;
+      }
+    }
+    // Second pass: scan other non-test source files for abstraction declarations
+    if (!hasAbstractedInterface) {
+      const sourceFiles = context.files.filter((f) => {
+        if (TEST_FILE_PATTERNS.some((p) => p.test(f))) return false;
+        if (providerFiles.includes(f)) return false;
+        if (!/\.(ts|js|tsx|jsx)$/i.test(f)) return false;
+        if (/node_modules|\.d\.ts$|dist\//i.test(f)) return false;
+        return true;
+      });
+      for (const sf of sourceFiles.slice(0, 20)) {
+        const content = await context.readFile(sf);
+        if (!content) continue;
+        if (ABSTRACTION_PATTERN.test(content) || ABSTRACT_CLASS_PATTERN.test(content)) {
+          hasAbstractedInterface = true;
+          break;
+        }
       }
     }
 
@@ -802,26 +823,24 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       }
     }
 
-    if (hasProviderPattern) {
-      if (hasAbstractedInterface) {
-        score += 20; // bonus: properly abstracted provider interfaces
-        findings.push({
-          code: "ARI-TST-016",
-          severity: "info",
-          pillar: PILLAR,
-          message:
-            "Provider abstraction detected: interface/abstract class patterns found in provider files",
+    if (hasAbstractedInterface) {
+      score += 20; // bonus: properly abstracted provider interfaces
+      findings.push({
+        code: "ARI-TST-016",
+        severity: "info",
+        pillar: PILLAR,
+        message:
+          "Provider abstraction detected: interface/abstract class patterns found in source files",
+        confidence: "medium",
+        evidence: {
+          paper: "Berndt et al., 2026",
+          finding:
+            "Abstracted provider interfaces reduce test flakiness by decoupling from external SDKs",
           confidence: "medium",
-          evidence: {
-            paper: "Berndt et al., 2026",
-            finding:
-              "Abstracted provider interfaces reduce test flakiness by decoupling from external SDKs",
-            confidence: "medium",
-          },
-        });
-      } else {
-        score += 15; // basic provider pattern (filename-based only)
-      }
+        },
+      });
+    } else if (hasProviderPattern) {
+      score += 15; // basic provider pattern (filename-based only)
     }
 
     if (directSdkInTestCount > 0) {
