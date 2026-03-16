@@ -41,7 +41,7 @@ describe("scan module", () => {
     expect(result.pillars).toBeDefined();
     expect(Array.isArray(result.pillars)).toBe(true);
     expect(result.metadata).toBeDefined();
-    expect(result.metadata.version).toBe("0.1.0");
+    expect(result.metadata.version).toBe("0.2.0");
     expect(["L1", "L2", "L3", "L4", "L5"]).toContain(result.level);
   });
 

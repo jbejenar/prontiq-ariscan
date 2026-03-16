@@ -68,5 +68,9 @@ export function buildTelemetryPayload(
     detection_confidence: primaryLangEntry?.confidence,
     finding_counts_by_severity: severityCounts,
     finding_counts_by_pillar: Object.keys(pillarCounts).length > 0 ? pillarCounts : undefined,
+
+    // Round 2 fields
+    devcontainer_detected: result.devcontainerDetected,
+    high_risk_test_count: result.findings.filter((f) => f.code === "ARI-TST-015").length,
   };
 }

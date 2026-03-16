@@ -5,7 +5,7 @@ import { formatJson, formatNdjson, getJsonSchemaObject } from "../output/json.js
 
 const mockResult: ScanResult = {
   metadata: {
-    version: "0.1.0",
+    version: "0.2.0",
     timestamp: "2026-03-08T00:00:00.000Z",
     duration: 500,
     repoPath: "/test/repo",
@@ -141,7 +141,7 @@ describe("formatNdjson", () => {
     const lines = output.trim().split("\n");
     const first = JSON.parse(lines[0] ?? "");
     expect(first.type).toBe("metadata");
-    expect(first.version).toBe("0.1.0");
+    expect(first.version).toBe("0.2.0");
     expect(first.timestamp).toBeDefined();
   });
 

@@ -50,7 +50,7 @@ export async function handleTelemetryShow(): Promise<void> {
   // Show example payload
   const exampleResult: ScanResult = {
     metadata: {
-      version: "0.1.0",
+      version: "0.2.0",
       timestamp: new Date().toISOString(),
       duration: 1234,
       repoPath: "/redacted",

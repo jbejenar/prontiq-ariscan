@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://prontiq.dev/schemas/ari-scan-result/v1.json",
   "title": "ARI Scan Result",
-  "description": "Output of the Prontiq ARI scan — Agent Readiness Index for a repository.",
+  "description": "Output of the Prontiq ARI scan — Agent Readiness Index for a repository. The $id URI (v1) is the schema format revision; the authoritative semver is in metadata.version. See README.md Versioning Policy.",
   "type": "object",
   "required": [
     "metadata",
@@ -60,7 +60,8 @@
       "required": ["level", "name", "description"],
       "properties": {
         "level": {
-          "type": "string"
+          "type": "string",
+          "enum": ["L1", "L2", "L3", "L4", "L5"]
         },
         "name": {
           "type": "string"
@@ -80,7 +81,8 @@
         "required": ["pillar", "name", "score", "weight", "confidence", "findings", "summary"],
         "properties": {
           "pillar": {
-            "type": "string"
+            "type": "string",
+            "enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
           },
           "name": {
             "type": "string"
@@ -112,6 +114,13 @@
             "type": "string",
             "enum": ["excellent", "good", "needs-improvement", "poor"],
             "description": "Derived label: >=80 excellent, >=60 good, >=40 needs-improvement, <40 poor"
+          },
+          "researchBasis": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Research papers/sources that justify this pillar's weighting and scoring criteria."
           }
         }
       }
@@ -124,17 +133,21 @@
     },
     "detection": {
       "type": "object",
+      "required": ["languages", "frameworks", "monorepo"],
       "properties": {
         "languages": {
           "type": "array",
           "items": {
             "type": "object",
+            "required": ["language", "confidence", "primary"],
             "properties": {
               "language": {
                 "type": "string"
               },
               "confidence": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
               },
               "primary": {
                 "type": "boolean"
@@ -146,12 +159,15 @@
           "type": "array",
           "items": {
             "type": "object",
+            "required": ["framework", "confidence"],
             "properties": {
               "framework": {
                 "type": "string"
               },
               "confidence": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
               }
             }
           }
@@ -160,6 +176,7 @@
           "oneOf": [
             {
               "type": "object",
+              "required": ["tool", "workspaceRoot", "packages"],
               "properties": {
                 "tool": {
                   "type": "string"
@@ -220,6 +237,10 @@
           }
         }
       }
+    },
+    "devcontainerDetected": {
+      "type": "boolean",
+      "description": "Whether a devcontainer configuration was detected in the repository."
     }
   },
   "$defs": {
@@ -236,7 +257,8 @@
           "enum": ["critical", "high", "medium", "low", "info"]
         },
         "pillar": {
-          "type": "string"
+          "type": "string",
+          "enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
         },
         "file": {
           "type": "string"
@@ -246,6 +268,11 @@
         },
         "message": {
           "type": "string"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "How confident we are in this finding."
         },
         "remediation": {
           "type": "object",
@@ -295,6 +322,10 @@
               "enum": ["high", "medium", "low"]
             }
           }
+        },
+        "suppressed": {
+          "type": "boolean",
+          "description": "When true, the finding was matched by a policy suppression and excluded from scoring."
         }
       }
     }

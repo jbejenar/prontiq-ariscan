@@ -81,5 +81,12 @@ export const telemetryPayloadSchema = z.object({
     .optional(),
   /** Finding counts grouped by pillar (anti-pattern category). */
   finding_counts_by_pillar: z.record(z.string(), z.number().int().nonnegative()).optional(),
+
+  // --- Round 2 telemetry fields ---
+
+  /** Whether a devcontainer configuration was detected. */
+  devcontainer_detected: z.boolean().optional(),
+  /** Number of test files flagged as high flakiness-transfer risk. */
+  high_risk_test_count: z.number().int().nonnegative().optional(),
 });
 export type TelemetryPayload = z.infer<typeof telemetryPayloadSchema>;

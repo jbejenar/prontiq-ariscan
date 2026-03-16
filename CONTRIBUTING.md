@@ -94,6 +94,19 @@ When scanner changes (new findings, weight adjustments, new criteria) affect wha
 
 > **Why:** The scaffolder and scanner share the same rubric. If the scanner evolves but templates don't, `ariscan init` output will fail its own dogfood gate. CI enforces this — but catching it locally is faster.
 
+## Branch Protection
+
+The `main` branch is protected with the following rules:
+
+- **Require CI to pass** — all status checks (format, lint, typecheck, test, build, ARI self-scan) must succeed before merge.
+- **Require review** — at least one approving review is required.
+- **No force push** — force pushes to `main` are blocked to preserve commit history.
+- **No direct pushes** — all changes go through pull requests.
+
+These settings align with what the P8 (Security & Governance) analyzer checks for. The ARI scanner detects branch protection patterns in CI configuration and awards points for enforcement.
+
+> **GitHub Rulesets:** GitHub's [repository rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets) offer a code-as-config alternative to branch protection settings. Consider using rulesets for more granular control (e.g., requiring signed commits, restricting file paths).
+
 ## Pull Request Guidelines
 
 - **One concern per PR** — keep changes focused

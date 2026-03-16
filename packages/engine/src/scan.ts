@@ -30,7 +30,7 @@ export interface ScanProgressEvent {
 /** Callback for streaming scan progress. */
 export type OnProgress = (event: ScanProgressEvent) => void;
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 /** Root-level context files to probe for. */
 const CONTEXT_FILE_PATHS = [
@@ -210,7 +210,16 @@ export async function scan(
     duration,
   });
 
-  return { ...result, detection, contextFiles: contextFiles.length > 0 ? contextFiles : undefined };
+  // Explicit devcontainer detection — propagated into ScanResult so telemetry
+  // doesn't need to reverse-infer from finding codes.
+  const devcontainerDetected = await context.fileExists(".devcontainer/devcontainer.json");
+
+  return {
+    ...result,
+    detection,
+    contextFiles: contextFiles.length > 0 ? contextFiles : undefined,
+    devcontainerDetected,
+  };
 }
 
 /**

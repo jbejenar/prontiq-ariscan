@@ -1,5 +1,10 @@
 import type { ScanResult } from "@prontiq/ariscan-schema";
 
+/**
+ * Schema format revision URI (major-only). Bumps only on breaking structural
+ * changes. The authoritative semver lives in metadata.version (set by the engine).
+ * See README.md "Versioning Policy" for the full dual-versioning contract.
+ */
 const SCHEMA_ID = "https://prontiq.dev/schemas/ari-scan-result/v1.json";
 
 /**
@@ -23,7 +28,8 @@ export function getJsonSchemaObject(): Record<string, unknown> {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: SCHEMA_ID,
     title: "ARI Scan Result",
-    description: "Output of the Prontiq ARI scan — Agent Readiness Index for a repository.",
+    description:
+      "Output of the Prontiq ARI scan — Agent Readiness Index for a repository. The $id URI (v1) is the schema format revision; the authoritative semver is in metadata.version. See README.md Versioning Policy.",
     type: "object",
     required: [
       "metadata",
@@ -57,7 +63,7 @@ export function getJsonSchemaObject(): Record<string, unknown> {
         type: "object",
         required: ["level", "name", "description"],
         properties: {
-          level: { type: "string" },
+          level: { type: "string", enum: ["L1", "L2", "L3", "L4", "L5"] },
           name: { type: "string" },
           description: { type: "string" },
         },
@@ -69,7 +75,7 @@ export function getJsonSchemaObject(): Record<string, unknown> {
           type: "object",
           required: ["pillar", "name", "score", "weight", "confidence", "findings", "summary"],
           properties: {
-            pillar: { type: "string" },
+            pillar: { type: "string", enum: ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"] },
             name: { type: "string" },
             score: { type: "number", minimum: 0, maximum: 100 },
             weight: { type: "number", minimum: 0, maximum: 1 },
@@ -82,6 +88,12 @@ export function getJsonSchemaObject(): Record<string, unknown> {
               description:
                 "Derived label: >=80 excellent, >=60 good, >=40 needs-improvement, <40 poor",
             },
+            researchBasis: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "Research papers/sources that justify this pillar's weighting and scoring criteria.",
+            },
           },
         },
       },
@@ -91,14 +103,16 @@ export function getJsonSchemaObject(): Record<string, unknown> {
       },
       detection: {
         type: "object",
+        required: ["languages", "frameworks", "monorepo"],
         properties: {
           languages: {
             type: "array",
             items: {
               type: "object",
+              required: ["language", "confidence", "primary"],
               properties: {
                 language: { type: "string" },
-                confidence: { type: "number" },
+                confidence: { type: "number", minimum: 0, maximum: 1 },
                 primary: { type: "boolean" },
               },
             },
@@ -107,9 +121,10 @@ export function getJsonSchemaObject(): Record<string, unknown> {
             type: "array",
             items: {
               type: "object",
+              required: ["framework", "confidence"],
               properties: {
                 framework: { type: "string" },
-                confidence: { type: "number" },
+                confidence: { type: "number", minimum: 0, maximum: 1 },
               },
             },
           },
@@ -117,6 +132,7 @@ export function getJsonSchemaObject(): Record<string, unknown> {
             oneOf: [
               {
                 type: "object",
+                required: ["tool", "workspaceRoot", "packages"],
                 properties: {
                   tool: { type: "string" },
                   workspaceRoot: { type: "string" },
@@ -158,6 +174,10 @@ export function getJsonSchemaObject(): Record<string, unknown> {
           },
         },
       },
+      devcontainerDetected: {
+        type: "boolean",
+        description: "Whether a devcontainer configuration was detected in the repository.",
+      },
     },
     $defs: {
       finding: {
@@ -169,10 +189,15 @@ export function getJsonSchemaObject(): Record<string, unknown> {
             type: "string",
             enum: ["critical", "high", "medium", "low", "info"],
           },
-          pillar: { type: "string" },
+          pillar: { type: "string", enum: ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"] },
           file: { type: "string" },
           line: { type: "number" },
           message: { type: "string" },
+          confidence: {
+            type: "string",
+            enum: ["high", "medium", "low"],
+            description: "How confident we are in this finding.",
+          },
           remediation: {
             type: "object",
             required: ["action", "description", "confidence"],

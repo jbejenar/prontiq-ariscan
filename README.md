@@ -1,5 +1,7 @@
 # Prontiq ARI — `@prontiq/ariscan-cli`
 
+[![CI](https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml/badge.svg)](https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml)
+
 > Measure and improve how ready your codebase is for AI coding agents.
 
 **ARI** (Agent Readiness Index) is a composite score (0-100) derived from 8 research-calibrated pillars. Run `npx @prontiq/ariscan-cli .` to get an actionable readiness report in under 10 minutes.
@@ -144,13 +146,22 @@ The core scanning engine is functional. What's built:
 
 ARI output follows [Semantic Versioning](https://semver.org/). The JSON schema file (`ariscan.schema.json`) and the `--json-schema` flag document the current output contract.
 
+**Two version signals:** Scan output carries two version identifiers with different semantics:
+
+| Signal | Location | Example | Semantics |
+|---|---|---|---|
+| **Schema URI** | `$schema` / `$id` field | `.../v1.json` | Schema format revision. Bumps only on breaking structural changes (field removals, type changes). Consumers use this to select the correct parser. |
+| **Output version** | `metadata.version` | `0.2.0` | Authoritative semver of the scan output contract. Tracks all changes per the table below. **This is the version consumers should target for feature detection.** |
+
+The schema URI uses major-only versioning (`v1`, `v2`, …) as a structural stability contract — any consumer built for `v1.json` can parse all output where `metadata.version` is within the `v1` schema generation. The `metadata.version` field is the precise semver that indicates which optional fields, pillars, and finding codes are available.
+
 | Change Type | Semver Impact | Examples |
 |---|---|---|
-| **Patch** | `x.y.Z` | New optional fields, bug fixes in scoring, documentation updates |
-| **Minor** | `x.Y.0` | New pillar or criterion, new finding codes, new output fields |
-| **Major** | `X.0.0` | Removing or renaming fields, changing score semantics, breaking schema changes |
+| **Patch** | `x.y.Z` | Bug fixes in scoring, documentation updates, internal refactors — no change to the JSON output surface |
+| **Minor** | `x.Y.0` | Any additive change to the JSON output surface: new fields (required or optional), new finding codes, new pillars |
+| **Major** | `X.0.0` | Removing or renaming fields, changing field types, changing score semantics, breaking schema changes |
 
-**Backwards compatibility guarantee:** within a major version, all previously valid JSON output fields remain present with the same types and semantics. Consumers can safely parse ARI output without breaking when patch or minor versions are released.
+**Backwards compatibility guarantee:** within a major version, all previously valid JSON output fields remain present with the same types and semantics. Consumers can safely parse ARI output without breaking when patch or minor versions are released. A major version bump in `metadata.version` will coincide with a new schema URI (e.g., `v2.json`).
 
 ---
 

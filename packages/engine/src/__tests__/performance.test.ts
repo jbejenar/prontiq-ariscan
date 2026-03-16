@@ -170,7 +170,7 @@ describe("performance: 100k file repo", () => {
     );
 
     const result = aggregateResults(pillarResults, {
-      version: "0.1.0",
+      version: "0.2.0",
       repoPath: "/mock/large-repo",
       duration: 0,
     });
