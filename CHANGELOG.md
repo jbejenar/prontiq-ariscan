@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.18.0] — 2026-03-17
+
+### Added
+- **CI (CI.10):** SARIF upload to GitHub Code Scanning. ARI findings now appear as code scanning alerts, enabling GitHub Copilot to surface them inline. Uses `github/codeql-action/upload-sarif@v3` with `category: ariscan`.
+- **CI:** Added `security-events: write` permission to CI workflow for SARIF upload.
+
+### Changed
+- **Roadmap:** CI.10 advanced to `in-progress` (2/3 items checked; third requires remote verification after push).
+
 ## [3.17.0] — 2026-03-16
 
 ### Added
