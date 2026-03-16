@@ -687,6 +687,97 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     });
   });
 
+  describe("ARI-BLD-013: Type coverage percentage", () => {
+    it("emits info finding when type-coverage script exists", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+        "package.json": JSON.stringify({
+          scripts: { "type-coverage": "type-coverage --at-least 95" },
+        }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-013");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("emits info finding when .type-coverage directory exists", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+        "package.json": JSON.stringify({}),
+        ".type-coverage/report.json": "{}",
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-013");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("emits info finding when type-coverage is a devDependency", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+        "package.json": JSON.stringify({
+          devDependencies: { "type-coverage": "^2.27.0" },
+        }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-013");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("adds +5 score when type coverage tooling is present", async () => {
+      const withCoverage = createMockContext({
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+        "package.json": JSON.stringify({
+          scripts: { "type-coverage": "type-coverage" },
+        }),
+      });
+      const withoutCoverage = createMockContext({
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+        "package.json": JSON.stringify({}),
+      });
+      const r1 = await buildDeterminismAnalyzer.analyze(withCoverage);
+      const r2 = await buildDeterminismAnalyzer.analyze(withoutCoverage);
+      expect(r1.score - r2.score).toBe(5);
+    });
+
+    it("emits low finding when no type coverage tooling is detected", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+        "package.json": JSON.stringify({}),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-013");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("low");
+      expect(finding?.remediation).toBeDefined();
+    });
+
+    it("does not emit ARI-BLD-013 when no tsconfig exists", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          scripts: { "type-coverage": "type-coverage" },
+        }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-BLD-013")).toBe(false);
+    });
+
+    it("detects typecheck:coverage script variant", async () => {
+      const ctx = createMockContext({
+        "tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }),
+        "package.json": JSON.stringify({
+          scripts: { "typecheck:coverage": "type-coverage --at-least 90" },
+        }),
+      });
+      const result = await buildDeterminismAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-BLD-013");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+  });
+
   describe("score clamping", () => {
     it("never exceeds 100", async () => {
       const ctx = createMockContext({

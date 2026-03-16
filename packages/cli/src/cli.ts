@@ -13,7 +13,7 @@ import {
 import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
 import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
 import { formatTerminal } from "./output/terminal.js";
-import { formatJson, formatJsonSchema } from "./output/json.js";
+import { formatJson, formatNdjson, formatJsonSchema } from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
 import { formatSarif } from "./output/sarif.js";
 import { generateBadgeSvg, generateBadgeSnippets } from "./output/badge.js";
@@ -112,7 +112,7 @@ Exit codes:
     },
     format: {
       type: "string",
-      description: "Output format: terminal, json, sarif, markdown",
+      description: "Output format: terminal, json, ndjson, sarif, markdown",
       default: "terminal",
     },
     json: {
@@ -337,6 +337,8 @@ function outputScanResult(
 ): void {
   if (format === "json") {
     process.stdout.write(formatJson(result));
+  } else if (format === "ndjson") {
+    process.stdout.write(formatNdjson(result));
   } else if (format === "sarif") {
     process.stdout.write(formatSarif(result));
   } else if (format === "markdown") {

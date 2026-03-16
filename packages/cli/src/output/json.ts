@@ -220,6 +220,50 @@ export function getJsonSchemaObject(): Record<string, unknown> {
   };
 }
 
+/**
+ * Format scan result as NDJSON (newline-delimited JSON) for streaming.
+ * Emits one JSON object per line:
+ *   1. metadata record (type: "metadata")
+ *   2. one record per pillar (type: "pillar")
+ *   3. summary record (type: "summary")
+ */
+export function formatNdjson(result: ScanResult): string {
+  const lines: string[] = [];
+
+  // Line 1: metadata
+  lines.push(
+    JSON.stringify({
+      type: "metadata",
+      ...result.metadata,
+    }),
+  );
+
+  // Lines 2-N: one per pillar
+  for (const pillar of result.pillars) {
+    lines.push(
+      JSON.stringify({
+        type: "pillar",
+        ...pillar,
+      }),
+    );
+  }
+
+  // Final line: summary
+  lines.push(
+    JSON.stringify({
+      type: "summary",
+      score: result.score,
+      level: result.level,
+      levelMeta: result.levelMeta,
+      securityGateTriggered: result.securityGateTriggered,
+      findingsCount: result.findings.length,
+      ...(result.detection ? { detection: result.detection } : {}),
+    }),
+  );
+
+  return lines.join("\n") + "\n";
+}
+
 /** Serialize the JSON Schema as a formatted string. */
 export function formatJsonSchema(): string {
   return JSON.stringify(getJsonSchemaObject(), null, 2) + "\n";

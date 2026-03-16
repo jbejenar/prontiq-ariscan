@@ -444,6 +444,56 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       });
     }
 
+    // --- ARI-BLD-013: Type coverage percentage ---
+    if (tsconfig) {
+      const hasTypeCoverageScript = !!(scripts["type-coverage"] || scripts["typecheck:coverage"]);
+      const hasTypeCoverageDir = await context.fileExists(".type-coverage");
+      const hasTypeCoverageDep =
+        pkg &&
+        (() => {
+          const devDeps = (pkg["devDependencies"] ?? {}) as Record<string, string>;
+          const deps = (pkg["dependencies"] ?? {}) as Record<string, string>;
+          return "type-coverage" in devDeps || "type-coverage" in deps;
+        })();
+
+      if (hasTypeCoverageScript || hasTypeCoverageDir || hasTypeCoverageDep) {
+        score += 5;
+        findings.push({
+          code: "ARI-BLD-013",
+          severity: "info",
+          pillar: PILLAR,
+          message:
+            "Type coverage tooling detected — tracking type safety percentage helps agents produce well-typed code",
+          confidence: "high",
+          evidence: {
+            paper: "TyFlow, Huang et al., 2025",
+            finding: "33.6% of failed LM-generated programs fail due to type errors",
+            confidence: "high",
+          },
+        });
+      } else {
+        findings.push({
+          code: "ARI-BLD-013",
+          severity: "low",
+          pillar: PILLAR,
+          message:
+            "No type coverage tracking detected — consider adding type-coverage to measure and enforce type safety percentage",
+          confidence: "medium",
+          remediation: {
+            action: "add-dependency",
+            description:
+              "Install type-coverage (npm i -D type-coverage) and add a type-coverage script to package.json to track and enforce type safety percentage",
+            confidence: "high",
+          },
+          evidence: {
+            paper: "TyFlow, Huang et al., 2025",
+            finding: "33.6% of failed LM-generated programs fail due to type errors",
+            confidence: "high",
+          },
+        });
+      }
+    }
+
     // Java nullability annotations check
     const javaFiles = context.files.filter(
       (f) => f.endsWith(".java") && !f.includes("build/") && !f.includes("target/"),

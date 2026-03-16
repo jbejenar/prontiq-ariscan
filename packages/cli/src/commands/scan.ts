@@ -7,7 +7,7 @@ import type { OnProgress } from "@prontiq/ariscan-engine";
 import type { ScanConfig, ScanResult } from "@prontiq/ariscan-schema";
 import { PILLAR_NAMES } from "@prontiq/ariscan-schema";
 import { formatTerminal } from "../output/terminal.js";
-import { formatJson, formatJsonSchema } from "../output/json.js";
+import { formatJson, formatNdjson, formatJsonSchema } from "../output/json.js";
 import { formatMarkdown } from "../output/markdown.js";
 import { formatSarif } from "../output/sarif.js";
 import { resolveConfig } from "../config-loader.js";
@@ -49,6 +49,7 @@ function buildCliOverrides(options: ScanOptions): Partial<ScanConfig> {
 
 function formatOutput(result: ScanResult, format: string, options: ScanOptions): string {
   if (format === "json") return formatJson(result);
+  if (format === "ndjson") return formatNdjson(result);
   if (format === "sarif") return formatSarif(result);
   if (format === "markdown") return formatMarkdown(result);
   return formatTerminal(result, { verbose: options.verbose, quiet: options.quiet });
@@ -116,7 +117,7 @@ export const scanCommand = defineCommand({
     },
     format: {
       type: "string",
-      description: "Output format: terminal, json, sarif, markdown",
+      description: "Output format: terminal, json, ndjson, sarif, markdown",
       default: "terminal",
     },
     json: {
