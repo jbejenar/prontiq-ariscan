@@ -632,8 +632,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     const gitignoreStatus = statusLabel(hasGitignoreSensitive);
 
     // AI-specific security sub-score (AC#3)
-    const aiScorePercent =
-      aiSpecificMax > 0 ? Math.round((aiSpecificScore / aiSpecificMax) * 100) : 0;
+    const aiScorePercent = Math.round((aiSpecificScore / aiSpecificMax) * 100);
 
     return buildPillarResult(
       PILLAR,

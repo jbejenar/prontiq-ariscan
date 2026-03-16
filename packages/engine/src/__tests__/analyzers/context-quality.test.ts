@@ -388,6 +388,50 @@ describe("contextQualityAnalyzer (P1)", () => {
       const result = await contextQualityAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-CTX-006")).toBe(false);
     });
+
+    it("emits ARI-CTX-006 for single-directory references like src/ that do not exist", async () => {
+      const content = [
+        "# AGENTS.md",
+        "## Architecture",
+        "Source code lives in src/",
+        "Tests are in tests/",
+        "Also check ./lib/",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": content,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-006")).toBe(true);
+    });
+
+    it("does not emit ARI-CTX-006 for single-directory references that exist", async () => {
+      const content = [
+        "# AGENTS.md",
+        "## Architecture",
+        "Source code lives in src/",
+        "Also check ./lib/",
+        "Line 5",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": content,
+        "src/index.ts": "export {};",
+        "lib/utils.ts": "export {};",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-006")).toBe(false);
+    });
   });
 
   describe("boilerplate detection (ARI-CTX-007)", () => {
@@ -569,6 +613,437 @@ describe("contextQualityAnalyzer (P1)", () => {
     });
   });
 
+  describe("additionality analysis (ARI-CTX-011)", () => {
+    it("emits ARI-CTX-011 when AGENTS.md duplicates README content", async () => {
+      const sharedContent = [
+        "This project uses a monorepo layout managed by Turborepo with pnpm workspaces",
+        "The main packages are located in the packages directory with schema engine and cli",
+        "You can install dependencies by running pnpm install in the root directory",
+        "Build all packages with pnpm build which uses turborepo for orchestration",
+        "Run all tests with pnpm test which uses vitest as the testing framework",
+        "Linting is done with eslint nine flat config and prettier for formatting",
+        "TypeScript strict mode is enabled across all packages in the monorepo",
+        "The project follows ESM only conventions with explicit js extensions in imports",
+        "Never use the any type use unknown with type narrowing instead",
+        "All code changes must pass typecheck lint and test before merging",
+      ];
+      const readme = [
+        "# My Project",
+        "",
+        ...sharedContent.map((s) => s + "."),
+        "",
+        "## License",
+        "MIT",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "",
+        ...sharedContent.map((s) => s + "."),
+        "",
+        "## Extra",
+        "Some unique content here.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-011");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("redundancy");
+      expect(finding?.message).toMatch(/\d+\.\d%/); // one decimal place
+    });
+
+    it("does not emit ARI-CTX-011 for AGENTS.md with unique content", async () => {
+      const readme = [
+        "# My Project",
+        "A web application for managing tasks and projects efficiently.",
+        "Built with React and Node.js for modern web development.",
+        "## Installation",
+        "Clone the repository and run npm install to get started.",
+        "## License",
+        "MIT Licensed open source software.",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "",
+        "## Architecture Decisions",
+        "The analyzer engine uses a provider pattern for dependency injection throughout.",
+        "Each pillar has exactly one analyzer file implementing the PillarAnalyzer interface.",
+        "",
+        "## Conventions",
+        "Finding codes follow the pattern ARI-PILLAR-NNN and must never be renumbered.",
+        "Score clamping to zero through one hundred is mandatory in every analyzer.",
+        "",
+        "## Common Pitfalls",
+        "Forgetting the js extension in relative imports causes runtime ESM resolution failures.",
+        "Building schema before testing engine is required because of cross-package dependencies.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-011")).toBe(false);
+    });
+
+    it("includes redundancy percentage to one decimal place", async () => {
+      const readme = [
+        "# Project",
+        "This application processes data using advanced algorithms for analysis.",
+        "The core engine transforms input into structured output formats.",
+        "Testing is done with comprehensive integration and unit test suites.",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "This application processes data using advanced algorithms for analysis.",
+        "The core engine transforms input into structured output formats.",
+        "Testing is done with comprehensive integration and unit test suites.",
+        "Additional unique architecture details about the project structure.",
+        "Important conventions that are not mentioned anywhere else in docs.",
+        "Line seven.",
+        "Line eight.",
+        "Line nine.",
+        "Line ten.",
+        "Line eleven.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Check summary contains additionality with decimal format
+      expect(result.summary).toMatch(/\d+\.\d%\s+additionality/);
+      expect(result.summary).toMatch(/\d+\.\d%\s+redundancy/);
+    });
+
+    it("includes additionality metrics in summary", async () => {
+      const readme = "# Project\nA simple readme with basic description of the project.";
+      const agentsMd = [
+        "# AGENTS.md",
+        "## Architecture",
+        "Unique architecture details not in README about the module structure.",
+        "The provider pattern is used for all external service dependencies.",
+        "Each module follows hexagonal architecture with ports and adapters pattern.",
+        "## Conventions",
+        "Use strict TypeScript with no any types across all packages.",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("Additionality:");
+      expect(result.summary).toContain("AGENTS.md:");
+    });
+
+    it("reports line-level duplicative and additive content", async () => {
+      const sharedContent = [
+        "The project uses TypeScript with strict mode enabled for all packages",
+        "Dependencies are managed with pnpm workspaces and turborepo orchestration",
+        "All tests run with vitest and must pass before any code is merged",
+      ];
+      const readme = ["# Project", ...sharedContent.map((s) => s + ".")].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        ...sharedContent.map((s) => s + "."),
+        "Unique architecture detail about the analyzer pipeline and scoring system.",
+        "Convention about finding codes that must follow the ARI prefix pattern.",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-011");
+      expect(finding).toBeDefined();
+      if (finding) {
+        // Should contain line references for duplicative content
+        expect(finding.message).toMatch(/L\d+:/);
+        expect(finding.message).toContain("similar to");
+        expect(finding.message).toContain("Duplicative:");
+        expect(finding.message).toContain("Additive:");
+      }
+    });
+
+    it("awards bonus points for high additionality", async () => {
+      const readme = "# Project\nA brief project description for the readme file.";
+      const agentsMdUnique = [
+        "# AGENTS.md",
+        "## Architecture Decisions",
+        "The analyzer engine uses a provider pattern for all dependency injection.",
+        "Each of the eight pillars has exactly one analyzer implementing the interface.",
+        "## Build Conventions",
+        "Finding codes follow the stable pattern ARI then PILLAR then three digits.",
+        "Score clamping to zero through one hundred is mandatory in every single analyzer.",
+        "## Common Pitfalls",
+        "Forgetting the js extension in relative imports causes ESM resolution failures at runtime.",
+        "Always build schema before testing engine due to cross package import dependencies.",
+        "Never use console.log directly instead use the CLI formatter output layer.",
+      ].join("\n");
+      const agentsMdDuplicate = [
+        "# AGENTS.md",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+      ].join("\n");
+
+      const ctxUnique = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMdUnique,
+      });
+      const ctxDuplicate = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMdDuplicate,
+      });
+
+      const resultUnique = await contextQualityAnalyzer.analyze(ctxUnique);
+      const resultDuplicate = await contextQualityAnalyzer.analyze(ctxDuplicate);
+
+      expect(resultUnique.score).toBeGreaterThan(resultDuplicate.score);
+    });
+  });
+
+  describe("code-block additionality (Bug 6)", () => {
+    it("detects duplicated commands inside code fences as redundant", async () => {
+      // README has install/build/test commands in a code block
+      const readme = [
+        "# My Project",
+        "## Getting Started",
+        "Install dependencies and build the project with these commands:",
+        "```bash",
+        "pnpm install --frozen-lockfile",
+        "pnpm build --filter engine",
+        "pnpm test --run --reporter verbose",
+        "pnpm lint --fix --quiet",
+        "pnpm typecheck --noEmit --strict",
+        "```",
+        "## License",
+        "MIT",
+      ].join("\n");
+      // AGENTS.md copies those same commands in code blocks
+      const agentsMd = [
+        "# AGENTS.md",
+        "## Build Commands",
+        "Install dependencies and build the project with these commands:",
+        "```bash",
+        "pnpm install --frozen-lockfile",
+        "pnpm build --filter engine",
+        "pnpm test --run --reporter verbose",
+        "pnpm lint --fix --quiet",
+        "pnpm typecheck --noEmit --strict",
+        "```",
+        "## Extra Guidance",
+        "This unique project-specific guidance is only in the agents file.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // With code block content preserved, the redundancy should be detected
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-011");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("redundancy");
+    });
+  });
+
+  describe("HTML-wrapped additionality (Bug 12)", () => {
+    it("detects duplicated content inside HTML tags as redundant", async () => {
+      // README has setup instructions in plain text
+      const readme = [
+        "# My Project",
+        "## Setup",
+        "Install dependencies and build the project:",
+        "pnpm install --frozen-lockfile",
+        "pnpm build --filter engine",
+        "pnpm test --run --reporter verbose",
+        "pnpm lint --fix --quiet",
+        "pnpm typecheck --noEmit --strict",
+      ].join("\n");
+      // AGENTS.md wraps the same content in <details>/<summary>/<code> HTML tags
+      const agentsMd = [
+        "# AGENTS.md",
+        "<details><summary>Setup</summary>",
+        "",
+        "Install dependencies and build the project:",
+        "<code>pnpm install --frozen-lockfile</code>",
+        "<code>pnpm build --filter engine</code>",
+        "<code>pnpm test --run --reporter verbose</code>",
+        "<code>pnpm lint --fix --quiet</code>",
+        "<code>pnpm typecheck --noEmit --strict</code>",
+        "",
+        "</details>",
+        "## Extra Guidance",
+        "This unique project-specific guidance is only in the agents file.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // HTML tags should be stripped, revealing the duplicated content underneath
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-011");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("redundancy");
+    });
+  });
+
+  describe("zero-segment additionality (Bug 5)", () => {
+    it("does not award additionality bonus for files with no comparable segments", async () => {
+      const readme = "# Project\nA brief description of the project.";
+      // Very short AGENTS.md where all segments are < 5 words (prose) and
+      // not command-like, so none pass the segment filter
+      const agentsMd = [
+        "# AGENTS.md",
+        "## Build",
+        "See above.",
+        "## Notes",
+        "Short.",
+        "Tiny.",
+        "Small.",
+        "OK.",
+        "Yes.",
+        "Done.",
+        "Fine.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Should not get the +5 additionality bonus since no segments were analyzed
+      // Summary should indicate no comparable segments
+      expect(result.summary).toContain("no comparable segments");
+    });
+  });
+
+  describe("moderate redundancy finding (Bug 4)", () => {
+    it("emits ARI-CTX-011 info finding for 30-50% redundancy", async () => {
+      // Create content where ~40% of segments match README
+      const sharedLines = [
+        "This project uses TypeScript with strict mode enabled for type safety",
+        "Dependencies are managed with pnpm workspaces and turborepo orchestration",
+      ];
+      const uniqueLines = [
+        "The analyzer engine follows a provider pattern for dependency injection",
+        "Each pillar has exactly one analyzer implementing the PillarAnalyzer interface",
+        "Finding codes follow the stable pattern ARI then PILLAR then three digit number",
+      ];
+      const readme = ["# Project", ...sharedLines.map((s) => s + ".")].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        ...sharedLines.map((s) => s + "."),
+        ...uniqueLines.map((s) => s + "."),
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.severity === "info",
+      );
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("redundancy");
+    });
+  });
+
+  describe("LLM-generated file penalty (ARI-CTX-012)", () => {
+    it("emits ARI-CTX-012 for boilerplate file with high redundancy", async () => {
+      const readme = [
+        "# My Project",
+        "This project is a web application built with modern tools and frameworks.",
+        "It uses TypeScript for type safety and React for the user interface layer.",
+        "The build system is configured with webpack for optimal bundle optimization.",
+        "Testing is handled by Jest with comprehensive coverage requirements enabled.",
+        "Continuous integration runs on GitHub Actions with automated deployment pipelines.",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "",
+        "This project is a web application built with modern tools and frameworks.",
+        "It uses TypeScript for type safety and React for the user interface layer.",
+        "The build system is configured with webpack for optimal bundle optimization.",
+        "Testing is handled by Jest with comprehensive coverage requirements enabled.",
+        "Continuous integration runs on GitHub Actions with automated deployment pipelines.",
+        "",
+        "Generated by auto-project-scaffolder.",
+        "Line 10.",
+        "Line 11.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-012");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("high");
+      expect(finding?.message).toContain("LLM-generated");
+      expect(finding?.evidence?.paper).toContain("Gloaguen");
+    });
+
+    it("does not emit ARI-CTX-012 for non-boilerplate with some redundancy", async () => {
+      const readme = [
+        "# Project Overview",
+        "This application processes data pipelines for analytics and reporting purposes.",
+        "Built with Python and FastAPI for high performance API serving.",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "## Conventions",
+        "This application processes data pipelines for analytics and reporting purposes.",
+        "Always use dependency injection for database connections in the service layer.",
+        "Never commit credentials or API keys to the repository configuration.",
+        "Use structured logging with correlation IDs for all service requests.",
+        "Line 7.",
+        "Line 8.",
+        "Line 9.",
+        "Line 10.",
+        "Line 11.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+        "src/pipeline/run.py": "# pipeline runner",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-012")).toBe(false);
+    });
+  });
+
   describe("conciseness check (ARI-CTX-008)", () => {
     it("emits ARI-CTX-008 for very long AGENTS.md without proportional code blocks", async () => {
       // 600 lines of prose, only 1 code block
@@ -619,6 +1094,326 @@ describe("contextQualityAnalyzer (P1)", () => {
       const ctx = createMockContext({ "AGENTS.md": content });
       const result = await contextQualityAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-CTX-008")).toBe(false);
+    });
+  });
+
+  describe("additionality — expanded reference corpus (Bug 8)", () => {
+    it("compares against config files like tsconfig.json and detects redundancy", async () => {
+      const tsconfig = JSON.stringify({
+        compilerOptions: { target: "ES2022", module: "NodeNext", strict: true },
+      });
+      // AGENTS.md restates config content in prose form
+      const agents = [
+        "# AGENTS.md",
+        "## Build Config",
+        "The project uses compilerOptions target ES2022 with module NodeNext and strict true.",
+        "The compiler options include compilerOptions target ES2022 module NodeNext strict true.",
+        "compilerOptions target ES2022 module NodeNext strict true",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": agents,
+        "tsconfig.json": tsconfig,
+        "README.md":
+          "# Project\nA test project with many features and capabilities.\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20\nLine 21",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Config file content should be normalized and comparable; expect measurable redundancy
+      expect(result.summary).toContain("Additionality:");
+      expect(result.summary).toContain("redundancy");
+      // Verify the additionality summary reports a non-zero redundancy percentage
+      const redundancyMatch = result.summary.match(/(\d+\.\d+)% redundancy/);
+      expect(redundancyMatch).toBeDefined();
+      expect(redundancyMatch).not.toBeNull();
+      const redundancyPct = parseFloat(String(redundancyMatch?.[1] ?? "0"));
+      expect(redundancyPct).toBeGreaterThan(0);
+    });
+
+    it("compares against source-file leading docstrings", async () => {
+      const srcContent = [
+        "/**",
+        " * This module handles user authentication and session management.",
+        " * It validates JWT tokens and manages refresh token rotation.",
+        " */",
+        "export function authenticate() { return true; }",
+      ].join("\n");
+      // AGENTS.md duplicates the docstring content
+      const agents = [
+        "# AGENTS.md",
+        "## Auth Module",
+        "This module handles user authentication and session management.",
+        "It validates JWT tokens and manages refresh token rotation.",
+        "Line 5",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": agents,
+        "src/auth.ts": srcContent,
+        "README.md":
+          "# Project\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20\nLine 21",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Source docstrings should be in reference corpus
+      expect(result.summary).toContain("Additionality:");
+    });
+  });
+
+  describe("additionality — nested AGENTS.md files (Bug 9)", () => {
+    it("runs additionality analysis on nested AGENTS.md files", async () => {
+      const readme = [
+        "# Project",
+        "This project uses pnpm for package management and builds with turbo.",
+        "Run pnpm install to get started with the project setup.",
+        "Run pnpm build to compile all packages in the monorepo.",
+        "Run pnpm test to execute the full test suite.",
+      ].join("\n");
+      // Nested AGENTS.md that duplicates README content
+      const nestedAgents = [
+        "# Package AGENTS",
+        "This project uses pnpm for package management and builds with turbo.",
+        "Run pnpm install to get started with the project setup.",
+        "Run pnpm build to compile all packages in the monorepo.",
+        "Run pnpm test to execute the full test suite.",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md":
+          readme +
+          "\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20\nLine 21",
+        "packages/core/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Nested AGENTS.md should appear in additionality results
+      expect(result.summary).toContain("packages/core/AGENTS.md");
+      expect(result.summary).toContain("Additionality:");
+    });
+
+    it("detects redundancy against package-local README (Bug 11)", async () => {
+      // Root README has different content
+      const rootReadme =
+        "# Root Project\nThis is the monorepo root with completely different content about overall architecture and governance.";
+      // Package-local README has specific guidance
+      const localReadme = [
+        "# Core Package",
+        "This package handles the core business logic for data processing.",
+        "Run pnpm build to compile the TypeScript source files.",
+        "Run pnpm test to execute the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from the environment variables at startup.",
+        "Error handling follows the Result pattern throughout the codebase.",
+        "All public APIs are documented with TSDoc comments for clarity.",
+        "Integration tests are located in the __tests__ directory structure.",
+        "The package depends on zod for runtime schema validation checks.",
+      ].join("\n");
+      // Nested AGENTS.md duplicates the local README, not root README
+      const nestedAgents = [
+        "# Core Package Agent Guide",
+        "This package handles the core business logic for data processing.",
+        "Run pnpm build to compile the TypeScript source files.",
+        "Run pnpm test to execute the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from the environment variables at startup.",
+        "Error handling follows the Result pattern throughout the codebase.",
+        "All public APIs are documented with TSDoc comments for clarity.",
+        "Integration tests are located in the __tests__ directory structure.",
+        "The package depends on zod for runtime schema validation checks.",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md": rootReadme,
+        "packages/core/README.md": localReadme,
+        "packages/core/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.file === "packages/core/AGENTS.md",
+      );
+      expect(finding).toBeDefined();
+      // Should detect high redundancy since it duplicates the local README
+      if (finding) {
+        expect(finding.message).toMatch(/\d+\.\d%/);
+      }
+    });
+
+    it("detects redundancy against package-local package.json scripts (Bug 11)", async () => {
+      const localPkgJson = JSON.stringify({
+        name: "@myorg/core",
+        description: "Core business logic package for the data processing pipeline",
+        scripts: {
+          build: "tsc --build",
+          test: "vitest run",
+          lint: "eslint src/",
+          typecheck: "tsc --noEmit",
+        },
+      });
+      // Nested AGENTS.md restates the package.json info
+      const nestedAgents = [
+        "# Core Package Agent Guide",
+        "Core business logic package for the data processing pipeline.",
+        "build: tsc --build",
+        "test: vitest run",
+        "lint: eslint src/",
+        "typecheck: tsc --noEmit",
+        "Core business logic package for the data processing pipeline.",
+        "build: tsc --build",
+        "test: vitest run",
+        "lint: eslint src/",
+        "typecheck: tsc --noEmit",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md":
+          "# Root\nThis is the project root with unrelated content about governance and policies.",
+        "packages/core/package.json": localPkgJson,
+        "packages/core/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // The summary should mention additionality analysis ran
+      expect(result.summary).toContain("packages/core/AGENTS.md");
+      expect(result.summary).toContain("Additionality:");
+    });
+
+    it("resolves package root for AGENTS.md deeper in subtree (Bug 11 regression)", async () => {
+      // AGENTS.md lives at packages/foo/docs/AGENTS.md but the package root
+      // (with README.md and package.json) is at packages/foo/
+      const rootReadme = "# Root\nCompletely unrelated root-level content about governance.";
+      const localReadme = [
+        "# Foo Package",
+        "This package provides the foo integration for data transformation.",
+        "Run pnpm build to compile the TypeScript source code.",
+        "Run pnpm test to run the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from environment variables at startup.",
+        "Error handling follows the Result pattern for safety.",
+        "All public APIs are documented with TSDoc style comments.",
+        "Integration tests live in the __tests__ directory.",
+        "The package depends on zod for runtime validation.",
+      ].join("\n");
+      const nestedAgents = [
+        "# Foo Agent Guide",
+        "This package provides the foo integration for data transformation.",
+        "Run pnpm build to compile the TypeScript source code.",
+        "Run pnpm test to run the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from environment variables at startup.",
+        "Error handling follows the Result pattern for safety.",
+        "All public APIs are documented with TSDoc style comments.",
+        "Integration tests live in the __tests__ directory.",
+        "The package depends on zod for runtime validation.",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md": rootReadme,
+        "packages/foo/README.md": localReadme,
+        "packages/foo/package.json": '{"name": "@myorg/foo"}',
+        "packages/foo/docs/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.file === "packages/foo/docs/AGENTS.md",
+      );
+      // Should find redundancy because it walks up to packages/foo/ to find README.md
+      expect(finding).toBeDefined();
+      if (finding) {
+        expect(finding.message).toMatch(/\d+\.\d%/);
+      }
+    });
+
+    it("resolves package root past docs/README.md to package.json (Bug 11 regression)", async () => {
+      // packages/foo/docs/README.md exists alongside packages/foo/docs/AGENTS.md
+      // but the package root is packages/foo/ (has package.json + README.md).
+      // The walk must skip docs/README.md and resolve to packages/foo/.
+      const rootReadme = "# Root\nCompletely unrelated root-level content.";
+      const docsReadme =
+        "# Docs\nThis is the docs folder README with unrelated documentation index.";
+      const localReadme = [
+        "# Foo Package",
+        "This package provides the foo integration for data transformation.",
+        "Run pnpm build to compile the TypeScript source code.",
+        "Run pnpm test to run the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from environment variables at startup.",
+        "Error handling follows the Result pattern for safety.",
+        "All public APIs are documented with TSDoc style comments.",
+      ].join("\n");
+      const nestedAgents = [
+        "# Foo Agent Guide",
+        "This package provides the foo integration for data transformation.",
+        "Run pnpm build to compile the TypeScript source code.",
+        "Run pnpm test to run the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from environment variables at startup.",
+        "Error handling follows the Result pattern for safety.",
+        "All public APIs are documented with TSDoc style comments.",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md": rootReadme,
+        "packages/foo/README.md": localReadme,
+        "packages/foo/package.json": '{"name": "@myorg/foo"}',
+        "packages/foo/docs/README.md": docsReadme,
+        "packages/foo/docs/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.file === "packages/foo/docs/AGENTS.md",
+      );
+      // Should find redundancy because it resolves to packages/foo/ (has package.json),
+      // NOT packages/foo/docs/ (has README.md but no package.json)
+      expect(finding).toBeDefined();
+      if (finding) {
+        expect(finding.message).toMatch(/\d+\.\d%/);
+      }
+    });
+
+    it("emits ARI-CTX-011 for duplicated nested AGENTS.md", async () => {
+      const readme = [
+        "# Project",
+        "This project uses pnpm for package management and turbo for builds.",
+        "Run pnpm install to get started with the project.",
+        "Run pnpm build to compile all packages.",
+        "Run pnpm test to execute the full test suite.",
+        "The architecture follows a monorepo pattern with shared packages.",
+        "Code quality is enforced via eslint and prettier.",
+        "TypeScript strict mode is enabled across all packages.",
+        "All tests use vitest as the testing framework.",
+        "Deploy via CI pipeline with automated checks.",
+      ].join("\n");
+      // Nested AGENTS.md that is a near-copy of README
+      const nestedAgents = [
+        "# Package Agents",
+        "This project uses pnpm for package management and turbo for builds.",
+        "Run pnpm install to get started with the project.",
+        "Run pnpm build to compile all packages.",
+        "Run pnpm test to execute the full test suite.",
+        "The architecture follows a monorepo pattern with shared packages.",
+        "Code quality is enforced via eslint and prettier.",
+        "TypeScript strict mode is enabled across all packages.",
+        "All tests use vitest as the testing framework.",
+        "Deploy via CI pipeline with automated checks.",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md":
+          readme +
+          "\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20\nLine 21",
+        "packages/core/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.file === "packages/core/AGENTS.md",
+      );
+      expect(finding).toBeDefined();
     });
   });
 });

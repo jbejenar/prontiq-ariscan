@@ -136,7 +136,7 @@ async function parseCargoWorkspace(content: string, context: RepoContext): Promi
         inMembers = false;
         continue;
       }
-      const member = trimmed.replace(/['"",]/g, "").trim();
+      const member = trimmed.replace(/['",]/g, "").trim();
       if (member) {
         packages.push(...resolveWorkspaceGlob(member, context.files));
       }
