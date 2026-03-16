@@ -1121,9 +1121,34 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         // For nested AGENTS.md files, augment the corpus with package-local docs
         let effectiveRefDocs = referenceDocs;
         if (cf.endsWith("/AGENTS.md") && cf !== "AGENTS.md") {
-          const pkgDir = cf.slice(0, cf.lastIndexOf("/") + 1); // e.g. "packages/foo/"
+          // Walk upward from the AGENTS.md path to find the nearest package root
+          // (a directory containing package.json, README*, or a workspace marker).
+          // This handles layouts like packages/foo/docs/AGENTS.md or packages/foo/.github/AGENTS.md
+          // where the package root is packages/foo/, not the immediate parent.
+          const parts = cf.split("/");
+          parts.pop(); // remove "AGENTS.md"
+          let pkgDir = parts.join("/") + "/"; // start from immediate parent
+          while (parts.length > 0) {
+            const candidate = parts.join("/") + "/";
+            const hasBoundary = context.files.some((f) => {
+              if (!f.startsWith(candidate)) return false;
+              const rest = f.slice(candidate.length);
+              if (rest.includes("/")) return false;
+              const upper = rest.toUpperCase();
+              return (
+                rest === "package.json" ||
+                upper.startsWith("README") ||
+                upper.startsWith("CONTRIBUTING")
+              );
+            });
+            if (hasBoundary) {
+              pkgDir = candidate;
+              break;
+            }
+            parts.pop();
+          }
           const localDocs: Array<{ path: string; content: string }> = [];
-          // Gather sibling README* and CONTRIBUTING* files
+          // Gather README* and CONTRIBUTING* files from the package root
           for (const f of context.files) {
             if (!f.startsWith(pkgDir)) continue;
             // Only direct children (no further nesting)
@@ -1140,7 +1165,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
               }
             }
           }
-          // Gather sibling package.json description/scripts
+          // Gather package.json description/scripts from the package root
           const localPkgPath = `${pkgDir}package.json`;
           if (!referenceDocs.some((d) => d.path === localPkgPath)) {
             const localPkg = await context.readJson<{

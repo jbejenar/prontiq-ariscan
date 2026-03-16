@@ -1244,6 +1244,51 @@ describe("contextQualityAnalyzer (P1)", () => {
       expect(result.summary).toContain("Additionality:");
     });
 
+    it("resolves package root for AGENTS.md deeper in subtree (Bug 11 regression)", async () => {
+      // AGENTS.md lives at packages/foo/docs/AGENTS.md but the package root
+      // (with README.md and package.json) is at packages/foo/
+      const rootReadme = "# Root\nCompletely unrelated root-level content about governance.";
+      const localReadme = [
+        "# Foo Package",
+        "This package provides the foo integration for data transformation.",
+        "Run pnpm build to compile the TypeScript source code.",
+        "Run pnpm test to run the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from environment variables at startup.",
+        "Error handling follows the Result pattern for safety.",
+        "All public APIs are documented with TSDoc style comments.",
+        "Integration tests live in the __tests__ directory.",
+        "The package depends on zod for runtime validation.",
+      ].join("\n");
+      const nestedAgents = [
+        "# Foo Agent Guide",
+        "This package provides the foo integration for data transformation.",
+        "Run pnpm build to compile the TypeScript source code.",
+        "Run pnpm test to run the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from environment variables at startup.",
+        "Error handling follows the Result pattern for safety.",
+        "All public APIs are documented with TSDoc style comments.",
+        "Integration tests live in the __tests__ directory.",
+        "The package depends on zod for runtime validation.",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md": rootReadme,
+        "packages/foo/README.md": localReadme,
+        "packages/foo/package.json": '{"name": "@myorg/foo"}',
+        "packages/foo/docs/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.file === "packages/foo/docs/AGENTS.md",
+      );
+      // Should find redundancy because it walks up to packages/foo/ to find README.md
+      expect(finding).toBeDefined();
+      if (finding) {
+        expect(finding.message).toMatch(/\d+\.\d%/);
+      }
+    });
+
     it("emits ARI-CTX-011 for duplicated nested AGENTS.md", async () => {
       const readme = [
         "# Project",
