@@ -1,8 +1,9 @@
 /** Policy subcommand — init and validate policy files. */
 import { defineCommand } from "citty";
-import { resolve } from "node:path";
+import { resolve, dirname, relative } from "node:path";
 import { access, writeFile } from "node:fs/promises";
 import { scan } from "@prontiq/ariscan-engine";
+import { formatConfigJsonSchema } from "../output/json.js";
 import { PILLAR_NAMES, PILLAR_WEIGHTS } from "@prontiq/ariscan-schema";
 import type { PillarId, FileConfig as FileConfigType } from "@prontiq/ariscan-schema";
 import {
@@ -14,8 +15,11 @@ import {
 
 /**
  * Generate a starter `.ariscan.yml` from current scan scores.
+ *
+ * @param schemaRelPath — relative path from the policy file to the vendored
+ *   `config.schema.json` that will be written next to it by `policy init`.
  */
-async function generateStarterPolicy(repoPath: string): Promise<string> {
+async function generateStarterPolicy(repoPath: string, schemaRelPath: string): Promise<string> {
   const result = await scan(repoPath);
 
   // Round composite down to nearest 5
@@ -34,15 +38,12 @@ async function generateStarterPolicy(repoPath: string): Promise<string> {
     })
     .join("\n");
 
-  // The schema is shipped at @prontiq/ariscan-schema/config.schema.json
-  const schemaPath = "./node_modules/@prontiq/ariscan-schema/config.schema.json";
-
   return `# .ariscan.yml — Policy configuration
 # Generated from current scan scores. Customize as needed.
 # Docs: https://github.com/jbejenar/prontiq-ariscan
-# yaml-language-server: $schema=${schemaPath}
+# yaml-language-server: $schema=${schemaRelPath}
 
-$schema: "${schemaPath}"
+$schema: "${schemaRelPath}"
 version: "1"
 enforcement: warn  # warn | fail | block
 
@@ -237,9 +238,17 @@ export const policyInitCommand = defineCommand({
     process.stderr.write(`Scanning ${repoPath} to generate policy...\n`);
 
     try {
-      const content = await generateStarterPolicy(repoPath);
+      // Vendor the JSON Schema next to the generated policy so editors can
+      // resolve it regardless of how ariscan was installed (npx, global, etc.)
+      const outputDir = dirname(outputPath);
+      const schemaOutputPath = resolve(outputDir, "config.schema.json");
+      const schemaRelPath = "./" + relative(outputDir, schemaOutputPath);
+
+      const content = await generateStarterPolicy(repoPath, schemaRelPath);
       await writeFile(outputPath, content, "utf-8");
+      await writeFile(schemaOutputPath, formatConfigJsonSchema(), "utf-8");
       process.stderr.write(`Policy written to ${outputPath}\n`);
+      process.stderr.write(`Schema written to ${schemaOutputPath}\n`);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       process.stderr.write(`Error: Failed to generate policy: ${message}\n`);
