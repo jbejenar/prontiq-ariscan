@@ -37,6 +37,7 @@ async function generateStarterPolicy(repoPath: string): Promise<string> {
   return `# .ariscan.yml — Policy configuration
 # Generated from current scan scores. Customize as needed.
 # Docs: https://github.com/jbejenar/prontiq-ariscan
+# JSON Schema: run \`ariscan --policy-schema\` to generate
 
 version: "1"
 enforcement: warn  # warn | fail | block

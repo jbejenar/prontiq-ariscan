@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prontiq.dev/schemas/ariscan-config/v1.json",
+  "title": "ARI Policy Config",
+  "description": "Schema for .ariscan.yml — policy configuration for the Prontiq ARI scanner.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema URI for IDE validation"
+    },
+    "version": {
+      "type": "string",
+      "description": "Policy schema version (e.g. \"1\")"
+    },
+    "extends": {
+      "type": "string",
+      "description": "Path to a parent policy file to inherit from"
+    },
+    "enforcement": {
+      "$ref": "#/$defs/enforcementMode"
+    },
+    "threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Shorthand for thresholds.composite (backward-compatible)"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/pillarThresholds"
+    },
+    "format": {
+      "type": "string",
+      "enum": ["terminal", "json", "ndjson", "sarif", "markdown"],
+      "description": "Default output format override"
+    },
+    "pillars": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
+          },
+          "description": "Pillar IDs to exclude from scanning"
+        },
+        "weights": {
+          "$ref": "#/$defs/pillarWeightMap"
+        }
+      }
+    },
+    "suppressions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/suppression"
+      },
+      "description": "Findings to suppress (audit-only, does not affect scores)"
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/policyProfile"
+      },
+      "description": "Named profiles with threshold/weight overrides"
+    },
+    "activeProfile": {
+      "type": "string",
+      "description": "Name of the active profile to apply"
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pathRule"
+      },
+      "description": "Path-specific rules (not yet enforced at runtime)"
+    }
+  },
+  "$defs": {
+    "enforcementMode": {
+      "type": "string",
+      "enum": ["warn", "fail", "block"],
+      "description": "warn: print warnings, exit 0; fail: exit 1 on violation; block: same as fail (for CI)"
+    },
+    "pillarThresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "composite": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Minimum composite score"
+        },
+        "pillars": {
+          "$ref": "#/$defs/pillarScoreMap"
+        }
+      }
+    },
+    "pillarScoreMap": {
+      "type": "object",
+      "propertyNames": {
+        "enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
+      },
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "description": "Per-pillar minimum scores (keys must be valid pillar IDs: P1–P8)"
+    },
+    "pillarWeightMap": {
+      "type": "object",
+      "propertyNames": {
+        "enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
+      },
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "description": "Per-pillar weights (keys must be valid pillar IDs: P1–P8, should sum to 1.0)"
+    },
+    "suppression": {
+      "type": "object",
+      "required": ["code", "reason", "expiry"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^ARI-[A-Z]{3}-\\d{3}$",
+          "description": "Finding code to suppress (e.g. ARI-CTX-001)"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Justification for suppression"
+        },
+        "expiry": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date",
+              "description": "ISO date (YYYY-MM-DD)"
+            },
+            {
+              "type": "string",
+              "const": "no-expiry"
+            }
+          ],
+          "description": "Expiry date or \"no-expiry\""
+        },
+        "approver": {
+          "type": "string",
+          "description": "Who approved this suppression"
+        }
+      }
+    },
+    "policyProfile": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name"
+        },
+        "thresholds": {
+          "$ref": "#/$defs/pillarThresholds"
+        },
+        "weights": {
+          "$ref": "#/$defs/pillarWeightMap"
+        }
+      }
+    },
+    "pathRule": {
+      "type": "object",
+      "required": ["pattern"],
+      "additionalProperties": false,
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Glob pattern for matching file paths"
+        },
+        "thresholds": {
+          "$ref": "#/$defs/pillarThresholds"
+        },
+        "enforcement": {
+          "$ref": "#/$defs/enforcementMode"
+        }
+      }
+    }
+  }
+}

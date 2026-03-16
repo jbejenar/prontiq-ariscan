@@ -14,7 +14,12 @@ import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
 import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
 import { policyCommand } from "./commands/policy.js";
 import { formatTerminal } from "./output/terminal.js";
-import { formatJson, formatNdjson, formatJsonSchema } from "./output/json.js";
+import {
+  formatJson,
+  formatNdjson,
+  formatJsonSchema,
+  formatConfigJsonSchema,
+} from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
 import { formatSarif } from "./output/sarif.js";
 import { generateBadgeSvg, generateBadgeSnippets } from "./output/badge.js";
@@ -36,7 +41,7 @@ async function resolveRepoPath(path: string): Promise<string> {
 }
 
 async function handleFlagCommands(args: Record<string, unknown>): Promise<boolean> {
-  if (args.telemetryShow) {
+  if (args.telemetryShow || args["telemetry-show"]) {
     await handleTelemetryShow();
     return true;
   }
@@ -44,8 +49,12 @@ async function handleFlagCommands(args: Record<string, unknown>): Promise<boolea
     await handleTelemetrySet(args.telemetry as string);
     return true;
   }
-  if (args.jsonSchema) {
+  if (args.jsonSchema || args["json-schema"]) {
     process.stdout.write(formatJsonSchema());
+    return true;
+  }
+  if (args.policySchema || args["policy-schema"]) {
+    process.stdout.write(formatConfigJsonSchema());
     return true;
   }
   return false;
@@ -154,6 +163,11 @@ Exit codes:
     jsonSchema: {
       type: "boolean",
       description: "Print the JSON Schema for scan output and exit",
+      default: false,
+    },
+    policySchema: {
+      type: "boolean",
+      description: "Print the JSON Schema for .ariscan.yml policy config and exit",
       default: false,
     },
     badge: {
