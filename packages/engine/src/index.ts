@@ -26,7 +26,7 @@ export type {
   TokenBudgetResult,
 } from "./budget/index.js";
 export { generateFixProposals } from "./fix/index.js";
-export type { FixProposal, FixConfidence } from "./fix/index.js";
+export type { FixProposal, FixConfidence, TemplateMetadata } from "./fix/index.js";
 export {
   parseAgentignore,
   matchesPattern,

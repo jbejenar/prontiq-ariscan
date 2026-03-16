@@ -197,6 +197,7 @@ describe("generateFixProposals", () => {
         ".gitleaks.toml",
         ".env.example",
         "docs/decisions/001-something.md",
+        "src/config/env.ts",
       ],
     );
 

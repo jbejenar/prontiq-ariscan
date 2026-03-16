@@ -13,6 +13,21 @@ import type { DetectionResult } from "@prontiq/ariscan-schema";
 /** Fix confidence level — determines auto-apply vs suggest-only classification. */
 export type FixConfidence = "high" | "medium" | "low";
 
+/** Guided remediation metadata attached to each fix proposal (P2.06). */
+export interface TemplateMetadata {
+  /** What must be in place before applying this template. */
+  prerequisites: string[];
+  /** Step-by-step instructions for applying the template. */
+  steps: string[];
+  /** How to undo the change if something goes wrong. */
+  rollbackAdvice: string;
+  /** Expected ARI score impact from applying this template. */
+  expectedImpact: {
+    pillar: string;
+    estimatedDelta: string;
+  };
+}
+
 /** A proposed file change from --fix. */
 export interface FixProposal {
   /** Relative path within the repo. */
@@ -27,6 +42,8 @@ export interface FixProposal {
   alreadyExists: boolean;
   /** Confidence level: high = auto-apply, medium = suggest, low = manual review. */
   confidence: FixConfidence;
+  /** Guided remediation metadata (P2.06): prerequisites, steps, rollback, impact. */
+  metadata: TemplateMetadata;
 }
 
 /**
@@ -57,6 +74,7 @@ export async function generateFixProposals(
     prTemplate,
     diWiring,
     gitleaks,
+    envVarSchema,
   ] = await Promise.all([
     generateAgentsMd(context, detection),
     generateAgentignore(context, detection),
@@ -75,6 +93,7 @@ export async function generateFixProposals(
     generatePrTemplate(context),
     generateDiWiringExample(context, detection),
     generateGitleaksConfig(context),
+    generateEnvVarSchema(context, detection),
   ]);
 
   proposals.push(agentsMd, agentignore, devcontainer, providerSkeleton);
@@ -94,6 +113,7 @@ export async function generateFixProposals(
     prTemplate,
     diWiring,
     gitleaks,
+    envVarSchema,
   ]) {
     if (fix) {
       proposals.push(fix);
@@ -112,6 +132,22 @@ async function generateAgentsMd(
   detection: DetectionResult | undefined,
 ): Promise<FixProposal> {
   const exists = await context.fileExists("AGENTS.md");
+
+  const agentsMdMetadata: TemplateMetadata = {
+    prerequisites: ["Repository has source code and a build system"],
+    steps: [
+      "Review the generated AGENTS.md file",
+      "Fill in TODO sections with project-specific information",
+      "Add architecture constraints agents cannot discover from code",
+      "Add explicit prohibitions in the 'Do NOT' section",
+      "Commit the file to version control",
+    ],
+    rollbackAdvice: "Delete AGENTS.md — it is a new file with no side effects.",
+    expectedImpact: {
+      pillar: "P1",
+      estimatedDelta: "+10–20 points on Agent Context Quality",
+    },
+  };
 
   // Discover existing info to avoid duplication
   const pkgJson = await context.readJson<Record<string, unknown>>("package.json");
@@ -194,6 +230,35 @@ async function generateAgentsMd(
     sections.push("");
   }
 
+  // Monorepo progressive disclosure (P2.06)
+  if (detection?.monorepo) {
+    const mono = detection.monorepo;
+    sections.push("## Monorepo Structure");
+    sections.push("");
+    sections.push(`This repository uses **${mono.tool}** with ${mono.packages.length} package(s).`);
+    sections.push("");
+    sections.push("### Packages");
+    sections.push("");
+    for (const pkg of mono.packages) {
+      sections.push(`- \`${pkg}\``);
+    }
+    sections.push("");
+    sections.push("### Build Order & Dependencies");
+    sections.push("");
+    sections.push("<!-- TODO(ARI-CTX-002): Document the dependency graph between packages. -->");
+    sections.push(
+      "<!-- Example: schema -> engine -> cli (engine depends on schema, cli depends on engine) -->",
+    );
+    sections.push("");
+    sections.push("### Package-Level Commands");
+    sections.push("");
+    sections.push("<!-- TODO(ARI-CTX-002): Add per-package commands if they differ from root. -->");
+    sections.push("<!-- Example: -->");
+    sections.push(`<!-- - \`${getPackageManager(context)} --filter <pkg-name> test\` -->`);
+    sections.push(`<!-- - \`${getPackageManager(context)} --filter <pkg-name> build\` -->`);
+    sections.push("");
+  }
+
   // Testing patterns — always useful for agents
   sections.push("## Testing Patterns");
   sections.push("");
@@ -234,6 +299,7 @@ async function generateAgentsMd(
       criterion: "ARI-CTX-001",
       alreadyExists: exists,
       confidence: "high" as FixConfidence,
+      metadata: agentsMdMetadata,
     };
   }
 
@@ -245,6 +311,7 @@ async function generateAgentsMd(
     criterion: "ARI-CTX-001",
     alreadyExists: exists,
     confidence: "high" as FixConfidence,
+    metadata: agentsMdMetadata,
   };
 }
 
@@ -348,6 +415,20 @@ async function generateAgentignore(
     criterion: "ARI-CTX-004",
     alreadyExists: exists,
     confidence: "high" as FixConfidence,
+    metadata: {
+      prerequisites: ["Repository uses AI coding agents"],
+      steps: [
+        "Review the generated .agentignore file",
+        "Add project-specific patterns for large generated files",
+        "Remove patterns for files agents should see",
+        "Commit the file to version control",
+      ],
+      rollbackAdvice: "Delete .agentignore — agents will see all files again.",
+      expectedImpact: {
+        pillar: "P1",
+        estimatedDelta: "+5–10 points on Agent Context Quality",
+      },
+    },
   };
 }
 
@@ -388,6 +469,23 @@ async function generateDevcontainer(
     criterion: "ARI-ENV-001",
     alreadyExists: exists,
     confidence: "high" as FixConfidence,
+    metadata: {
+      prerequisites: [
+        "Docker Desktop or compatible container runtime installed",
+        "VS Code with Dev Containers extension, or GitHub Codespaces",
+      ],
+      steps: [
+        "Review .devcontainer/devcontainer.json for your project",
+        "Adjust the base image and features for your stack",
+        "Set the postCreateCommand to your project's bootstrap command",
+        "Open the repo in VS Code and select 'Reopen in Container'",
+      ],
+      rollbackAdvice: "Delete the .devcontainer/ directory — local development is unaffected.",
+      expectedImpact: {
+        pillar: "P4",
+        estimatedDelta: "+15–25 points on Dev Environment",
+      },
+    },
   };
 }
 
@@ -453,6 +551,24 @@ async function generateProviderSkeleton(
     criterion: "ARI-TST-001",
     alreadyExists: exists,
     confidence: "medium" as FixConfidence,
+    metadata: {
+      prerequisites: [
+        "Project uses a cloud SDK (AWS, Azure, or GCP)",
+        "Dependency injection or factory pattern is feasible in the codebase",
+      ],
+      steps: [
+        "Review the generated provider interface",
+        "Implement concrete providers for your cloud services",
+        "Replace direct SDK calls in source files with the provider interface",
+        "Update DI container or factory to wire the correct implementation",
+        "Write tests using the InMemory test double",
+      ],
+      rollbackAdvice: "Delete the provider file — existing SDK calls are unaffected.",
+      expectedImpact: {
+        pillar: "P3",
+        estimatedDelta: "+10–15 points on Test Isolation",
+      },
+    },
   };
 }
 
@@ -649,6 +765,23 @@ async function generateQueueProvider(
     criterion: "ARI-TST-002",
     alreadyExists: exists,
     confidence: "medium" as FixConfidence,
+    metadata: {
+      prerequisites: [
+        "Project uses a message queue (SQS, Kafka, RabbitMQ, etc.)",
+        "Dependency injection or factory pattern is feasible",
+      ],
+      steps: [
+        "Review the generated queue provider interface",
+        "Implement a concrete provider for your message broker",
+        "Replace direct broker SDK calls with the provider interface",
+        "Wire the InMemory implementation in test setup",
+      ],
+      rollbackAdvice: "Delete the queue provider file — existing broker calls are unaffected.",
+      expectedImpact: {
+        pillar: "P3",
+        estimatedDelta: "+5–10 points on Test Isolation",
+      },
+    },
   };
 }
 
@@ -984,6 +1117,20 @@ async function generateEmailProvider(
     criterion: "ARI-TST-002",
     alreadyExists: exists,
     confidence: "medium" as FixConfidence,
+    metadata: {
+      prerequisites: ["Project sends emails via an SDK (SES, SendGrid, Nodemailer, etc.)"],
+      steps: [
+        "Review the generated email provider interface",
+        "Implement a concrete provider for your email service",
+        "Replace direct email SDK calls with the provider interface",
+        "Use InMemoryEmailProvider in tests to assert on sent messages",
+      ],
+      rollbackAdvice: "Delete the email provider file — existing email code is unaffected.",
+      expectedImpact: {
+        pillar: "P3",
+        estimatedDelta: "+5–10 points on Test Isolation",
+      },
+    },
   };
 }
 
@@ -1348,6 +1495,21 @@ async function generateTsconfigStrictness(
 
   const exists = await context.fileExists("tsconfig.json");
 
+  const tsconfigMetadata: TemplateMetadata = {
+    prerequisites: ["Project uses TypeScript or JavaScript"],
+    steps: [
+      "Review the generated tsconfig.json compiler options",
+      "Run `tsc --noEmit` to check for new type errors",
+      "Fix any type errors introduced by strict mode",
+      "Commit the updated tsconfig.json",
+    ],
+    rollbackAdvice: "Revert tsconfig.json to previous state or delete if newly created.",
+    expectedImpact: {
+      pillar: "P6",
+      estimatedDelta: "+5–15 points on Build Determinism & Type Safety",
+    },
+  };
+
   if (exists) {
     // Read existing config to check strictness
     const existing = await context.readJson<TsconfigShape>("tsconfig.json");
@@ -1362,6 +1524,7 @@ async function generateTsconfigStrictness(
         criterion: "ARI-BLD-001",
         alreadyExists: true,
         confidence: "low" as FixConfidence,
+        metadata: tsconfigMetadata,
       };
     }
 
@@ -1393,6 +1556,7 @@ async function generateTsconfigStrictness(
       criterion: "ARI-BLD-001",
       alreadyExists: true,
       confidence: "low" as FixConfidence,
+      metadata: tsconfigMetadata,
     };
   }
 
@@ -1406,6 +1570,7 @@ async function generateTsconfigStrictness(
     criterion: "ARI-BLD-001",
     alreadyExists: false,
     confidence: "high" as FixConfidence,
+    metadata: tsconfigMetadata,
   };
 }
 
@@ -1455,6 +1620,19 @@ async function generateNvmrc(
     criterion: "ARI-ENV-003",
     alreadyExists: anyExists,
     confidence: "high" as FixConfidence,
+    metadata: {
+      prerequisites: ["nvm, fnm, or volta installed for automatic version switching"],
+      steps: [
+        "Review the pinned Node.js version",
+        "Run `nvm use` to verify the version switches correctly",
+        "Commit the .nvmrc file",
+      ],
+      rollbackAdvice: "Delete .nvmrc — nvm will use your default Node.js version.",
+      expectedImpact: {
+        pillar: "P4",
+        estimatedDelta: "+3–5 points on Dev Environment",
+      },
+    },
   };
 }
 
@@ -1512,6 +1690,23 @@ async function generatePreCommitHooks(
     criterion: "ARI-SEC-003",
     alreadyExists: exists,
     confidence: "medium" as FixConfidence,
+    metadata: {
+      prerequisites: [
+        "Husky installed (`npx husky init` or `pnpm add -D husky`)",
+        "lint and/or typecheck scripts defined in package.json",
+      ],
+      steps: [
+        "Run `npx husky init` if Husky is not already set up",
+        "Review the generated pre-commit hook",
+        "Test by making a commit — hooks should run automatically",
+        "Add project-specific checks if needed",
+      ],
+      rollbackAdvice: "Delete .husky/pre-commit — commits will proceed without pre-commit checks.",
+      expectedImpact: {
+        pillar: "P8",
+        estimatedDelta: "+5–10 points on Security & Governance",
+      },
+    },
   };
 }
 
@@ -1576,6 +1771,23 @@ async function generateCodeowners(context: RepoContext): Promise<FixProposal | n
     criterion: "ARI-SEC-001",
     alreadyExists: anyExists,
     confidence: "low" as FixConfidence,
+    metadata: {
+      prerequisites: [
+        "Repository hosted on GitHub",
+        "Branch protection rules enabled on main branch",
+      ],
+      steps: [
+        "Replace @TODO-add-default-owner with your team's GitHub username or team",
+        "Replace @TODO-add-security-owner with security team handle",
+        "Enable 'Require review from Code Owners' in branch protection",
+        "Commit the CODEOWNERS file",
+      ],
+      rollbackAdvice: "Delete .github/CODEOWNERS — PRs will no longer require specific reviewers.",
+      expectedImpact: {
+        pillar: "P8",
+        estimatedDelta: "+5–10 points on Security & Governance",
+      },
+    },
   };
 }
 
@@ -1643,6 +1855,20 @@ async function generateAdrTemplate(context: RepoContext): Promise<FixProposal | 
     criterion: "ARI-DOC-002",
     alreadyExists: exists || hasAdrDir,
     confidence: "medium" as FixConfidence,
+    metadata: {
+      prerequisites: ["Team agreement on using ADRs for architectural decisions"],
+      steps: [
+        "Copy the template to docs/decisions/001-your-decision.md",
+        "Fill in Context, Decision, Consequences, and Alternatives sections",
+        "Set status to 'Proposed' and circulate for review",
+        "Update status to 'Accepted' once approved",
+      ],
+      rollbackAdvice: "Delete docs/decisions/000-template.md — no production impact.",
+      expectedImpact: {
+        pillar: "P5",
+        estimatedDelta: "+5–10 points on Doc Machine-Readability",
+      },
+    },
   };
 }
 
@@ -1685,6 +1911,19 @@ async function generateChangelogTemplate(context: RepoContext): Promise<FixPropo
     criterion: "ARI-DOC-002",
     alreadyExists: exists,
     confidence: "high" as FixConfidence,
+    metadata: {
+      prerequisites: ["Semantic versioning adopted for the project"],
+      steps: [
+        "Review the generated CHANGELOG.md format",
+        "Add entries under [Unreleased] as you ship changes",
+        "Move entries to a versioned section when releasing",
+      ],
+      rollbackAdvice: "Delete CHANGELOG.md — no production impact.",
+      expectedImpact: {
+        pillar: "P5",
+        estimatedDelta: "+3–5 points on Doc Machine-Readability",
+      },
+    },
   };
 }
 
@@ -1782,6 +2021,20 @@ async function generateEnvVarDocumentation(
     criterion: "ARI-ENV-007",
     alreadyExists: exists || existsTemplate,
     confidence: "medium" as FixConfidence,
+    metadata: {
+      prerequisites: ["Project uses environment variables for configuration"],
+      steps: [
+        "Review the detected environment variables",
+        "Add descriptions for each variable",
+        "Copy to .env and fill in actual values for local development",
+        "Add .env to .gitignore (keep .env.example tracked)",
+      ],
+      rollbackAdvice: "Delete .env.example — no production impact.",
+      expectedImpact: {
+        pillar: "P4",
+        estimatedDelta: "+3–5 points on Dev Environment",
+      },
+    },
   };
 }
 
@@ -1989,6 +2242,21 @@ async function generateDockerCompose(
     criterion: "ARI-ENV-003",
     alreadyExists: false,
     confidence: "medium" as FixConfidence,
+    metadata: {
+      prerequisites: ["Docker and Docker Compose installed"],
+      steps: [
+        "Review the detected services and adjust ports/credentials",
+        "Run `docker compose up -d` to start services",
+        "Update application config to point to localhost services",
+        "Commit docker-compose.yml to version control",
+      ],
+      rollbackAdvice:
+        "Run `docker compose down -v` to stop and remove containers, then delete docker-compose.yml.",
+      expectedImpact: {
+        pillar: "P4",
+        estimatedDelta: "+5–10 points on Dev Environment",
+      },
+    },
   };
 }
 
@@ -2330,6 +2598,21 @@ async function generatePrTemplate(context: RepoContext): Promise<FixProposal | n
     criterion: "ARI-SEC-003",
     alreadyExists: exists,
     confidence: "medium" as FixConfidence,
+    metadata: {
+      prerequisites: ["Repository hosted on GitHub"],
+      steps: [
+        "Review the PR template sections",
+        "Customize the AI-Code Review Checklist for your team's workflow",
+        "Commit to .github/pull_request_template.md",
+        "Verify the template appears when creating new PRs",
+      ],
+      rollbackAdvice:
+        "Delete .github/pull_request_template.md — PRs will use the default blank template.",
+      expectedImpact: {
+        pillar: "P8",
+        estimatedDelta: "+5–10 points on Security & Governance",
+      },
+    },
   };
 }
 
@@ -2362,6 +2645,24 @@ async function generateDiWiringExample(
     criterion: "ARI-TST-001",
     alreadyExists: exists,
     confidence: "low" as FixConfidence,
+    metadata: {
+      prerequisites: [
+        `Framework with DI support detected (${framework ?? "unknown"})`,
+        "Provider interface files already generated (see storage/queue providers)",
+      ],
+      steps: [
+        "Review the DI wiring example for your framework",
+        "Copy the pattern into your actual module/config files",
+        "Register provider implementations in your DI container",
+        "Write tests using the in-memory test double",
+      ],
+      rollbackAdvice:
+        "Delete the example file — it is a reference, not wired into production code.",
+      expectedImpact: {
+        pillar: "P3",
+        estimatedDelta: "+5–10 points on Test Isolation",
+      },
+    },
   };
 }
 
@@ -2735,6 +3036,196 @@ async function generateGitleaksConfig(context: RepoContext): Promise<FixProposal
     criterion: "ARI-SEC-003",
     alreadyExists: false,
     confidence: "high" as FixConfidence,
+    metadata: {
+      prerequisites: ["gitleaks CLI installed (`brew install gitleaks` or binary download)"],
+      steps: [
+        "Review the .gitleaks.toml allowlist paths",
+        "Run `gitleaks detect` to scan for existing secrets",
+        "Add a CI step: `gitleaks detect --source .`",
+        "Commit .gitleaks.toml to version control",
+      ],
+      rollbackAdvice: "Delete .gitleaks.toml — gitleaks will use default rules.",
+      expectedImpact: {
+        pillar: "P8",
+        estimatedDelta: "+3–5 points on Security & Governance",
+      },
+    },
+  };
+}
+
+/**
+ * Generate a typed env var schema file (Zod for TS, pydantic for Python).
+ * Unlike .env.example (flat key=value), this produces a typed, validated config
+ * module that fails fast on missing or invalid environment variables.
+ * P2.06: Guided remediation template for documentation (P5).
+ */
+async function generateEnvVarSchema(
+  context: RepoContext,
+  detection: DetectionResult | undefined,
+): Promise<FixProposal | null> {
+  const primaryLang = detection?.languages.find((l) => l.primary);
+  const langName = normalizeLang(primaryLang?.language);
+
+  // Only generate for TypeScript or Python
+  if (langName !== "typescript" && langName !== "javascript" && langName !== "python") return null;
+
+  // Check if a typed config already exists (language-specific paths)
+  const tsConfigPaths = ["src/config/env.ts", "src/env.ts", "src/config.ts"];
+  const jsConfigPaths = ["src/config/env.js", "src/env.js", "src/config.js"];
+  const pyConfigPaths = ["src/config/env.py", "config/env.py", "src/config.py"];
+
+  // For Node repos (TS or JS), check both .ts and .js paths — a TypeScript repo
+  // may already have a JS config module and vice versa.
+  const pathsToCheck = langName === "python" ? pyConfigPaths : [...tsConfigPaths, ...jsConfigPaths];
+  for (const p of pathsToCheck) {
+    if (await context.fileExists(p)) return null;
+  }
+
+  if (langName === "python") {
+    const schemaPath = "src/config/env.py";
+    const exists = await context.fileExists(schemaPath);
+
+    const content = [
+      '"""',
+      "Typed environment variable schema using pydantic.",
+      "Generated by ariscan --fix (P2.06). Customize for your project.",
+      "",
+      "Import this module early in your application to fail fast on missing config.",
+      "Usage: from config.env import settings",
+      '"""',
+      "",
+      "from pydantic_settings import BaseSettings",
+      "from pydantic import Field",
+      "",
+      "",
+      "class Settings(BaseSettings):",
+      '    """Application settings loaded from environment variables."""',
+      "",
+      "    # TODO(ARI-DOC-002): Add your environment variables below.",
+      "    # Each field maps to an env var of the same name (case-insensitive).",
+      "",
+      '    # app_name: str = Field(default="myapp", description="Application name")',
+      '    # database_url: str = Field(..., description="PostgreSQL connection string")',
+      '    # redis_url: str = Field(default="redis://localhost:6379", description="Redis URL")',
+      '    # debug: bool = Field(default=False, description="Enable debug mode")',
+      '    # log_level: str = Field(default="INFO", description="Logging level")',
+      "",
+      "    class Config:",
+      '        env_file = ".env"',
+      '        env_file_encoding = "utf-8"',
+      "",
+      "",
+      "settings = Settings()",
+      "",
+    ].join("\n");
+
+    return {
+      path: schemaPath,
+      content,
+      rationale:
+        "Typed env var schema validates configuration at startup. " +
+        "Agents and developers get clear errors for missing or invalid env vars.",
+      criterion: "ARI-DOC-002",
+      alreadyExists: exists,
+      confidence: "medium" as FixConfidence,
+      metadata: {
+        prerequisites: [
+          "pydantic and pydantic-settings installed (`pip install pydantic-settings`)",
+        ],
+        steps: [
+          "Add your environment variables as typed fields",
+          "Import `settings` early in your app entrypoint",
+          "Run the app — pydantic will error on missing required vars",
+          "Update .env.example to match the schema fields",
+        ],
+        rollbackAdvice: "Delete src/config/env.py — existing env var usage is unaffected.",
+        expectedImpact: {
+          pillar: "P5",
+          estimatedDelta: "+5–10 points on Doc Machine-Readability",
+        },
+      },
+    };
+  }
+
+  // TypeScript / JavaScript — Zod schema
+  const isTypeScript = langName === "typescript";
+  const schemaExt = isTypeScript ? "ts" : "js";
+  const schemaPath = `src/config/env.${schemaExt}`;
+  const exists = await context.fileExists(schemaPath);
+
+  // Detect if zod is already a dependency
+  const pkgJson = await context.readJson<{
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  }>("package.json");
+  const hasZod = !!(pkgJson?.dependencies?.["zod"] || pkgJson?.devDependencies?.["zod"]);
+
+  const importLines: string[] = hasZod
+    ? ['import { z } from "zod";']
+    : ["// TODO(ARI-DOC-002): Install zod first: npm install zod", '// import { z } from "zod";'];
+
+  // When Zod is installed, emit live code; otherwise comment out all Zod-dependent lines
+  const c = hasZod ? (s: string) => s : (s: string) => `// ${s}`;
+
+  const content = [
+    "/**",
+    " * Typed environment variable schema using Zod.",
+    " * Generated by ariscan --fix (P2.06). Customize for your project.",
+    " *",
+    " * Import this module early in your application to fail fast on missing config.",
+    ` * Usage: import { env } from './config/env.js';`,
+    " */",
+    "",
+    ...importLines,
+    "",
+    ...(hasZod ? [] : ["// Uncomment the code below after installing zod.", ""]),
+    c("const envSchema = z.object({"),
+    "  // TODO(ARI-DOC-002): Add your environment variables below.",
+    "  // Each key maps to process.env[KEY].",
+    "",
+    "  // NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),",
+    "  // PORT: z.coerce.number().default(3000),",
+    "  // DATABASE_URL: z.string().url(),",
+    "  // REDIS_URL: z.string().url().default('redis://localhost:6379'),",
+    "  // API_KEY: z.string().min(1),",
+    "  // LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),",
+    c("});"),
+    "",
+    "/**",
+    " * Validated environment variables.",
+    " * Throws a descriptive error at startup if any required var is missing or invalid.",
+    " */",
+    c("export const env = envSchema.parse(process.env);"),
+    "",
+    ...(isTypeScript ? [c("export type Env = z.infer<typeof envSchema>;"), ""] : [""]),
+  ].join("\n");
+
+  return {
+    path: schemaPath,
+    content,
+    rationale:
+      "Typed env var schema validates configuration at startup. " +
+      "Agents and developers get clear Zod errors for missing or invalid env vars.",
+    criterion: "ARI-DOC-002",
+    alreadyExists: exists,
+    confidence: "medium" as FixConfidence,
+    metadata: {
+      prerequisites: [
+        ...(hasZod ? [] : ["Install zod: `npm install zod`"]),
+        "Project uses environment variables for configuration",
+      ],
+      steps: [
+        "Uncomment and customize the env var fields in the schema",
+        `Import \`env\` early in your app entrypoint (e.g., index.${schemaExt} or main.${schemaExt})`,
+        "Run the app — Zod will throw descriptive errors for invalid config",
+        "Update .env.example to match the schema fields",
+      ],
+      rollbackAdvice: `Delete src/config/env.${schemaExt} — existing process.env usage is unaffected.`,
+      expectedImpact: {
+        pillar: "P5",
+        estimatedDelta: "+5–10 points on Doc Machine-Readability",
+      },
+    },
   };
 }
 
