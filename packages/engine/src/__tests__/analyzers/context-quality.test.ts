@@ -569,6 +569,283 @@ describe("contextQualityAnalyzer (P1)", () => {
     });
   });
 
+  describe("additionality analysis (ARI-CTX-011)", () => {
+    it("emits ARI-CTX-011 when AGENTS.md duplicates README content", async () => {
+      const sharedContent = [
+        "This project uses a monorepo layout managed by Turborepo with pnpm workspaces",
+        "The main packages are located in the packages directory with schema engine and cli",
+        "You can install dependencies by running pnpm install in the root directory",
+        "Build all packages with pnpm build which uses turborepo for orchestration",
+        "Run all tests with pnpm test which uses vitest as the testing framework",
+        "Linting is done with eslint nine flat config and prettier for formatting",
+        "TypeScript strict mode is enabled across all packages in the monorepo",
+        "The project follows ESM only conventions with explicit js extensions in imports",
+        "Never use the any type use unknown with type narrowing instead",
+        "All code changes must pass typecheck lint and test before merging",
+      ];
+      const readme = [
+        "# My Project",
+        "",
+        ...sharedContent.map((s) => s + "."),
+        "",
+        "## License",
+        "MIT",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "",
+        ...sharedContent.map((s) => s + "."),
+        "",
+        "## Extra",
+        "Some unique content here.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-011");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("redundancy");
+      expect(finding?.message).toMatch(/\d+\.\d%/); // one decimal place
+    });
+
+    it("does not emit ARI-CTX-011 for AGENTS.md with unique content", async () => {
+      const readme = [
+        "# My Project",
+        "A web application for managing tasks and projects efficiently.",
+        "Built with React and Node.js for modern web development.",
+        "## Installation",
+        "Clone the repository and run npm install to get started.",
+        "## License",
+        "MIT Licensed open source software.",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "",
+        "## Architecture Decisions",
+        "The analyzer engine uses a provider pattern for dependency injection throughout.",
+        "Each pillar has exactly one analyzer file implementing the PillarAnalyzer interface.",
+        "",
+        "## Conventions",
+        "Finding codes follow the pattern ARI-PILLAR-NNN and must never be renumbered.",
+        "Score clamping to zero through one hundred is mandatory in every analyzer.",
+        "",
+        "## Common Pitfalls",
+        "Forgetting the js extension in relative imports causes runtime ESM resolution failures.",
+        "Building schema before testing engine is required because of cross-package dependencies.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-011")).toBe(false);
+    });
+
+    it("includes redundancy percentage to one decimal place", async () => {
+      const readme = [
+        "# Project",
+        "This application processes data using advanced algorithms for analysis.",
+        "The core engine transforms input into structured output formats.",
+        "Testing is done with comprehensive integration and unit test suites.",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "This application processes data using advanced algorithms for analysis.",
+        "The core engine transforms input into structured output formats.",
+        "Testing is done with comprehensive integration and unit test suites.",
+        "Additional unique architecture details about the project structure.",
+        "Important conventions that are not mentioned anywhere else in docs.",
+        "Line seven.",
+        "Line eight.",
+        "Line nine.",
+        "Line ten.",
+        "Line eleven.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Check summary contains additionality with decimal format
+      expect(result.summary).toMatch(/\d+\.\d%\s+additionality/);
+      expect(result.summary).toMatch(/\d+\.\d%\s+redundancy/);
+    });
+
+    it("includes additionality metrics in summary", async () => {
+      const readme = "# Project\nA simple readme with basic description of the project.";
+      const agentsMd = [
+        "# AGENTS.md",
+        "## Architecture",
+        "Unique architecture details not in README about the module structure.",
+        "The provider pattern is used for all external service dependencies.",
+        "Each module follows hexagonal architecture with ports and adapters pattern.",
+        "## Conventions",
+        "Use strict TypeScript with no any types across all packages.",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("Additionality:");
+      expect(result.summary).toContain("AGENTS.md:");
+    });
+
+    it("reports line-level duplicative and additive content", async () => {
+      const sharedContent = [
+        "The project uses TypeScript with strict mode enabled for all packages",
+        "Dependencies are managed with pnpm workspaces and turborepo orchestration",
+        "All tests run with vitest and must pass before any code is merged",
+      ];
+      const readme = ["# Project", ...sharedContent.map((s) => s + ".")].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        ...sharedContent.map((s) => s + "."),
+        "Unique architecture detail about the analyzer pipeline and scoring system.",
+        "Convention about finding codes that must follow the ARI prefix pattern.",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-011");
+      if (finding) {
+        // Should contain line references for duplicative content
+        expect(finding.message).toMatch(/L\d+:/);
+        expect(finding.message).toContain("similar to");
+        expect(finding.message).toContain("Duplicative:");
+        expect(finding.message).toContain("Additive:");
+      }
+    });
+
+    it("awards bonus points for high additionality", async () => {
+      const readme = "# Project\nA brief project description for the readme file.";
+      const agentsMdUnique = [
+        "# AGENTS.md",
+        "## Architecture Decisions",
+        "The analyzer engine uses a provider pattern for all dependency injection.",
+        "Each of the eight pillars has exactly one analyzer implementing the interface.",
+        "## Build Conventions",
+        "Finding codes follow the stable pattern ARI then PILLAR then three digits.",
+        "Score clamping to zero through one hundred is mandatory in every single analyzer.",
+        "## Common Pitfalls",
+        "Forgetting the js extension in relative imports causes ESM resolution failures at runtime.",
+        "Always build schema before testing engine due to cross package import dependencies.",
+        "Never use console.log directly instead use the CLI formatter output layer.",
+      ].join("\n");
+      const agentsMdDuplicate = [
+        "# AGENTS.md",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+        "A brief project description for the readme file.",
+      ].join("\n");
+
+      const ctxUnique = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMdUnique,
+      });
+      const ctxDuplicate = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMdDuplicate,
+      });
+
+      const resultUnique = await contextQualityAnalyzer.analyze(ctxUnique);
+      const resultDuplicate = await contextQualityAnalyzer.analyze(ctxDuplicate);
+
+      expect(resultUnique.score).toBeGreaterThan(resultDuplicate.score);
+    });
+  });
+
+  describe("LLM-generated file penalty (ARI-CTX-012)", () => {
+    it("emits ARI-CTX-012 for boilerplate file with high redundancy", async () => {
+      const readme = [
+        "# My Project",
+        "This project is a web application built with modern tools and frameworks.",
+        "It uses TypeScript for type safety and React for the user interface layer.",
+        "The build system is configured with webpack for optimal bundle optimization.",
+        "Testing is handled by Jest with comprehensive coverage requirements enabled.",
+        "Continuous integration runs on GitHub Actions with automated deployment pipelines.",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "",
+        "This project is a web application built with modern tools and frameworks.",
+        "It uses TypeScript for type safety and React for the user interface layer.",
+        "The build system is configured with webpack for optimal bundle optimization.",
+        "Testing is handled by Jest with comprehensive coverage requirements enabled.",
+        "Continuous integration runs on GitHub Actions with automated deployment pipelines.",
+        "",
+        "Generated by auto-project-scaffolder.",
+        "Line 10.",
+        "Line 11.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-012");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("high");
+      expect(finding?.message).toContain("LLM-generated");
+      expect(finding?.evidence?.paper).toContain("Gloaguen");
+    });
+
+    it("does not emit ARI-CTX-012 for non-boilerplate with some redundancy", async () => {
+      const readme = [
+        "# Project Overview",
+        "This application processes data pipelines for analytics and reporting purposes.",
+        "Built with Python and FastAPI for high performance API serving.",
+      ].join("\n");
+      const agentsMd = [
+        "# AGENTS.md",
+        "## Conventions",
+        "This application processes data pipelines for analytics and reporting purposes.",
+        "Always use dependency injection for database connections in the service layer.",
+        "Never commit credentials or API keys to the repository configuration.",
+        "Use structured logging with correlation IDs for all service requests.",
+        "Line 7.",
+        "Line 8.",
+        "Line 9.",
+        "Line 10.",
+        "Line 11.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+        "src/pipeline/run.py": "# pipeline runner",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-CTX-012")).toBe(false);
+    });
+  });
+
   describe("conciseness check (ARI-CTX-008)", () => {
     it("emits ARI-CTX-008 for very long AGENTS.md without proportional code blocks", async () => {
       // 600 lines of prose, only 1 code block

@@ -72,10 +72,172 @@ const BOILERPLATE_PATTERNS = [
   /do not edit/i,
 ];
 
+/** Reference document types used for additionality comparison */
+const REFERENCE_DOC_PATHS = [
+  "README.md",
+  "CONTRIBUTING.md",
+  "CONTRIBUTING",
+  "docs/README.md",
+] as const;
+
+/** CI workflow glob prefixes to gather reference content */
+const CI_WORKFLOW_PREFIXES = [".github/workflows/", ".gitlab-ci"] as const;
+
 interface DiscoveredFile {
   path: string;
   size: number;
   lineCount: number;
+}
+
+/** Result of additionality analysis for a single context file */
+interface AdditionalityResult {
+  redundancyPct: number; // 0-100, one decimal
+  additionalityPct: number; // 0-100, one decimal
+  duplicateLines: Array<{ line: number; text: string; matchedIn: string }>;
+  additiveLines: Array<{ line: number; text: string }>;
+  methodology: string;
+}
+
+/**
+ * Strip markdown formatting to extract plain text for comparison.
+ * Removes code fences, headings markers, links, images, bold/italic markers.
+ */
+function normalizeForComparison(text: string): string {
+  return (
+    text
+      // Remove code blocks entirely (content inside fences is not prose)
+      .replace(/```[\s\S]*?```/g, "")
+      // Remove inline code
+      .replace(/`[^`]+`/g, "")
+      // Remove markdown headings markers
+      .replace(/^#{1,6}\s+/gm, "")
+      // Remove link syntax but keep text: [text](url) → text
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      // Remove image syntax
+      .replace(/!\[([^\]]*)\]\([^)]*\)/g, "")
+      // Remove bold/italic markers
+      .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, "$1")
+      // Remove HTML tags
+      .replace(/<[^>]+>/g, "")
+      // Collapse whitespace
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+}
+
+/**
+ * Split text into meaningful sentences/segments for comparison.
+ * Returns non-empty segments of at least 5 words.
+ */
+function splitSegments(text: string): string[] {
+  // Split on sentence boundaries (period, newline) and list items
+  const raw = text.split(/[.\n]+/).map((s) => s.trim());
+  // Filter out very short segments (< 5 words) to avoid false positive matches
+  return raw.filter((s) => s.split(/\s+/).length >= 5);
+}
+
+/**
+ * Compute Jaccard similarity between two word sets.
+ * Returns value 0-1.
+ */
+function jaccardSimilarity(a: string, b: string): number {
+  const wordsA = new Set(a.toLowerCase().split(/\s+/));
+  const wordsB = new Set(b.toLowerCase().split(/\s+/));
+  let intersection = 0;
+  for (const w of wordsA) {
+    if (wordsB.has(w)) intersection++;
+  }
+  const union = wordsA.size + wordsB.size - intersection;
+  if (union === 0) return 0;
+  return intersection / union;
+}
+
+/**
+ * Compute additionality for a context file against reference documents.
+ * Uses sentence-level Jaccard similarity to identify duplicated content.
+ */
+function computeAdditionality(
+  contextContent: string,
+  contextPath: string,
+  referenceDocs: Array<{ path: string; content: string }>,
+): AdditionalityResult {
+  const normalizedContext = normalizeForComparison(contextContent);
+  const contextSegments = splitSegments(normalizedContext);
+
+  // Pre-compute reference segments
+  const refSegments: Array<{ segment: string; path: string }> = [];
+  for (const doc of referenceDocs) {
+    const normalized = normalizeForComparison(doc.content);
+    for (const seg of splitSegments(normalized)) {
+      refSegments.push({ segment: seg, path: doc.path });
+    }
+  }
+
+  // Map original lines to their comparison status
+  const lines = contextContent.split("\n");
+  const duplicateLines: AdditionalityResult["duplicateLines"] = [];
+  const additiveLines: AdditionalityResult["additiveLines"] = [];
+
+  // Track per-segment match status
+  let matchedSegments = 0;
+  const totalSegments = contextSegments.length;
+
+  const SIMILARITY_THRESHOLD = 0.6;
+
+  for (const segment of contextSegments) {
+    let bestMatch = 0;
+    let bestMatchPath = "";
+    for (const ref of refSegments) {
+      const sim = jaccardSimilarity(segment, ref.segment);
+      if (sim > bestMatch) {
+        bestMatch = sim;
+        bestMatchPath = ref.path;
+      }
+    }
+    if (bestMatch >= SIMILARITY_THRESHOLD) {
+      matchedSegments++;
+      // Find the original line that best corresponds to this segment
+      const segWords = segment.toLowerCase();
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i] ?? "";
+        const lineLower = line.toLowerCase().trim();
+        if (
+          lineLower.length >= 10 &&
+          segWords.includes(lineLower.replace(/[#*_`()[\]]/g, "").trim())
+        ) {
+          if (!duplicateLines.some((d) => d.line === i + 1)) {
+            duplicateLines.push({ line: i + 1, text: line.trim(), matchedIn: bestMatchPath });
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // Identify additive lines (non-empty, non-duplicate, meaningful)
+  const dupLineNums = new Set(duplicateLines.map((d) => d.line));
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = (lines[i] ?? "").trim();
+    if (trimmed.length >= 10 && !dupLineNums.has(i + 1)) {
+      // Skip pure markdown formatting lines
+      if (!/^(#{1,6}\s*$|```|---|\*\*\*|___|\|)/.test(trimmed)) {
+        additiveLines.push({ line: i + 1, text: trimmed });
+      }
+    }
+  }
+
+  const redundancyPct =
+    totalSegments > 0 ? Math.round((matchedSegments / totalSegments) * 1000) / 10 : 0;
+  const additionalityPct = Math.round((100 - redundancyPct) * 10) / 10;
+
+  const methodology = [
+    `Sentence-level Jaccard similarity (threshold ≥ ${SIMILARITY_THRESHOLD}).`,
+    `Compared ${totalSegments} segments from ${contextPath}`,
+    `against ${refSegments.length} segments from ${referenceDocs.map((d) => d.path).join(", ")}.`,
+    `${matchedSegments}/${totalSegments} segments matched as duplicative.`,
+  ].join(" ");
+
+  return { redundancyPct, additionalityPct, duplicateLines, additiveLines, methodology };
 }
 
 /**
@@ -523,7 +685,153 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
       });
     }
 
-    // Build summary with file metadata
+    // --- Additionality analysis (P1.04) ---
+    // Gather reference documents for comparison
+    const referenceDocs: Array<{ path: string; content: string }> = [];
+    for (const refPath of REFERENCE_DOC_PATHS) {
+      const content = await context.readFile(refPath);
+      if (content) {
+        referenceDocs.push({ path: refPath, content });
+      }
+    }
+    // Gather CI workflow files
+    for (const prefix of CI_WORKFLOW_PREFIXES) {
+      for (const f of context.files) {
+        if (f.startsWith(prefix) && (f.endsWith(".yml") || f.endsWith(".yaml"))) {
+          const content = await context.readFile(f);
+          if (content) {
+            referenceDocs.push({ path: f, content });
+          }
+        }
+      }
+    }
+    // Include package.json scripts section as reference
+    const pkgJson = await context.readJson<{
+      description?: string;
+      scripts?: Record<string, string>;
+    }>("package.json");
+    if (pkgJson) {
+      const parts: string[] = [];
+      if (pkgJson.description) parts.push(pkgJson.description);
+      if (pkgJson.scripts) {
+        for (const [key, val] of Object.entries(pkgJson.scripts)) {
+          parts.push(`${key}: ${val}`);
+        }
+      }
+      if (parts.length > 0) {
+        referenceDocs.push({ path: "package.json", content: parts.join("\n") });
+      }
+    }
+
+    // Run additionality analysis on text-based context files
+    const TEXT_CONTEXT_FILES = [
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".cursorrules",
+      ".cursor/rules",
+      ".github/copilot-instructions.md",
+    ];
+    const additionalityResults: Array<{
+      path: string;
+      result: AdditionalityResult;
+    }> = [];
+
+    if (referenceDocs.length > 0) {
+      for (const cf of foundContextFiles) {
+        if (!TEXT_CONTEXT_FILES.includes(cf)) continue;
+        const content = await context.readFile(cf);
+        if (!content || content.trim().length === 0) continue;
+
+        const result = computeAdditionality(content, cf, referenceDocs);
+        additionalityResults.push({ path: cf, result });
+
+        // ARI-CTX-011: High redundancy
+        if (result.redundancyPct > 50) {
+          const topDuplicates = result.duplicateLines
+            .slice(0, 3)
+            .map((d) => `L${d.line}: "${d.text}" (similar to ${d.matchedIn})`)
+            .join("; ");
+          const topAdditive = result.additiveLines
+            .slice(0, 3)
+            .map((a) => `L${a.line}: "${a.text}"`)
+            .join("; ");
+
+          findings.push({
+            code: "ARI-CTX-011",
+            severity: result.redundancyPct > 70 ? "medium" : "low",
+            pillar: PILLAR,
+            file: cf,
+            message: [
+              `${cf} has ${result.redundancyPct.toFixed(1)}% content redundancy with existing repo documentation.`,
+              result.methodology,
+              topDuplicates ? `Duplicative: ${topDuplicates}.` : "",
+              topAdditive ? `Additive: ${topAdditive}.` : "",
+            ]
+              .filter(Boolean)
+              .join(" "),
+            confidence: "medium",
+            remediation: {
+              action: "modify-config",
+              path: cf,
+              description:
+                "Remove content that duplicates README, CONTRIBUTING, or CI config. Focus on project-specific guidance that agents cannot discover through file traversal.",
+              estimatedImpact: "+5-10 points composite",
+              confidence: "medium",
+            },
+            evidence: {
+              paper: "Gloaguen et al., 2026",
+              finding:
+                "LLM-generated context files that duplicate README decrease agent success by 2-3% while increasing inference cost by 20%+",
+              confidence: "high",
+            },
+          });
+
+          // Score deduction based on redundancy level
+          if (result.redundancyPct > 70) {
+            score -= 10;
+          } else {
+            score -= 5;
+          }
+        } else if (result.redundancyPct > 30) {
+          // Moderate redundancy — info-level finding, minor deduction
+          score -= 3;
+        }
+
+        // Additionality bonus for high-quality context
+        if (result.additionalityPct > 80) {
+          score += 5;
+        }
+
+        // ARI-CTX-012: LLM-generated file duplicating README
+        if (result.redundancyPct > 70 && content && isLikelyBoilerplate(content, context.files)) {
+          findings.push({
+            code: "ARI-CTX-012",
+            severity: "high",
+            pillar: PILLAR,
+            file: cf,
+            message: `${cf} appears to be LLM-generated content that duplicates existing documentation (${result.redundancyPct.toFixed(1)}% redundancy). Auto-generated context files hurt agent performance.`,
+            confidence: "medium",
+            remediation: {
+              action: "modify-config",
+              path: cf,
+              description:
+                "Replace auto-generated content with hand-written, project-specific context. Focus on architecture decisions, conventions, and pitfalls that are not documented elsewhere.",
+              estimatedImpact: "+10-15 points composite",
+              confidence: "high",
+            },
+            evidence: {
+              paper: "Gloaguen et al., 2026",
+              finding:
+                "LLM-generated files decrease agent success by 2-3%, human-written files improve by ~4% on niche repos",
+              confidence: "high",
+            },
+          });
+          score -= 10; // Additional penalty for LLM-generated duplicate
+        }
+      }
+    }
+
+    // Build summary with file metadata and additionality
     let summary: string;
     if (discoveredFiles.length > 0) {
       const fileDetails = discoveredFiles
@@ -534,6 +842,15 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         )
         .join(", ");
       summary = `Found ${foundContextFiles.length} context file(s): ${fileDetails}`;
+      if (additionalityResults.length > 0) {
+        const addDetails = additionalityResults
+          .map(
+            (a) =>
+              `${a.path}: ${a.result.additionalityPct.toFixed(1)}% additionality, ${a.result.redundancyPct.toFixed(1)}% redundancy`,
+          )
+          .join("; ");
+        summary += `. Additionality: ${addDetails}`;
+      }
     } else {
       summary = "No agent context files found";
     }
