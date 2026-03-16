@@ -186,11 +186,22 @@ export const policyInitCommand = defineCommand({
     const repoPath = resolve(args.path);
     const outputPath = resolve(repoPath, args.output);
 
-    // Check if file already exists
+    // Check if output files already exist
+    const outputDir = dirname(outputPath);
+    const schemaOutputPath = resolve(outputDir, "config.schema.json");
     if (!args.force) {
       try {
         await access(outputPath);
         process.stderr.write(`Error: ${args.output} already exists. Use --force to overwrite.\n`);
+        process.exit(2);
+      } catch {
+        // File doesn't exist, good
+      }
+      try {
+        await access(schemaOutputPath);
+        process.stderr.write(
+          `Error: config.schema.json already exists. Use --force to overwrite.\n`,
+        );
         process.exit(2);
       } catch {
         // File doesn't exist, good
@@ -202,8 +213,6 @@ export const policyInitCommand = defineCommand({
     try {
       // Vendor the JSON Schema next to the generated policy so editors can
       // resolve it regardless of how ariscan was installed (npx, global, etc.)
-      const outputDir = dirname(outputPath);
-      const schemaOutputPath = resolve(outputDir, "config.schema.json");
       const schemaRelPath = "./" + relative(outputDir, schemaOutputPath);
 
       const content = await generateStarterPolicy(repoPath, schemaRelPath);

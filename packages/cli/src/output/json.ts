@@ -214,6 +214,10 @@ export function getJsonSchemaObject(): Record<string, unknown> {
               },
             },
           },
+          suppressed: {
+            type: "boolean",
+            description: "Whether this finding is suppressed by policy.",
+          },
         },
       },
     },
