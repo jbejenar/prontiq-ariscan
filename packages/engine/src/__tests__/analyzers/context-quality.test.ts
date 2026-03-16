@@ -1054,4 +1054,143 @@ describe("contextQualityAnalyzer (P1)", () => {
       expect(result.findings.some((f) => f.code === "ARI-CTX-008")).toBe(false);
     });
   });
+
+  describe("additionality — expanded reference corpus (Bug 8)", () => {
+    it("compares against config files like tsconfig.json", async () => {
+      const tsconfig = JSON.stringify({
+        compilerOptions: { target: "ES2022", module: "NodeNext", strict: true },
+      });
+      // AGENTS.md duplicates config content
+      const agents = [
+        "# AGENTS.md",
+        "## Build Config",
+        "The project uses target ES2022 with module NodeNext and strict mode enabled.",
+        "The compiler options include target ES2022 module NodeNext strict true.",
+        "compilerOptions target ES2022 module NodeNext strict true",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": agents,
+        "tsconfig.json": tsconfig,
+        "README.md":
+          "# Project\nA test project with many features and capabilities.\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20\nLine 21",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // The config file should be part of reference docs; verify additionality runs
+      expect(result.summary).toContain("Additionality:");
+    });
+
+    it("compares against source-file leading docstrings", async () => {
+      const srcContent = [
+        "/**",
+        " * This module handles user authentication and session management.",
+        " * It validates JWT tokens and manages refresh token rotation.",
+        " */",
+        "export function authenticate() { return true; }",
+      ].join("\n");
+      // AGENTS.md duplicates the docstring content
+      const agents = [
+        "# AGENTS.md",
+        "## Auth Module",
+        "This module handles user authentication and session management.",
+        "It validates JWT tokens and manages refresh token rotation.",
+        "Line 5",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "AGENTS.md": agents,
+        "src/auth.ts": srcContent,
+        "README.md":
+          "# Project\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20\nLine 21",
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Source docstrings should be in reference corpus
+      expect(result.summary).toContain("Additionality:");
+    });
+  });
+
+  describe("additionality — nested AGENTS.md files (Bug 9)", () => {
+    it("runs additionality analysis on nested AGENTS.md files", async () => {
+      const readme = [
+        "# Project",
+        "This project uses pnpm for package management and builds with turbo.",
+        "Run pnpm install to get started with the project setup.",
+        "Run pnpm build to compile all packages in the monorepo.",
+        "Run pnpm test to execute the full test suite.",
+      ].join("\n");
+      // Nested AGENTS.md that duplicates README content
+      const nestedAgents = [
+        "# Package AGENTS",
+        "This project uses pnpm for package management and builds with turbo.",
+        "Run pnpm install to get started with the project setup.",
+        "Run pnpm build to compile all packages in the monorepo.",
+        "Run pnpm test to execute the full test suite.",
+        "Line 6",
+        "Line 7",
+        "Line 8",
+        "Line 9",
+        "Line 10",
+        "Line 11",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md":
+          readme +
+          "\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20\nLine 21",
+        "packages/core/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // Nested AGENTS.md should appear in additionality results
+      expect(result.summary).toContain("packages/core/AGENTS.md");
+      expect(result.summary).toContain("Additionality:");
+    });
+
+    it("emits ARI-CTX-011 for duplicated nested AGENTS.md", async () => {
+      const readme = [
+        "# Project",
+        "This project uses pnpm for package management and turbo for builds.",
+        "Run pnpm install to get started with the project.",
+        "Run pnpm build to compile all packages.",
+        "Run pnpm test to execute the full test suite.",
+        "The architecture follows a monorepo pattern with shared packages.",
+        "Code quality is enforced via eslint and prettier.",
+        "TypeScript strict mode is enabled across all packages.",
+        "All tests use vitest as the testing framework.",
+        "Deploy via CI pipeline with automated checks.",
+      ].join("\n");
+      // Nested AGENTS.md that is a near-copy of README
+      const nestedAgents = [
+        "# Package Agents",
+        "This project uses pnpm for package management and turbo for builds.",
+        "Run pnpm install to get started with the project.",
+        "Run pnpm build to compile all packages.",
+        "Run pnpm test to execute the full test suite.",
+        "The architecture follows a monorepo pattern with shared packages.",
+        "Code quality is enforced via eslint and prettier.",
+        "TypeScript strict mode is enabled across all packages.",
+        "All tests use vitest as the testing framework.",
+        "Deploy via CI pipeline with automated checks.",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md":
+          readme +
+          "\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20\nLine 21",
+        "packages/core/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.file === "packages/core/AGENTS.md",
+      );
+      expect(finding).toBeDefined();
+    });
+  });
 });

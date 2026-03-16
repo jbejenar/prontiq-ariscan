@@ -80,6 +80,24 @@ const REFERENCE_DOC_PATHS = [
   "docs/README.md",
 ] as const;
 
+/** Config files to include in reference corpus for additionality comparison */
+const REFERENCE_CONFIG_PATHS = [
+  "tsconfig.json",
+  "Makefile",
+  "Dockerfile",
+  "Cargo.toml",
+  "pyproject.toml",
+  "setup.cfg",
+  "Gemfile",
+  "go.mod",
+] as const;
+
+/** Common source-file extensions for docstring extraction */
+const SOURCE_EXTENSIONS = [".ts", ".js", ".py", ".go", ".rs", ".java", ".rb"] as const;
+
+/** Maximum number of source files to scan for leading docstrings */
+const MAX_SOURCE_FILES_FOR_DOCSTRINGS = 20;
+
 /** CI workflow glob prefixes to gather reference content */
 const CI_WORKFLOW_PREFIXES = [".github/workflows/", ".gitlab-ci"] as const;
 
@@ -129,6 +147,67 @@ function normalizeForComparison(text: string): string {
       .replace(/[^\S\n]+/g, " ")
       .trim()
   );
+}
+
+/**
+ * Extract the leading comment/docstring block from a source file.
+ * Returns the text of the first block comment or consecutive line comments
+ * at the top of the file (after any shebang or blank lines).
+ */
+function extractLeadingDocstring(content: string): string | null {
+  const lines = content.split("\n");
+  let i = 0;
+  // Skip shebang and blank lines
+  while (i < lines.length) {
+    const line = lines[i] as string;
+    if (line.trim() !== "" && !line.startsWith("#!")) break;
+    i++;
+  }
+  if (i >= lines.length) return null;
+
+  const firstLine = (lines[i] as string).trimStart();
+
+  // Block comment: /** ... */ or /* ... */
+  if (firstLine.startsWith("/**") || firstLine.startsWith("/*")) {
+    const blockLines: string[] = [];
+    const startIdx = i;
+    for (; i < lines.length; i++) {
+      const line = lines[i] as string;
+      blockLines.push(line);
+      if (line.includes("*/") && i > startIdx) break;
+      if (i === startIdx && line.trimEnd().endsWith("*/")) break;
+    }
+    return blockLines.join("\n");
+  }
+  // Python triple-quote docstrings
+  if (firstLine.startsWith('"""') || firstLine.startsWith("'''")) {
+    const delim = firstLine.slice(0, 3);
+    const currentLine = lines[i] as string;
+    const blockLines: string[] = [currentLine];
+    if (firstLine.indexOf(delim, 3) > 3) return firstLine; // single-line docstring
+    for (i++; i < lines.length; i++) {
+      const line = lines[i] as string;
+      blockLines.push(line);
+      if (line.includes(delim)) break;
+    }
+    return blockLines.join("\n");
+  }
+  // Consecutive line comments: //, #, --
+  const commentPrefixes = ["//", "#", "--"];
+  const prefix = commentPrefixes.find((p) => firstLine.startsWith(p));
+  if (prefix) {
+    const commentLines: string[] = [];
+    for (; i < lines.length; i++) {
+      const line = lines[i] as string;
+      if (line.trimStart().startsWith(prefix)) {
+        commentLines.push(line);
+      } else {
+        break;
+      }
+    }
+    if (commentLines.length >= 2) return commentLines.join("\n");
+  }
+  return null;
 }
 
 /**
@@ -862,6 +941,46 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         referenceDocs.push({ path: "package.json", content: parts.join("\n") });
       }
     }
+    // Include config files in reference corpus
+    for (const cfgPath of REFERENCE_CONFIG_PATHS) {
+      const content = await context.readFile(cfgPath);
+      if (content) {
+        referenceDocs.push({ path: cfgPath, content });
+      }
+    }
+    // Also include eslint/prettier config files found by pattern
+    for (const f of context.files) {
+      if (
+        (f.match(/^\.eslintrc(\.[a-z]+)?$/) ||
+          f.match(/^\.prettierrc(\.[a-z]+)?$/) ||
+          f === "eslint.config.js" ||
+          f === "eslint.config.mjs" ||
+          f === "prettier.config.js" ||
+          f === "prettier.config.mjs") &&
+        !referenceDocs.some((d) => d.path === f)
+      ) {
+        const content = await context.readFile(f);
+        if (content) {
+          referenceDocs.push({ path: f, content });
+        }
+      }
+    }
+    // Extract leading docstrings/comments from source files
+    let docstringCount = 0;
+    for (const f of context.files) {
+      if (docstringCount >= MAX_SOURCE_FILES_FOR_DOCSTRINGS) break;
+      if (!SOURCE_EXTENSIONS.some((ext) => f.endsWith(ext))) continue;
+      // Skip test files and generated files
+      if (f.includes("__tests__") || f.includes(".test.") || f.includes(".spec.")) continue;
+      if (f.includes("node_modules/") || f.includes("dist/") || f.includes("build/")) continue;
+      const content = await context.readFile(f);
+      if (!content) continue;
+      const docstring = extractLeadingDocstring(content);
+      if (docstring && docstring.length > 50) {
+        referenceDocs.push({ path: f, content: docstring });
+        docstringCount++;
+      }
+    }
 
     // Run additionality analysis on text-based context files
     const TEXT_CONTEXT_FILES = [
@@ -878,7 +997,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
 
     if (referenceDocs.length > 0) {
       for (const cf of foundContextFiles) {
-        if (!TEXT_CONTEXT_FILES.includes(cf)) continue;
+        if (!TEXT_CONTEXT_FILES.includes(cf) && !cf.endsWith("/AGENTS.md")) continue;
         const content = await context.readFile(cf);
         if (!content || content.trim().length === 0) continue;
 
