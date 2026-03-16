@@ -214,10 +214,22 @@ export async function scan(
 }
 
 /**
+ * Estimated score penalty per severity level.
+ * Used to adjust pillar scores when findings are suppressed.
+ */
+const SEVERITY_PENALTY: Record<string, number> = {
+  critical: 15,
+  high: 10,
+  medium: 5,
+  low: 2,
+  info: 0,
+};
+
+/**
  * Apply suppressions to pillar results: mark matching findings as suppressed
- * and exclude them from the findings list used for scoring.
+ * and adjust pillar scores to remove the suppressed findings' penalty.
  * Suppressed findings are kept in the output (with `suppressed: true`) for audit trail
- * but their penalty is removed by filtering them before score recalculation.
+ * but their estimated penalty is added back to the pillar score.
  */
 function applySuppressions(
   pillarResults: PillarResult[],
@@ -230,12 +242,20 @@ function applySuppressions(
     const hasAnySuppressed = pr.findings.some((f) => suppressedCodes.has(f.code));
     if (!hasAnySuppressed) return pr;
 
-    const updatedFindings: Finding[] = pr.findings.map((f) =>
-      suppressedCodes.has(f.code) ? { ...f, suppressed: true } : f,
-    );
+    let scoreBoost = 0;
+    const updatedFindings: Finding[] = pr.findings.map((f) => {
+      if (suppressedCodes.has(f.code)) {
+        scoreBoost += SEVERITY_PENALTY[f.severity] ?? 0;
+        return { ...f, suppressed: true };
+      }
+      return f;
+    });
+
+    const adjustedScore = Math.min(100, Math.max(0, pr.score + scoreBoost));
 
     return {
       ...pr,
+      score: adjustedScore,
       findings: updatedFindings,
     };
   });

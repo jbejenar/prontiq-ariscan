@@ -161,15 +161,28 @@ export function resolveProfile(config: FileConfigType): FileConfigType {
 }
 
 /**
+ * Format a Date as YYYY-MM-DD in local time.
+ */
+function toLocalDateString(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Filter out expired suppressions. Returns only active suppressions.
+ * Date-only expiry values (YYYY-MM-DD) are treated as valid through the
+ * entire stated day by comparing calendar dates, not timestamps.
  */
 export function filterSuppressions(
   suppressions: SuppressionType[],
   now: Date = new Date(),
 ): SuppressionType[] {
+  const todayStr = toLocalDateString(now);
   return suppressions.filter((s) => {
     if (s.expiry === "no-expiry") return true;
-    return new Date(s.expiry) >= now;
+    return s.expiry >= todayStr;
   });
 }
 
@@ -305,6 +318,14 @@ export async function resolveFullConfig(options: {
       // Filter expired suppressions
       if (fileConfig.suppressions) {
         fileConfig = { ...fileConfig, suppressions: filterSuppressions(fileConfig.suppressions) };
+      }
+
+      // Warn about paths rules that are not yet enforced
+      if (fileConfig.paths && fileConfig.paths.length > 0) {
+        process.stderr.write(
+          `Warning: 'paths' rules are defined in policy but not yet enforced. ` +
+            `Path-specific thresholds will be ignored.\n`,
+        );
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

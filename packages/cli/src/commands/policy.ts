@@ -149,10 +149,12 @@ async function validatePolicyFile(configPath: string): Promise<PolicyError[]> {
       }
       codes.add(sup.code);
 
-      // Warn on expired suppressions
+      // Warn on expired suppressions — compare as calendar dates so
+      // a date-only expiry stays valid through the entire stated day
       if (sup.expiry !== "no-expiry") {
-        const expiryDate = new Date(sup.expiry);
-        if (expiryDate < new Date()) {
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        if (sup.expiry < todayStr) {
           errors.push({
             message: `Suppression ${sup.code} has expired (${sup.expiry})`,
             field: "suppressions",
