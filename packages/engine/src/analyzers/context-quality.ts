@@ -126,8 +126,10 @@ const DYNAMIC_CONFIG_PATTERNS: RegExp[] = [
 /** Common source-file extensions for docstring extraction */
 const SOURCE_EXTENSIONS = [".ts", ".js", ".py", ".go", ".rs", ".java", ".rb"] as const;
 
-/** Maximum number of source files to scan for leading docstrings */
-const MAX_SOURCE_FILES_FOR_DOCSTRINGS = 20;
+/** Maximum number of source files to scan for leading docstrings.
+ *  Set high enough to cover all meaningful source files in most repos
+ *  while still bounding worst-case cost in very large monorepos. */
+const MAX_SOURCE_FILES_FOR_DOCSTRINGS = 200;
 
 /** CI workflow glob prefixes to gather reference content */
 const CI_WORKFLOW_PREFIXES = [".github/workflows/", ".gitlab-ci"] as const;
@@ -1046,16 +1048,18 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         referenceDocs.push({ path: cfgPath, content: normalizeConfigContent(content, cfgPath) });
       }
     }
-    // Also include eslint/prettier config files found by pattern
+    // Also include eslint/prettier config files found by pattern (including nested paths)
     for (const f of context.files) {
+      const bn = f.includes("/") ? f.slice(f.lastIndexOf("/") + 1) : f;
       if (
-        (f.match(/^\.eslintrc(\.[a-z]+)?$/) ||
-          f.match(/^\.prettierrc(\.[a-z]+)?$/) ||
-          f === "eslint.config.js" ||
-          f === "eslint.config.mjs" ||
-          f === "prettier.config.js" ||
-          f === "prettier.config.mjs") &&
-        !referenceDocs.some((d) => d.path === f)
+        (bn.match(/^\.eslintrc(\.[a-z]+)?$/) ||
+          bn.match(/^\.prettierrc(\.[a-z]+)?$/) ||
+          bn === "eslint.config.js" ||
+          bn === "eslint.config.mjs" ||
+          bn === "prettier.config.js" ||
+          bn === "prettier.config.mjs") &&
+        !referenceDocs.some((d) => d.path === f) &&
+        !/(?:^|\/)(node_modules|dist|build)\//.test(f)
       ) {
         const content = await context.readFile(f);
         if (content) {
@@ -1064,11 +1068,13 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
       }
     }
     // Include dynamically-discovered config files matching common patterns
+    // Match on basename so monorepo nested configs (e.g. packages/foo/vitest.config.ts) are included
     for (const f of context.files) {
-      // Only consider root-level files (no slashes)
-      if (f.includes("/")) continue;
       if (referenceDocs.some((d) => d.path === f)) continue;
-      if (DYNAMIC_CONFIG_PATTERNS.some((p) => p.test(f))) {
+      // Skip files inside node_modules, dist, or build directories
+      if (/(?:^|\/)(node_modules|dist|build|\.next|\.nuxt)\//.test(f)) continue;
+      const basename = f.includes("/") ? f.slice(f.lastIndexOf("/") + 1) : f;
+      if (DYNAMIC_CONFIG_PATTERNS.some((p) => p.test(basename))) {
         const content = await context.readFile(f);
         if (content) {
           referenceDocs.push({ path: f, content: normalizeConfigContent(content, f) });
