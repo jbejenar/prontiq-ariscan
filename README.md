@@ -140,6 +140,20 @@ The core scanning engine is functional. What's built:
 
 ---
 
+## Versioning Policy
+
+ARI output follows [Semantic Versioning](https://semver.org/). The JSON schema file (`ariscan.schema.json`) and the `--json-schema` flag document the current output contract.
+
+| Change Type | Semver Impact | Examples |
+|---|---|---|
+| **Patch** | `x.y.Z` | New optional fields, bug fixes in scoring, documentation updates |
+| **Minor** | `x.Y.0` | New pillar or criterion, new finding codes, new output fields |
+| **Major** | `X.0.0` | Removing or renaming fields, changing score semantics, breaking schema changes |
+
+**Backwards compatibility guarantee:** within a major version, all previously valid JSON output fields remain present with the same types and semantics. Consumers can safely parse ARI output without breaking when patch or minor versions are released.
+
+---
+
 ## Documentation
 
 | Document | Purpose |

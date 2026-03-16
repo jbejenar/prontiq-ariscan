@@ -95,6 +95,9 @@ function formatPillarDetails(pillars: ScanResult["pillars"]): string[] {
     lines.push(
       `  ${pc.bold(pillar.pillar)} ${pc.dim("confidence:")} ${pillar.confidence}  ${pc.dim("summary:")} ${pillar.summary}`,
     );
+    if (pillar.researchBasis && pillar.researchBasis.length > 0) {
+      lines.push(`       ${pc.dim("research:")} ${pillar.researchBasis.join("; ")}`);
+    }
   }
   return lines;
 }

@@ -605,6 +605,10 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
       tsconfig ? "high" : "medium",
       findings,
       `TypeScript strict: ${tsconfig ? "detected" : "no tsconfig"}, Lockfile: ${hasLockfile}, Build: ${scripts["build"] ? "yes" : "no"}`,
+      [
+        "GitHub Octoverse, 2025 — 94% of LLM compilation errors are type-check failures",
+        "TyFlow, Huang et al., 2025 — 33.6% of failed LM-generated programs fail due to type errors",
+      ],
     );
   },
 };

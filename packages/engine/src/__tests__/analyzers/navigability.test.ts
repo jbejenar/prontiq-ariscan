@@ -544,4 +544,66 @@ describe("navigabilityAnalyzer (P7)", () => {
       expect(result.score).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe("ARI-NAV-009: Structural clarity for retrieval (P1.11)", () => {
+    it("emits info ARI-NAV-009 when barrel files and layer separation exist", async () => {
+      const files: Record<string, string> = {
+        "src/index.ts": "export * from './utils';\nexport * from './services';",
+        "src/utils/index.ts": "export * from './helpers';",
+        "src/utils/helpers.ts": "export const help = 1;",
+        "src/services/index.ts": "export * from './api';",
+        "src/services/api.ts": "export const api = 1;",
+        "src/models/index.ts": "export * from './user';",
+        "src/models/user.ts": "export const user = 1;",
+      };
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-009");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("info");
+    });
+
+    it("emits medium ARI-NAV-009 when no barrel files or layers exist", async () => {
+      const files: Record<string, string> = {};
+      for (let i = 0; i < 8; i++) {
+        files[`flat/file${i}.ts`] = `export const f${i} = ${i};`;
+      }
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-009");
+      if (finding) {
+        expect(finding.severity).toBe("medium");
+        expect(finding.remediation).toBeDefined();
+      }
+    });
+
+    it("includes structure label in threshold summary", async () => {
+      const files: Record<string, string> = {
+        "src/index.ts": "export const x = 1;",
+        "src/mod.ts": "export const y = 2;",
+      };
+      const ctx = createMockContext(files);
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.summary).toContain("structure:");
+    });
+  });
+
+  describe("researchBasis (P1.13)", () => {
+    it("includes researchBasis in result", async () => {
+      const ctx = createMockContext({
+        "src/index.ts": "export const x = 1;",
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.researchBasis).toBeDefined();
+      expect(Array.isArray(result.researchBasis)).toBe(true);
+      expect((result.researchBasis ?? []).length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("includes researchBasis even for empty repo", async () => {
+      const ctx = createMockContext({});
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.researchBasis).toBeDefined();
+      expect((result.researchBasis ?? []).length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

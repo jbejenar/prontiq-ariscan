@@ -270,7 +270,10 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
           confidence: "high",
         },
       });
-      return buildPillarResult(PILLAR, 0, "high", findings, "No test files found");
+      return buildPillarResult(PILLAR, 0, "high", findings, "No test files found", [
+        "Berndt et al., 2026 — 63% of LLM-generated flaky tests from unordered collection assumptions",
+        "Luo et al., 2014 — Root causes of flaky tests: async waits, concurrency, test-order dependency",
+      ]);
     }
 
     // Test-to-source ratio
@@ -792,6 +795,10 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       sampled.length >= 10 ? "high" : "medium",
       findings,
       `${testFiles.length} test files found, ratio ${ratio.toFixed(2)}, ${totalAntiPatterns + newAntiPatternCount} anti-patterns detected`,
+      [
+        "Berndt et al., 2026 — 63% of LLM-generated flaky tests from unordered collection assumptions",
+        "Luo et al., 2014 — Root causes of flaky tests: async waits, concurrency, test-order dependency",
+      ],
     );
   },
 };

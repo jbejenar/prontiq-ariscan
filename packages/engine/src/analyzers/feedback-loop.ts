@@ -489,6 +489,10 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
       pkg ? "high" : "low",
       findings,
       `Feedback loop score: ${score}/100. Test: ${hasTestCmd ? "yes" : "no"}, Lint: ${hasLintCmd ? "yes" : "no"}, CI: ${hasCI ? "yes" : "no"}`,
+      [
+        "DORA, 2024 — AI adoption without fast feedback loops decreases throughput 1.5%, stability 7.2%",
+        "Forsgren et al., 2018 — Accelerate: elite teams deploy 46x more frequently with fast CI/CD",
+      ],
     );
   },
 };

@@ -85,6 +85,8 @@ export const PillarResult = z.object({
   findings: z.array(Finding),
   summary: z.string(),
   status: PillarStatus.optional(),
+  /** Research papers/sources that justify this pillar's weighting and scoring criteria. */
+  researchBasis: z.array(z.string()).optional(),
 });
 export type PillarResult = z.infer<typeof PillarResult>;
 

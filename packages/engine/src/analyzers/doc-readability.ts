@@ -378,6 +378,10 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
       "medium",
       findings,
       `API specs: ${apiSpecs.length}, GraphQL: ${graphqlSchemas.length > 0}, Error taxonomy: ${hasErrorTaxonomy}, Runbooks: ${machineReadableRunbooks.length} machine-readable / ${proseOnlyRunbooks.length} prose`,
+      [
+        "Tetrate, 2025 — Unstructured doc parsing triples token costs",
+        "OpenAPI Initiative, 2024 — Machine-readable API specs reduce integration errors 40%",
+      ],
     );
   },
 };

@@ -18,6 +18,7 @@ export function buildPillarResult(
   confidence: Confidence,
   findings: Finding[],
   summary: string,
+  researchBasis?: string[],
 ): PillarResult {
   return {
     pillar,
@@ -27,6 +28,7 @@ export function buildPillarResult(
     confidence,
     findings,
     summary,
+    researchBasis,
   };
 }
 
