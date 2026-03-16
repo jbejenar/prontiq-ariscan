@@ -115,16 +115,16 @@ function normalizeForComparison(text: string): string {
       .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
       // Remove image syntax
       .replace(/!\[([^\]]*)\]\([^)]*\)/g, "")
-      // Remove bold/italic markers
-      .replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")
-      .replace(/_{1,3}([^_]+)_{1,3}/g, "$1")
+      // Remove bold/italic markers (use non-greedy match to avoid backtracking)
+      .replace(/\*{1,3}([^*]+?)\*{1,3}/g, "$1")
+      .replace(/_{1,3}([^_]+?)_{1,3}/g, "$1")
       // Remove HTML tags
       .replace(/<[a-zA-Z/][^>]*>/g, "")
       // Remove any remaining angle brackets
       .replace(/[<>]/g, "")
       // Remove list-item markers (-, *, numbered) but keep the text on its own line
-      .replace(/^[\s]*[-*]\s+/gm, "")
-      .replace(/^[\s]*\d+[.)]\s+/gm, "")
+      .replace(/^\s*[-*]\s+/gm, "")
+      .replace(/^\s*\d+[.)]\s+/gm, "")
       // Collapse horizontal whitespace (preserve newlines for segmentation)
       .replace(/[^\S\n]+/g, " ")
       .trim()
@@ -230,7 +230,7 @@ function computeAdditionality(
         const line = lines[i] ?? "";
         const normalizedLine = line
           .toLowerCase()
-          .replace(/[#*_`()[\].\-:>]/g, "")
+          .replace(/[-#*_`()[\].:>]/g, "")
           .trim();
         if (normalizedLine.split(/\s+/).length < 3) continue;
         const sim = jaccardSimilarity(segment, normalizedLine);
