@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
 import { parse as parseYaml } from "yaml";
-import { FileConfig } from "@prontiq/ariscan-schema";
+import { FileConfig, PILLAR_WEIGHTS } from "@prontiq/ariscan-schema";
 import type {
   FileConfig as FileConfigType,
   ScanConfig as ScanConfigType,
@@ -282,6 +282,70 @@ export interface ResolvedConfig {
   policyMeta: ResolvedPolicyMeta;
 }
 
+/** Semantic policy error. */
+export interface PolicySemanticError {
+  message: string;
+  field?: string;
+}
+
+/**
+ * Run semantic validation on a resolved policy config.
+ * Shared between `resolveFullConfig()` (scan-time) and `validatePolicyFile()`.
+ * Returns an array of errors; empty means valid.
+ */
+export function validatePolicySemantics(config: FileConfigType): PolicySemanticError[] {
+  const errors: PolicySemanticError[] = [];
+
+  // Check weight sum if all pillar weights are overridden
+  if (config.pillars?.weights) {
+    const weights = config.pillars.weights;
+    const overriddenIds = Object.keys(weights);
+    if (overriddenIds.length === Object.keys(PILLAR_WEIGHTS).length) {
+      const sum = Object.values(weights).reduce((a, b) => a + b, 0);
+      if (Math.abs(sum - 1.0) > 0.001) {
+        errors.push({
+          message: `Pillar weights sum to ${sum.toFixed(3)}, expected 1.0`,
+          field: "pillars.weights",
+        });
+      }
+    }
+  }
+
+  // Check profile weights sum
+  if (config.profiles) {
+    for (const [name, profile] of Object.entries(config.profiles)) {
+      if (profile.weights) {
+        const overriddenIds = Object.keys(profile.weights);
+        if (overriddenIds.length === Object.keys(PILLAR_WEIGHTS).length) {
+          const sum = Object.values(profile.weights).reduce((a, b) => a + b, 0);
+          if (Math.abs(sum - 1.0) > 0.001) {
+            errors.push({
+              message: `Profile "${name}" weights sum to ${sum.toFixed(3)}, expected 1.0`,
+              field: `profiles.${name}.weights`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Check duplicate suppression codes
+  if (config.suppressions) {
+    const codes = new Set<string>();
+    for (const sup of config.suppressions) {
+      if (codes.has(sup.code)) {
+        errors.push({
+          message: `Duplicate suppression code: ${sup.code}`,
+          field: "suppressions",
+        });
+      }
+      codes.add(sup.code);
+    }
+  }
+
+  return errors;
+}
+
 /**
  * Resolve the final ScanConfig by merging (in precedence order):
  * CLI flags > config file > defaults.
@@ -329,6 +393,16 @@ export async function resolveFullConfig(options: {
         `'paths' rules are not yet supported. Path-specific thresholds have no effect at runtime. ` +
           `Remove the 'paths' section from your policy file until this feature is implemented.`,
       );
+    }
+
+    // Run semantic validation — same checks as `policy validate`
+    const semanticErrors = validatePolicySemantics(fileConfig);
+    if (semanticErrors.length > 0) {
+      const messages = semanticErrors.map((e) => {
+        const prefix = e.field ? `[${e.field}] ` : "";
+        return `${prefix}${e.message}`;
+      });
+      throw new Error(`Invalid policy: ${messages.join("; ")}`);
     }
   }
 

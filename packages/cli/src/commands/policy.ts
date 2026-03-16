@@ -4,13 +4,14 @@ import { resolve, dirname, relative } from "node:path";
 import { access, writeFile } from "node:fs/promises";
 import { scan } from "@prontiq/ariscan-engine";
 import { formatConfigJsonSchema } from "../output/json.js";
-import { PILLAR_NAMES, PILLAR_WEIGHTS } from "@prontiq/ariscan-schema";
+import { PILLAR_NAMES } from "@prontiq/ariscan-schema";
 import type { PillarId, FileConfig as FileConfigType } from "@prontiq/ariscan-schema";
 import {
   loadConfigFile,
   findConfigFile,
   resolveInheritance,
   resolveProfile,
+  validatePolicySemantics,
 } from "../config-loader.js";
 
 /**
@@ -119,40 +120,11 @@ async function validatePolicyFile(configPath: string): Promise<PolicyError[]> {
     });
   }
 
-  // Semantic: check weight sum if weights are overridden
-  if (config.pillars?.weights) {
-    const weights = config.pillars.weights;
-    const overriddenIds = Object.keys(weights);
-    if (overriddenIds.length === Object.keys(PILLAR_WEIGHTS).length) {
-      const sum = Object.values(weights).reduce((a, b) => a + b, 0);
-      if (Math.abs(sum - 1.0) > 0.001) {
-        errors.push({
-          message: `Pillar weights sum to ${sum.toFixed(3)}, expected 1.0`,
-          field: "pillars.weights",
-        });
-      }
-    }
-  }
+  // Shared semantic validation (weight sums, duplicate suppressions, etc.)
+  errors.push(...validatePolicySemantics(config));
 
-  // Semantic: check profile weights sum
-  if (config.profiles) {
-    for (const [name, profile] of Object.entries(config.profiles)) {
-      if (profile.weights) {
-        const overriddenIds = Object.keys(profile.weights);
-        if (overriddenIds.length === Object.keys(PILLAR_WEIGHTS).length) {
-          const sum = Object.values(profile.weights).reduce((a, b) => a + b, 0);
-          if (Math.abs(sum - 1.0) > 0.001) {
-            errors.push({
-              message: `Profile "${name}" weights sum to ${sum.toFixed(3)}, expected 1.0`,
-              field: `profiles.${name}.weights`,
-            });
-          }
-        }
-      }
-    }
-  }
-
-  // Semantic: check activeProfile exists
+  // Semantic: check activeProfile exists (already checked by resolveProfile above,
+  // but report as a validation error rather than a thrown exception)
   if (config.activeProfile && config.profiles) {
     if (!config.profiles[config.activeProfile]) {
       errors.push({
@@ -167,20 +139,10 @@ async function validatePolicyFile(configPath: string): Promise<PolicyError[]> {
     });
   }
 
-  // Semantic: check suppressions
+  // Check for expired suppressions (warning-level, not in shared validator
+  // because scan-time already filters them out via filterSuppressions)
   if (config.suppressions) {
-    const codes = new Set<string>();
     for (const sup of config.suppressions) {
-      if (codes.has(sup.code)) {
-        errors.push({
-          message: `Duplicate suppression code: ${sup.code}`,
-          field: "suppressions",
-        });
-      }
-      codes.add(sup.code);
-
-      // Warn on expired suppressions — compare as calendar dates so
-      // a date-only expiry stays valid through the entire stated day
       if (sup.expiry !== "no-expiry") {
         const now = new Date();
         const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;

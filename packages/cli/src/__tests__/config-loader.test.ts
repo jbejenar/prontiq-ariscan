@@ -8,6 +8,7 @@ import {
   resolveProfile,
   filterSuppressions,
   extractPolicyMeta,
+  validatePolicySemantics,
 } from "../config-loader.js";
 import type {
   FileConfig as FileConfigType,
@@ -363,5 +364,90 @@ describe("extractPolicyMeta", () => {
     const meta = extractPolicyMeta({});
     expect(meta.enforcement).toBeUndefined();
     expect(meta.pillarThresholds).toBeUndefined();
+  });
+});
+
+describe("validatePolicySemantics", () => {
+  it("returns no errors for valid config", () => {
+    const errors = validatePolicySemantics({ threshold: 70 });
+    expect(errors).toHaveLength(0);
+  });
+
+  it("rejects full weight overrides that do not sum to 1.0", () => {
+    const errors = validatePolicySemantics({
+      pillars: {
+        weights: {
+          P1: 0.2,
+          P2: 0.2,
+          P3: 0.2,
+          P4: 0.1,
+          P5: 0.1,
+          P6: 0.1,
+          P7: 0.05,
+          P8: 0.5, // deliberate: total is 1.45
+        },
+      },
+    });
+    expect(errors).toHaveLength(1);
+    expect(errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "pillars.weights" })]),
+    );
+  });
+
+  it("rejects profile weight overrides that do not sum to 1.0", () => {
+    const errors = validatePolicySemantics({
+      profiles: {
+        strict: {
+          name: "Strict",
+          weights: {
+            P1: 0.5,
+            P2: 0.5,
+            P3: 0.0,
+            P4: 0.0,
+            P5: 0.0,
+            P6: 0.0,
+            P7: 0.0,
+            P8: 0.1, // total 1.1
+          },
+        },
+      },
+    });
+    expect(errors).toHaveLength(1);
+    expect(errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "profiles.strict.weights" })]),
+    );
+  });
+
+  it("rejects duplicate suppression codes", () => {
+    const errors = validatePolicySemantics({
+      suppressions: [
+        { code: "ARI-CTX-001", reason: "test", expiry: "no-expiry" },
+        { code: "ARI-CTX-001", reason: "dup", expiry: "no-expiry" },
+      ],
+    });
+    expect(errors).toHaveLength(1);
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: expect.stringContaining("Duplicate suppression code") }),
+      ]),
+    );
+  });
+
+  it("allows valid full weight overrides summing to 1.0", () => {
+    const errors = validatePolicySemantics({
+      pillars: {
+        weights: {
+          P1: 0.15,
+          P2: 0.15,
+          P3: 0.18,
+          P4: 0.12,
+          P5: 0.1,
+          P6: 0.1,
+          P7: 0.15,
+          P8: 0.05,
+        },
+      },
+    });
+    expect(errors).toHaveLength(0);
   });
 });
