@@ -1056,16 +1056,16 @@ describe("contextQualityAnalyzer (P1)", () => {
   });
 
   describe("additionality — expanded reference corpus (Bug 8)", () => {
-    it("compares against config files like tsconfig.json", async () => {
+    it("compares against config files like tsconfig.json and detects redundancy", async () => {
       const tsconfig = JSON.stringify({
         compilerOptions: { target: "ES2022", module: "NodeNext", strict: true },
       });
-      // AGENTS.md duplicates config content
+      // AGENTS.md restates config content in prose form
       const agents = [
         "# AGENTS.md",
         "## Build Config",
-        "The project uses target ES2022 with module NodeNext and strict mode enabled.",
-        "The compiler options include target ES2022 module NodeNext strict true.",
+        "The project uses compilerOptions target ES2022 with module NodeNext and strict true.",
+        "The compiler options include compilerOptions target ES2022 module NodeNext strict true.",
         "compilerOptions target ES2022 module NodeNext strict true",
         "Line 6",
         "Line 7",
@@ -1081,8 +1081,15 @@ describe("contextQualityAnalyzer (P1)", () => {
           "# Project\nA test project with many features and capabilities.\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20\nLine 21",
       });
       const result = await contextQualityAnalyzer.analyze(ctx);
-      // The config file should be part of reference docs; verify additionality runs
+      // Config file content should be normalized and comparable; expect measurable redundancy
       expect(result.summary).toContain("Additionality:");
+      expect(result.summary).toContain("redundancy");
+      // Verify the additionality summary reports a non-zero redundancy percentage
+      const redundancyMatch = result.summary.match(/(\d+\.\d+)% redundancy/);
+      expect(redundancyMatch).toBeDefined();
+      expect(redundancyMatch).not.toBeNull();
+      const redundancyPct = parseFloat(String(redundancyMatch?.[1] ?? "0"));
+      expect(redundancyPct).toBeGreaterThan(0);
     });
 
     it("compares against source-file leading docstrings", async () => {

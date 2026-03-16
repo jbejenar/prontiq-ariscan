@@ -117,6 +117,71 @@ interface AdditionalityResult {
 }
 
 /**
+ * Flatten a JSON value into plain text lines grouped by top-level key.
+ * Each top-level key produces one line containing all nested key-value pairs,
+ * ensuring segments are long enough to survive the word-count filter.
+ * E.g. { compilerOptions: { target: "ES2022", strict: true } }
+ *   → "compilerOptions target ES2022 strict true"
+ */
+function flattenJsonToText(val: unknown): string[] {
+  if (val === null || val === undefined) return [];
+  if (typeof val !== "object" || Array.isArray(val)) return [String(val)];
+  const lines: string[] = [];
+  for (const [topKey, topVal] of Object.entries(val as Record<string, unknown>)) {
+    const leaves: string[] = [];
+    collectLeaves(topVal, leaves);
+    // Group all leaves under the top-level key into a single segment
+    lines.push(`${topKey} ${leaves.join(" ")}`);
+  }
+  return lines;
+}
+
+/** Recursively collect leaf key-value pairs as "key value" tokens. */
+function collectLeaves(val: unknown, out: string[]): void {
+  if (val === null || val === undefined) return;
+  if (typeof val !== "object") {
+    out.push(String(val));
+    return;
+  }
+  if (Array.isArray(val)) {
+    for (const item of val) collectLeaves(item, out);
+    return;
+  }
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    if (typeof v === "object" && v !== null) {
+      out.push(k);
+      collectLeaves(v, out);
+    } else {
+      out.push(`${k} ${String(v)}`);
+    }
+  }
+}
+
+/**
+ * Normalize config file content into comparable plain text.
+ * JSON files are parsed and flattened into key-value lines.
+ * Other structured formats (TOML, YAML, Makefile, Dockerfile, etc.)
+ * have structural punctuation stripped to produce comparable tokens.
+ */
+function normalizeConfigContent(content: string, path: string): string {
+  // JSON files: parse and flatten for best results
+  if (path.endsWith(".json")) {
+    try {
+      const parsed: unknown = JSON.parse(content);
+      const lines = flattenJsonToText(parsed);
+      return lines.length > 0 ? lines.join("\n") : content;
+    } catch {
+      // Fall through to generic stripping
+    }
+  }
+  // Generic structured config: strip punctuation that hurts Jaccard matching
+  return content
+    .replace(/[{}[\]"',;()]/g, " ")
+    .replace(/[^\S\n]+/g, " ")
+    .trim();
+}
+
+/**
  * Strip markdown formatting to extract plain text for comparison.
  * Removes code fences, headings markers, links, images, bold/italic markers.
  */
@@ -941,11 +1006,11 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         referenceDocs.push({ path: "package.json", content: parts.join("\n") });
       }
     }
-    // Include config files in reference corpus
+    // Include config files in reference corpus (normalized for comparison)
     for (const cfgPath of REFERENCE_CONFIG_PATHS) {
       const content = await context.readFile(cfgPath);
       if (content) {
-        referenceDocs.push({ path: cfgPath, content });
+        referenceDocs.push({ path: cfgPath, content: normalizeConfigContent(content, cfgPath) });
       }
     }
     // Also include eslint/prettier config files found by pattern
@@ -961,7 +1026,7 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
       ) {
         const content = await context.readFile(f);
         if (content) {
-          referenceDocs.push({ path: f, content });
+          referenceDocs.push({ path: f, content: normalizeConfigContent(content, f) });
         }
       }
     }
