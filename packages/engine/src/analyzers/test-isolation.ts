@@ -815,7 +815,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       /require\s*\(\s*['"]@azure\//,
     ];
     let directSdkInTestCount = 0;
-    for (const testFile of sampled.slice(0, 10)) {
+    for (const testFile of sampled) {
       const content = await context.readFile(testFile);
       if (!content) continue;
       if (SDK_IMPORT_PATTERNS.some((p) => p.test(content))) {

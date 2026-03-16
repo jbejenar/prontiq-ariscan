@@ -517,11 +517,19 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
     // --- Enhanced latency inference from package.json scripts ---
     if (hasTestCmd) {
       const testCmd = scripts["test"] ?? "";
-      if (/--parallel|--maxWorkers|--pool\s*forks|--shard/i.test(testCmd)) {
+      const hasParallel = /--parallel|--maxWorkers|--pool\s*forks|--shard/i.test(testCmd);
+      const hasFailFast = /--bail|--failFast/i.test(testCmd);
+      if (hasParallel) {
         latencySignals.push("parallel execution");
       }
-      if (/--bail|--failFast/i.test(testCmd)) {
+      if (hasFailFast) {
         latencySignals.push("fail-fast");
+      }
+      // Upgrade latency from unknown to inferred when script flags provide evidence
+      if ((hasParallel || hasFailFast) && latencyLabel === "unknown") {
+        latencyLabel = "inferred";
+        latencyEstimate = hasParallel ? "fast (parallel scripts)" : "medium (fail-fast scripts)";
+        score += hasParallel ? 3 : 2;
       }
     }
 
