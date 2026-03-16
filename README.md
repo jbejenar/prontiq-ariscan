@@ -157,9 +157,9 @@ The schema URI uses major-only versioning (`v1`, `v2`, …) as a structural stab
 
 | Change Type | Semver Impact | Examples |
 |---|---|---|
-| **Patch** | `x.y.Z` | New optional fields, bug fixes in scoring, documentation updates |
-| **Minor** | `x.Y.0` | New pillar or criterion, new finding codes, new output fields |
-| **Major** | `X.0.0` | Removing or renaming fields, changing score semantics, breaking schema changes |
+| **Patch** | `x.y.Z` | Bug fixes in scoring, documentation updates, internal refactors — no change to the JSON output surface |
+| **Minor** | `x.Y.0` | Any additive change to the JSON output surface: new fields (required or optional), new finding codes, new pillars |
+| **Major** | `X.0.0` | Removing or renaming fields, changing field types, changing score semantics, breaking schema changes |
 
 **Backwards compatibility guarantee:** within a major version, all previously valid JSON output fields remain present with the same types and semantics. Consumers can safely parse ARI output without breaking when patch or minor versions are released. A major version bump in `metadata.version` will coincide with a new schema URI (e.g., `v2.json`).
 
