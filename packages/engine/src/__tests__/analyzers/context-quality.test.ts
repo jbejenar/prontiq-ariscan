@@ -1161,6 +1161,89 @@ describe("contextQualityAnalyzer (P1)", () => {
       expect(result.summary).toContain("Additionality:");
     });
 
+    it("detects redundancy against package-local README (Bug 11)", async () => {
+      // Root README has different content
+      const rootReadme =
+        "# Root Project\nThis is the monorepo root with completely different content about overall architecture and governance.";
+      // Package-local README has specific guidance
+      const localReadme = [
+        "# Core Package",
+        "This package handles the core business logic for data processing.",
+        "Run pnpm build to compile the TypeScript source files.",
+        "Run pnpm test to execute the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from the environment variables at startup.",
+        "Error handling follows the Result pattern throughout the codebase.",
+        "All public APIs are documented with TSDoc comments for clarity.",
+        "Integration tests are located in the __tests__ directory structure.",
+        "The package depends on zod for runtime schema validation checks.",
+      ].join("\n");
+      // Nested AGENTS.md duplicates the local README, not root README
+      const nestedAgents = [
+        "# Core Package Agent Guide",
+        "This package handles the core business logic for data processing.",
+        "Run pnpm build to compile the TypeScript source files.",
+        "Run pnpm test to execute the vitest test suite.",
+        "The package exports a main entry point from src/index.ts file.",
+        "Configuration is loaded from the environment variables at startup.",
+        "Error handling follows the Result pattern throughout the codebase.",
+        "All public APIs are documented with TSDoc comments for clarity.",
+        "Integration tests are located in the __tests__ directory structure.",
+        "The package depends on zod for runtime schema validation checks.",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md": rootReadme,
+        "packages/core/README.md": localReadme,
+        "packages/core/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      const finding = result.findings.find(
+        (f) => f.code === "ARI-CTX-011" && f.file === "packages/core/AGENTS.md",
+      );
+      expect(finding).toBeDefined();
+      // Should detect high redundancy since it duplicates the local README
+      if (finding) {
+        expect(finding.message).toMatch(/\d+\.\d%/);
+      }
+    });
+
+    it("detects redundancy against package-local package.json scripts (Bug 11)", async () => {
+      const localPkgJson = JSON.stringify({
+        name: "@myorg/core",
+        description: "Core business logic package for the data processing pipeline",
+        scripts: {
+          build: "tsc --build",
+          test: "vitest run",
+          lint: "eslint src/",
+          typecheck: "tsc --noEmit",
+        },
+      });
+      // Nested AGENTS.md restates the package.json info
+      const nestedAgents = [
+        "# Core Package Agent Guide",
+        "Core business logic package for the data processing pipeline.",
+        "build: tsc --build",
+        "test: vitest run",
+        "lint: eslint src/",
+        "typecheck: tsc --noEmit",
+        "Core business logic package for the data processing pipeline.",
+        "build: tsc --build",
+        "test: vitest run",
+        "lint: eslint src/",
+        "typecheck: tsc --noEmit",
+      ].join("\n");
+      const ctx = createMockContext({
+        "README.md":
+          "# Root\nThis is the project root with unrelated content about governance and policies.",
+        "packages/core/package.json": localPkgJson,
+        "packages/core/AGENTS.md": nestedAgents,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // The summary should mention additionality analysis ran
+      expect(result.summary).toContain("packages/core/AGENTS.md");
+      expect(result.summary).toContain("Additionality:");
+    });
+
     it("emits ARI-CTX-011 for duplicated nested AGENTS.md", async () => {
       const readme = [
         "# Project",

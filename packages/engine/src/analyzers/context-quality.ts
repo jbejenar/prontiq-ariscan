@@ -1118,7 +1118,54 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         const content = await context.readFile(cf);
         if (!content || content.trim().length === 0) continue;
 
-        const result = computeAdditionality(content, cf, referenceDocs);
+        // For nested AGENTS.md files, augment the corpus with package-local docs
+        let effectiveRefDocs = referenceDocs;
+        if (cf.endsWith("/AGENTS.md") && cf !== "AGENTS.md") {
+          const pkgDir = cf.slice(0, cf.lastIndexOf("/") + 1); // e.g. "packages/foo/"
+          const localDocs: Array<{ path: string; content: string }> = [];
+          // Gather sibling README* and CONTRIBUTING* files
+          for (const f of context.files) {
+            if (!f.startsWith(pkgDir)) continue;
+            // Only direct children (no further nesting)
+            const rest = f.slice(pkgDir.length);
+            if (rest.includes("/")) continue;
+            const upper = rest.toUpperCase();
+            if (
+              (upper.startsWith("README") || upper.startsWith("CONTRIBUTING")) &&
+              !referenceDocs.some((d) => d.path === f)
+            ) {
+              const localContent = await context.readFile(f);
+              if (localContent) {
+                localDocs.push({ path: f, content: localContent });
+              }
+            }
+          }
+          // Gather sibling package.json description/scripts
+          const localPkgPath = `${pkgDir}package.json`;
+          if (!referenceDocs.some((d) => d.path === localPkgPath)) {
+            const localPkg = await context.readJson<{
+              description?: string;
+              scripts?: Record<string, string>;
+            }>(localPkgPath);
+            if (localPkg) {
+              const parts: string[] = [];
+              if (localPkg.description) parts.push(localPkg.description);
+              if (localPkg.scripts) {
+                for (const [key, val] of Object.entries(localPkg.scripts)) {
+                  parts.push(`${key}: ${val}`);
+                }
+              }
+              if (parts.length > 0) {
+                localDocs.push({ path: localPkgPath, content: parts.join("\n") });
+              }
+            }
+          }
+          if (localDocs.length > 0) {
+            effectiveRefDocs = [...referenceDocs, ...localDocs];
+          }
+        }
+
+        const result = computeAdditionality(content, cf, effectiveRefDocs);
         additionalityResults.push({ path: cf, result });
 
         // Skip scoring when no comparable segments were analyzed (indeterminate)
