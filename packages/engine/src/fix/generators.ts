@@ -3074,12 +3074,9 @@ async function generateEnvVarSchema(
   const jsConfigPaths = ["src/config/env.js", "src/env.js", "src/config.js"];
   const pyConfigPaths = ["src/config/env.py", "config/env.py", "src/config.py"];
 
-  const pathsToCheck =
-    langName === "python"
-      ? pyConfigPaths
-      : langName === "javascript"
-        ? jsConfigPaths
-        : tsConfigPaths;
+  // For Node repos (TS or JS), check both .ts and .js paths — a TypeScript repo
+  // may already have a JS config module and vice versa.
+  const pathsToCheck = langName === "python" ? pyConfigPaths : [...tsConfigPaths, ...jsConfigPaths];
   for (const p of pathsToCheck) {
     if (await context.fileExists(p)) return null;
   }

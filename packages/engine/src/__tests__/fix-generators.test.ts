@@ -228,6 +228,39 @@ describe("fix generators — env var schema (P2.06)", () => {
     const schema = proposals.find((p) => p.path === "src/config/env.js");
     expect(schema).toBeUndefined();
   });
+
+  it("skips env var schema when TypeScript repo already has JS config file", async () => {
+    const ctx = createMockContext({
+      "package.json": JSON.stringify({ scripts: { build: "tsc" } }),
+      "src/config/env.js": "module.exports = { port: process.env.PORT };",
+    });
+
+    const proposals = await generateFixProposals(ctx, tsDetection);
+    const schema = proposals.find((p) => p.path === "src/config/env.ts");
+    expect(schema).toBeUndefined();
+  });
+
+  it("skips env var schema when TypeScript repo already has src/env.js", async () => {
+    const ctx = createMockContext({
+      "package.json": JSON.stringify({ scripts: { build: "tsc" } }),
+      "src/env.js": "module.exports = {};",
+    });
+
+    const proposals = await generateFixProposals(ctx, tsDetection);
+    const schema = proposals.find((p) => p.path === "src/config/env.ts");
+    expect(schema).toBeUndefined();
+  });
+
+  it("skips env var schema when TypeScript repo already has src/config.js", async () => {
+    const ctx = createMockContext({
+      "package.json": JSON.stringify({ scripts: { build: "tsc" } }),
+      "src/config.js": "module.exports = {};",
+    });
+
+    const proposals = await generateFixProposals(ctx, tsDetection);
+    const schema = proposals.find((p) => p.path === "src/config/env.ts");
+    expect(schema).toBeUndefined();
+  });
 });
 
 describe("fix generators — framework-aware templates (P2.06)", () => {
