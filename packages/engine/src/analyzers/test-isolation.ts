@@ -767,12 +767,11 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
 
     // Distinguish abstracted interfaces from direct SDK usage
     // Scan provider-named files first, then broaden to other source files
-    // In provider-named files, accept broader suffixes (Provider|Service|Repository|Client|Gateway)
-    const BROAD_INTERFACE = /\binterface\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i;
-    const BROAD_ABSTRACT_CLASS =
-      /\babstract\s+class\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i;
-    // In non-provider files, only match genuine DI boundary types (Provider|Repository)
-    // to avoid false positives from ordinary *Service/*Client application types
+    // In provider-named files, accept DI boundary suffixes (Provider|Repository|Factory|Gateway)
+    // but NOT generic *Service/*Client which are ordinary application types
+    const BROAD_INTERFACE = /\binterface\s+\w*(Provider|Repository|Factory|Gateway)\b/i;
+    const BROAD_ABSTRACT_CLASS = /\babstract\s+class\s+\w*(Provider|Repository|Factory|Gateway)\b/i;
+    // In non-provider files, only match the most specific DI boundary types (Provider|Repository)
     const NARROW_INTERFACE = /\binterface\s+\w*(Provider|Repository)\b/i;
     const NARROW_ABSTRACT_CLASS = /\babstract\s+class\s+\w*(Provider|Repository)\b/i;
 
@@ -794,7 +793,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
     // abstraction directories (src/, lib/, core/, common/, shared/) are checked
     // first so the cap does not cause non-deterministic misses based on sort order.
     if (!hasAbstractedInterface) {
-      const ABSTRACTION_DIR = /\/(src|lib|core|common|shared)\//i;
+      const ABSTRACTION_DIR = /(^|\/)(src|lib|core|common|shared)\//i;
       const sourceFiles = context.files.filter((f) => {
         if (TEST_FILE_PATTERNS.some((p) => p.test(f))) return false;
         if (providerFiles.includes(f)) return false;

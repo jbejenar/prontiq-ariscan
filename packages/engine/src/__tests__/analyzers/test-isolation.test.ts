@@ -201,7 +201,7 @@ describe("testIsolationAnalyzer (P3)", () => {
         "src/app.ts": "export const app = 1;",
         "src/app.test.ts": "test('works', () => {});",
         "src/services/base-provider.ts":
-          "export abstract class BaseService { abstract connect(): void; }",
+          "export abstract class BaseProvider { abstract connect(): void; }",
       };
       const result = await testIsolationAnalyzer.analyze(createMockContext(files));
       const finding = result.findings.find((f) => f.code === "ARI-TST-016");
@@ -235,12 +235,24 @@ describe("testIsolationAnalyzer (P3)", () => {
       expect(finding).toBeUndefined();
     });
 
-    it("still awards bonus for *Service in provider-named files", async () => {
+    it("does not award abstraction bonus for generic *Service in provider-named files", async () => {
       const files: Record<string, string> = {
         "src/app.ts": "export const app = 1;",
         "src/app.test.ts": "test('works', () => {});",
         "src/di/container.ts":
           "export interface DatabaseService { query(sql: string): Promise<unknown>; }",
+      };
+      const result = await testIsolationAnalyzer.analyze(createMockContext(files));
+      const finding = result.findings.find((f) => f.code === "ARI-TST-016");
+      expect(finding).toBeUndefined();
+    });
+
+    it("awards bonus for *Gateway in provider-named files", async () => {
+      const files: Record<string, string> = {
+        "src/app.ts": "export const app = 1;",
+        "src/app.test.ts": "test('works', () => {});",
+        "src/di/container.ts":
+          "export interface PaymentGateway { charge(amount: number): Promise<void>; }",
       };
       const result = await testIsolationAnalyzer.analyze(createMockContext(files));
       const finding = result.findings.find((f) => f.code === "ARI-TST-016");

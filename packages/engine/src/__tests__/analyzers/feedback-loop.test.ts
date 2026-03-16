@@ -283,6 +283,19 @@ describe("feedbackLoopAnalyzer (P2)", () => {
       expect(fbk009?.message).toContain("jest");
     });
 
+    it("infers latency from test:unit script when no test script", async () => {
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({
+          scripts: { "test:unit": "vitest run", "test:e2e": "playwright test" },
+        }),
+      });
+      const result = await feedbackLoopAnalyzer.analyze(ctx);
+      const fbk009 = result.findings.find((f) => f.code === "ARI-FBK-009");
+      expect(fbk009).toBeDefined();
+      expect(fbk009?.message).toContain("inferred");
+      expect(fbk009?.message).toContain("vitest");
+    });
+
     it("detects parallel execution flags in test scripts", async () => {
       const ctx = createMockContext({
         "package.json": JSON.stringify({ scripts: { test: "vitest run --parallel" } }),

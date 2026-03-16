@@ -25,7 +25,8 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
     let localScore = 0;
 
     // Test command (local)
-    const hasTestCmd = !!scripts["test"];
+    const hasTestCmd =
+      !!scripts["test"] || Object.keys(scripts).some((key) => key.startsWith("test:"));
     if (hasTestCmd) {
       localScore += 20;
       // Watch mode
@@ -495,7 +496,11 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
       }
     } else if (hasTestCmd) {
       // Has test command but no recognized config file
-      const testCmd = scripts["test"] ?? "";
+      // Check scripts.test first, then fall back to test:* entries (test:unit, test:ci, etc.)
+      const allTestCmds = Object.entries(scripts)
+        .filter(([key]) => key === "test" || key.startsWith("test:"))
+        .map(([, cmd]) => cmd);
+      const testCmd = allTestCmds.join(" ");
       if (/vitest/i.test(testCmd)) {
         latencyLabel = "inferred";
         latencyEstimate = "fast (vitest)";
