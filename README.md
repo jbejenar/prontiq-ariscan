@@ -146,13 +146,22 @@ The core scanning engine is functional. What's built:
 
 ARI output follows [Semantic Versioning](https://semver.org/). The JSON schema file (`ariscan.schema.json`) and the `--json-schema` flag document the current output contract.
 
+**Two version signals:** Scan output carries two version identifiers with different semantics:
+
+| Signal | Location | Example | Semantics |
+|---|---|---|---|
+| **Schema URI** | `$schema` / `$id` field | `.../v1.json` | Schema format revision. Bumps only on breaking structural changes (field removals, type changes). Consumers use this to select the correct parser. |
+| **Output version** | `metadata.version` | `0.2.0` | Authoritative semver of the scan output contract. Tracks all changes per the table below. **This is the version consumers should target for feature detection.** |
+
+The schema URI uses major-only versioning (`v1`, `v2`, …) as a structural stability contract — any consumer built for `v1.json` can parse all output where `metadata.version` is within the `v1` schema generation. The `metadata.version` field is the precise semver that indicates which optional fields, pillars, and finding codes are available.
+
 | Change Type | Semver Impact | Examples |
 |---|---|---|
 | **Patch** | `x.y.Z` | New optional fields, bug fixes in scoring, documentation updates |
 | **Minor** | `x.Y.0` | New pillar or criterion, new finding codes, new output fields |
 | **Major** | `X.0.0` | Removing or renaming fields, changing score semantics, breaking schema changes |
 
-**Backwards compatibility guarantee:** within a major version, all previously valid JSON output fields remain present with the same types and semantics. Consumers can safely parse ARI output without breaking when patch or minor versions are released.
+**Backwards compatibility guarantee:** within a major version, all previously valid JSON output fields remain present with the same types and semantics. Consumers can safely parse ARI output without breaking when patch or minor versions are released. A major version bump in `metadata.version` will coincide with a new schema URI (e.g., `v2.json`).
 
 ---
 

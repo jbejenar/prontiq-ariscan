@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://prontiq.dev/schemas/ari-scan-result/v1.json",
   "title": "ARI Scan Result",
-  "description": "Output of the Prontiq ARI scan — Agent Readiness Index for a repository.",
+  "description": "Output of the Prontiq ARI scan — Agent Readiness Index for a repository. The $id URI (v1) is the schema format revision; the authoritative semver is in metadata.version. See README.md Versioning Policy.",
   "type": "object",
   "required": [
     "metadata",

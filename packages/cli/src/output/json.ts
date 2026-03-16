@@ -1,5 +1,10 @@
 import type { ScanResult } from "@prontiq/ariscan-schema";
 
+/**
+ * Schema format revision URI (major-only). Bumps only on breaking structural
+ * changes. The authoritative semver lives in metadata.version (set by the engine).
+ * See README.md "Versioning Policy" for the full dual-versioning contract.
+ */
 const SCHEMA_ID = "https://prontiq.dev/schemas/ari-scan-result/v1.json";
 
 /**
@@ -23,7 +28,8 @@ export function getJsonSchemaObject(): Record<string, unknown> {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: SCHEMA_ID,
     title: "ARI Scan Result",
-    description: "Output of the Prontiq ARI scan — Agent Readiness Index for a repository.",
+    description:
+      "Output of the Prontiq ARI scan — Agent Readiness Index for a repository. The $id URI (v1) is the schema format revision; the authoritative semver is in metadata.version. See README.md Versioning Policy.",
     type: "object",
     required: [
       "metadata",
