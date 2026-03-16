@@ -781,6 +781,51 @@ describe("contextQualityAnalyzer (P1)", () => {
     });
   });
 
+  describe("code-block additionality (Bug 6)", () => {
+    it("detects duplicated commands inside code fences as redundant", async () => {
+      // README has install/build/test commands in a code block
+      const readme = [
+        "# My Project",
+        "## Getting Started",
+        "Install dependencies and build the project with these commands:",
+        "```bash",
+        "pnpm install --frozen-lockfile",
+        "pnpm build --filter engine",
+        "pnpm test --run --reporter verbose",
+        "pnpm lint --fix --quiet",
+        "pnpm typecheck --noEmit --strict",
+        "```",
+        "## License",
+        "MIT",
+      ].join("\n");
+      // AGENTS.md copies those same commands in code blocks
+      const agentsMd = [
+        "# AGENTS.md",
+        "## Build Commands",
+        "Install dependencies and build the project with these commands:",
+        "```bash",
+        "pnpm install --frozen-lockfile",
+        "pnpm build --filter engine",
+        "pnpm test --run --reporter verbose",
+        "pnpm lint --fix --quiet",
+        "pnpm typecheck --noEmit --strict",
+        "```",
+        "## Extra Guidance",
+        "This unique project-specific guidance is only in the agents file.",
+      ].join("\n");
+
+      const ctx = createMockContext({
+        "README.md": readme,
+        "AGENTS.md": agentsMd,
+      });
+      const result = await contextQualityAnalyzer.analyze(ctx);
+      // With code block content preserved, the redundancy should be detected
+      const finding = result.findings.find((f) => f.code === "ARI-CTX-011");
+      expect(finding).toBeDefined();
+      expect(finding?.message).toContain("redundancy");
+    });
+  });
+
   describe("zero-segment additionality (Bug 5)", () => {
     it("does not award additionality bonus for files with no comparable segments", async () => {
       const readme = "# Project\nA brief description of the project.";

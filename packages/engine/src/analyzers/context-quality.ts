@@ -105,10 +105,10 @@ interface AdditionalityResult {
 function normalizeForComparison(text: string): string {
   return (
     text
-      // Remove code blocks entirely (content inside fences is not prose)
-      .replace(/```[\s\S]*?```/g, "")
-      // Remove inline code
-      .replace(/`[^`]+`/g, "")
+      // Strip fenced code block delimiters but keep content (commands/config may be duplicated)
+      .replace(/```[^\n]*\n?/g, "")
+      // Strip inline code backticks but keep content
+      .replace(/`([^`]+)`/g, "$1")
       // Remove markdown headings markers
       .replace(/^#{1,6}\s+/gm, "")
       // Remove link syntax but keep text: [text](url) → text
