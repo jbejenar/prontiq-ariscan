@@ -259,4 +259,33 @@ describe("FileConfig schema (policy)", () => {
     });
     expect(result.pillars?.weights?.["P1"]).toBe(0.2);
   });
+
+  it("rejects unknown top-level keys", () => {
+    expect(() => FileConfig.parse({ enforcemnt: "fail" })).toThrow();
+    expect(() => FileConfig.parse({ threshold: 70, extra: true })).toThrow();
+  });
+
+  it("rejects unknown keys in nested policy objects", () => {
+    expect(() => FileConfig.parse({ thresholds: { composit: 70 } })).toThrow();
+    expect(() => FileConfig.parse({ pillars: { excludes: ["P1"] } })).toThrow();
+    expect(() =>
+      FileConfig.parse({
+        paths: [{ pattern: "src/**", thresholds: { composite: 70 }, mode: "warn" }],
+      }),
+    ).toThrow();
+    expect(() =>
+      FileConfig.parse({
+        suppressions: [
+          { code: "ARI-CTX-001", reason: "ok", expiry: "no-expiry", priority: "high" },
+        ],
+      }),
+    ).toThrow();
+    expect(() =>
+      FileConfig.parse({
+        profiles: {
+          strict: { name: "Strict", extra_field: true },
+        },
+      }),
+    ).toThrow();
+  });
 });
