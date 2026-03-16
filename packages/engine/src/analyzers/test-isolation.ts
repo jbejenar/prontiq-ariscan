@@ -756,14 +756,99 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       score -= Math.min(10, highRiskFileCount * 2);
     }
 
-    // Check for DI/provider patterns (match filename only, exclude .devcontainer paths)
-    const hasProviderPattern = context.files.some((f) => {
+    // Check for DI/provider patterns (filename + code content analysis)
+    const providerFiles = context.files.filter((f) => {
       if (/\.devcontainer/i.test(f)) return false;
+      if (TEST_FILE_PATTERNS.some((p) => p.test(f))) return false;
       const filename = f.split("/").pop() ?? f;
       return /provider|factory|container|inject/i.test(filename);
     });
+    const hasProviderPattern = providerFiles.length > 0;
+
+    // Distinguish abstracted interfaces from direct SDK usage
+    let hasAbstractedInterface = false;
+    for (const pf of providerFiles.slice(0, 10)) {
+      const content = await context.readFile(pf);
+      if (!content) continue;
+      if (
+        /\binterface\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i.test(content) ||
+        /\babstract\s+class\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i.test(content) ||
+        /\b(implements|extends)\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i.test(content)
+      ) {
+        hasAbstractedInterface = true;
+        break;
+      }
+    }
+
+    // Detect direct SDK imports in test files (penalty for tight coupling)
+    const SDK_IMPORT_PATTERNS = [
+      /import\s.*from\s+['"]aws-sdk/,
+      /import\s.*from\s+['"]@aws-sdk\//,
+      /import\s.*from\s+['"]@google-cloud\//,
+      /import\s.*from\s+['"]@azure\//,
+      /import\s.*from\s+['"]firebase/,
+      /import\s.*from\s+['"]stripe/,
+      /import\s.*from\s+['"]twilio/,
+      /require\s*\(\s*['"]aws-sdk/,
+      /require\s*\(\s*['"]@aws-sdk\//,
+      /require\s*\(\s*['"]@google-cloud\//,
+      /require\s*\(\s*['"]@azure\//,
+    ];
+    let directSdkInTestCount = 0;
+    for (const testFile of sampled.slice(0, 10)) {
+      const content = await context.readFile(testFile);
+      if (!content) continue;
+      if (SDK_IMPORT_PATTERNS.some((p) => p.test(content))) {
+        directSdkInTestCount++;
+      }
+    }
+
     if (hasProviderPattern) {
-      score += 15;
+      if (hasAbstractedInterface) {
+        score += 20; // bonus: properly abstracted provider interfaces
+        findings.push({
+          code: "ARI-TST-016",
+          severity: "info",
+          pillar: PILLAR,
+          message:
+            "Provider abstraction detected: interface/abstract class patterns found in provider files",
+          confidence: "medium",
+          evidence: {
+            paper: "Berndt et al., 2026",
+            finding:
+              "Abstracted provider interfaces reduce test flakiness by decoupling from external SDKs",
+            confidence: "medium",
+          },
+        });
+      } else {
+        score += 15; // basic provider pattern (filename-based only)
+      }
+    }
+
+    if (directSdkInTestCount > 0) {
+      score -= Math.min(10, directSdkInTestCount * 3);
+      findings.push({
+        code: "ARI-TST-017",
+        severity: "medium",
+        pillar: PILLAR,
+        message: `Direct SDK imports found in ${directSdkInTestCount} test file(s) — tests are tightly coupled to external services`,
+        confidence: "medium",
+        remediation: {
+          action: "refactor",
+          description:
+            "Replace direct SDK imports in tests with injected interfaces or mocks. " +
+            "Example: instead of `import { S3Client } from '@aws-sdk/client-s3'` in tests, " +
+            "define an interface `interface StorageClient { put(key: string, data: Buffer): Promise<void> }` " +
+            "and pass a mock implementation in tests.",
+          confidence: "medium",
+        },
+        evidence: {
+          paper: "Berndt et al., 2026",
+          finding:
+            "Direct SDK coupling in tests increases flakiness and agent token waste by ~200-500 tokens per retry",
+          confidence: "medium",
+        },
+      });
     }
 
     // Check for mock/stub infrastructure (directory conventions or vi.mock/jest.mock usage)
