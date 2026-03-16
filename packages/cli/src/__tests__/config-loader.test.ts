@@ -295,6 +295,15 @@ describe("resolveProfile", () => {
     };
     expect(() => resolveProfile(config)).toThrow('Active profile "nonexistent" not found');
   });
+
+  it("throws when activeProfile is set but no profiles defined", () => {
+    const config: FileConfigType = {
+      activeProfile: "strict",
+    };
+    expect(() => resolveProfile(config)).toThrow(
+      'Active profile "strict" is set but no profiles are defined',
+    );
+  });
 });
 
 describe("filterSuppressions", () => {

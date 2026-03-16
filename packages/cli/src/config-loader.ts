@@ -128,7 +128,11 @@ function mergeConfigs(parent: FileConfigType, child: FileConfigType): FileConfig
  * Resolve active profile: merge profile's weights/thresholds into base config.
  */
 export function resolveProfile(config: FileConfigType): FileConfigType {
-  if (!config.activeProfile || !config.profiles) return config;
+  if (!config.activeProfile) return config;
+
+  if (!config.profiles) {
+    throw new Error(`Active profile "${config.activeProfile}" is set but no profiles are defined`);
+  }
 
   const profile = config.profiles[config.activeProfile];
   if (!profile) {
@@ -319,11 +323,11 @@ export async function resolveFullConfig(options: {
       fileConfig = { ...fileConfig, suppressions: filterSuppressions(fileConfig.suppressions) };
     }
 
-    // Warn about paths rules that are not yet enforced
+    // Reject paths rules — not yet enforced at runtime
     if (fileConfig.paths && fileConfig.paths.length > 0) {
-      process.stderr.write(
-        `Warning: 'paths' rules are defined in policy but not yet enforced. ` +
-          `Path-specific thresholds will be ignored.\n`,
+      throw new Error(
+        `'paths' rules are not yet supported. Path-specific thresholds have no effect at runtime. ` +
+          `Remove the 'paths' section from your policy file until this feature is implemented.`,
       );
     }
   }
