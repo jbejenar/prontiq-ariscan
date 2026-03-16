@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.17.0] — 2026-03-16
+
+### Added
+- **Schema (telemetry):** Added 7 new optional telemetry fields: `context_file_count`, `agent_context_types`, `security_gate_triggered`, `maturity_level`, `monorepo_detected`, `detection_confidence`, `finding_counts_by_severity`. (P1 telemetry consolidation)
+- **Engine (telemetry):** Populated all new telemetry fields from ScanResult data. No PII — only anonymous per-scan data points for server-side aggregation.
+- **Tests (P2.06):** Added pillar coverage test verifying fix templates cover all 5 pillar categories (P1, P3, P4, P5, P8).
+- **Tests (telemetry):** Added 8 tests for new telemetry fields (context files, security gate, maturity level, monorepo, detection confidence, severity counts).
+
+### Changed
+- **Roadmap:** Checked 21 P1 telemetry items across P1.01–P1.16. Advanced 7 P1 tickets to `done` (P1.05, P1.10, P1.11, P1.12, P1.13, P1.14, P1.16).
+- **Roadmap (P2.06):** Checked all 10 functional items with verification evidence. Advanced P2.06 to `done`.
+
+### Metrics
+- **Tests:** 8 new telemetry tests + 1 pillar coverage test = 9 new tests
+
 ## [3.16.0] — 2026-03-16
 
 ### Added

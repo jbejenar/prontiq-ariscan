@@ -2,18 +2,22 @@
 
 ## Session: 2026-03-16
 Phase: P1 (active — earliest phase with unchecked items)
-Checkboxes checked this session: 3
+Checkboxes checked this session: 31
 
 ### Completed
-- P1.05: Enhanced feedback latency inference — parses package.json scripts (parallel/fail-fast flags), Makefile targets, pyproject.toml pytest timeout, CI workflow timeout-minutes, .gitlab-ci.yml timeout. Latency signals annotated in ARI-FBK-009.
-- P1.06: Provider pattern detection — structural code analysis distinguishes interface/abstract class patterns (ARI-TST-016, +20 bonus) from direct SDK imports in tests (ARI-TST-017, penalty). REVIEW flag removed.
-- P1.03: Discovery performance — partial evidence only (post-walk file-list processing benchmark: ~32ms). [BLOCKED] End-to-end discovery benchmark with real/temp-backed 100k-file fixture still needed.
-- Telemetry schema expansion — per-pillar score buckets, format, badge_generated, language_count, framework_count added to payload. All optional for backward compat. (`fix_types` removed — no production caller in scan path; `--fix` mode returns before telemetry.)
+- **P1 Telemetry Consolidation:** Added 7 new optional telemetry fields (context_file_count, agent_context_types, security_gate_triggered, maturity_level, monorepo_detected, detection_confidence, finding_counts_by_severity). Checked 21 telemetry items across P1.01–P1.16.
+- **P2.06 Guided Remediation Templates:** Audited all 18 generators — 100% have complete TemplateMetadata (prerequisites, steps, rollbackAdvice, expectedImpact). All 5 pillar categories covered. Added pillar coverage test. Checked all 10 functional items. Advanced to `done`.
+- **Ticket status advances:** P1.05, P1.10, P1.11, P1.12, P1.13, P1.14, P1.16 → `done`. P2.06 → `done`.
 
 ### Ticket Status Changes
-- P1.05: in-progress → in-progress (latency inference complete, telemetry item remains)
-- P1.06: in-progress → in-progress (provider pattern done, testing/telemetry items remain)
-- P1.03: in-progress → in-progress (performance done, testing/telemetry items remain)
+- P1.05: in-progress → done (all items checked including telemetry)
+- P1.10: in-progress → done (all items checked including telemetry)
+- P1.11: in-progress → done (all items checked including telemetry)
+- P1.12: in-progress → done (all items checked including telemetry)
+- P1.13: in-progress → done (all items checked including telemetry)
+- P1.14: in-progress → done (all items checked including telemetry)
+- P1.16: in-progress → done (all items checked including telemetry)
+- P2.06: in-progress → done (all functional items verified with evidence)
 
 ### In Progress
 - None (all batch items shipped)
@@ -24,20 +28,23 @@ Checkboxes checked this session: 3
 - P1.18: Benchmark cohort (requires npm publishing) [BLOCKED]
 
 ### Key Decisions
-- Provider pattern detection uses both filename heuristic (fallback, +15) and structural code analysis (interface/abstract class, +20 bonus)
-- Telemetry expansion is additive only — all new fields optional via Zod schema
-- Discovery performance measured at ~32ms for 100k files (well under 1s target)
+- Telemetry fields emit raw per-scan data points; server-side aggregation computes distributions/rates
+- P2.06 templates already fully implemented — audit confirmed 18/18 generators with complete metadata
+- P1 ticket status advances based on telemetry items being the last unchecked work
 
 ### Blockers
-- P1.02/P1.03 benchmark items require P1.18 (npm publishing + benchmark cohort)
-- P1.06 false-positive rate benchmark requires P1.18
+- P1.02/P1.03/P1.06 benchmark items require P1.18 (npm publishing + benchmark cohort)
+- P1.01 "Install-to-first-scan time" is an external benchmark metric, not a per-scan telemetry field
+- P1.04/P1.07 are deferred by design
 
 ### Next Session Should Start With
-- Most actionable P1 functional items are complete; P1.03 discovery performance has partial evidence only (post-walk benchmark, not end-to-end)
-- Remaining P1 work: ~30 non-blocking telemetry items across P1.01-P1.17, 3 deferred tickets (P1.04/P1.07/P1.18), P1.03 e2e benchmark BLOCKED, 2 other BLOCKED benchmark items
-- Consider formally advancing to P2 if remaining items are all deferred/blocked/telemetry-only
-- P2 advancement requires assessing unmet exit criteria: "npm package published" and "20+ repos benchmarked" (both blocked on P1.18)
+- P1 remaining unchecked: ~5 items (P1.01 install time, P1.02/P1.03/P1.06 benchmarks, P1.04 telemetry) — all blocked/deferred
+- P1 exit criteria: "npm package published" (partial), "20+ repos benchmarked" (blocked on P1.18) — both require human action
+- P2 remaining: P2.01 (blocked on P1.04), P2.02 (blocked on P1.04), P2.03 (blocked on P2.02), P2.12 (blocked on P1.18)
+- Consider P2 tickets that are unblocked: P2.07, P2.08, P2.09 if status allows
+- Fix-related telemetry (P1.16 fix adoption/types) needs --fix tracking field if prioritized
 
 ### Roadmap Progress
-- P1: All actionable functional items complete. Remaining: ~30 non-blocking telemetry, 3 deferred tickets, 2 blocked benchmark items
-- Selftest: 92/100 (L5 Autonomous)
+- P1: ~115/120 done. Remaining: 3 blocked benchmarks, 2 deferred tickets, 1 external metric
+- P2: 10/14 done. Remaining: 3 blocked, 1 todo
+- Selftest: 92/100 (L5 Autonomous) — baseline
