@@ -58,12 +58,6 @@ ${pillarLines}
 #       composite: 50
 
 # activeProfile: strict
-
-# paths:
-#   - pattern: "packages/legacy/**"
-#     thresholds:
-#       composite: 40
-#     enforcement: warn
 `;
 }
 
