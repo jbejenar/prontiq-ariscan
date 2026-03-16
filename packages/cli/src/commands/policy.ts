@@ -34,11 +34,15 @@ async function generateStarterPolicy(repoPath: string): Promise<string> {
     })
     .join("\n");
 
+  // The schema is shipped at @prontiq/ariscan-schema/config.schema.json
+  const schemaPath = "./node_modules/@prontiq/ariscan-schema/config.schema.json";
+
   return `# .ariscan.yml — Policy configuration
 # Generated from current scan scores. Customize as needed.
 # Docs: https://github.com/jbejenar/prontiq-ariscan
-# JSON Schema: run \`ariscan --policy-schema\` to generate
+# yaml-language-server: $schema=${schemaPath}
 
+$schema: "${schemaPath}"
 version: "1"
 enforcement: warn  # warn | fail | block
 

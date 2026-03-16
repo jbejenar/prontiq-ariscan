@@ -78,6 +78,7 @@ export type PathRule = z.infer<typeof PathRule>;
  * for `thresholds.composite`.
  */
 export const FileConfig = z.object({
+  $schema: z.string().optional(),
   version: z.string().optional(),
   extends: z.string().optional(),
   enforcement: EnforcementMode.optional(),
