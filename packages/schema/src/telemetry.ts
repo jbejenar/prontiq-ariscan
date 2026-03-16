@@ -54,5 +54,32 @@ export const telemetryPayloadSchema = z.object({
   language_count: z.number().int().nonnegative().optional(),
   /** Number of detected frameworks. */
   framework_count: z.number().int().nonnegative().optional(),
+
+  // --- Extended telemetry fields (P1 telemetry consolidation) ---
+
+  /** Number of agent context files discovered (AGENTS.md, .cursorrules, etc.). */
+  context_file_count: z.number().int().nonnegative().optional(),
+  /** Number of distinct agent context file types (agents-md, cursorrules, etc.). */
+  agent_context_types: z.number().int().nonnegative().optional(),
+  /** Whether the security gate was triggered (P8 score < 40). */
+  security_gate_triggered: z.boolean().optional(),
+  /** Maturity level label (L1–L5). */
+  maturity_level: z.string().optional(),
+  /** Whether a monorepo was detected. */
+  monorepo_detected: z.boolean().optional(),
+  /** Primary language detection confidence (0–1). */
+  detection_confidence: z.number().min(0).max(1).optional(),
+  /** Finding counts grouped by severity. */
+  finding_counts_by_severity: z
+    .object({
+      critical: z.number().int().nonnegative(),
+      high: z.number().int().nonnegative(),
+      medium: z.number().int().nonnegative(),
+      low: z.number().int().nonnegative(),
+      info: z.number().int().nonnegative(),
+    })
+    .optional(),
+  /** Finding counts grouped by pillar (anti-pattern category). */
+  finding_counts_by_pillar: z.record(z.string(), z.number().int().nonnegative()).optional(),
 });
 export type TelemetryPayload = z.infer<typeof telemetryPayloadSchema>;

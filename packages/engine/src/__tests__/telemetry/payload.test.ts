@@ -132,6 +132,66 @@ describe("buildTelemetryPayload", () => {
     expect(serialized).not.toContain("/some/repo");
     expect(serialized).not.toContain("repoPath");
   });
+
+  it("includes context file count when contextFiles present", () => {
+    const result = makeScanResult({
+      contextFiles: [
+        { path: "AGENTS.md", type: "agents-md" },
+        { path: ".cursorrules", type: "cursorrules" },
+      ],
+    });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.context_file_count).toBe(2);
+    expect(payload.agent_context_types).toBe(2);
+  });
+
+  it("includes security gate triggered flag", () => {
+    const result = makeScanResult({ securityGateTriggered: true });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.security_gate_triggered).toBe(true);
+  });
+
+  it("includes maturity level", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.maturity_level).toBe("L4");
+  });
+
+  it("includes monorepo detection", () => {
+    const result = makeScanResult({
+      detection: {
+        languages: [{ language: "typescript", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: { tool: "pnpm", workspaceRoot: ".", packages: ["a", "b"] },
+      },
+    });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.monorepo_detected).toBe(true);
+  });
+
+  it("sets monorepo_detected to false when no monorepo", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.monorepo_detected).toBe(false);
+  });
+
+  it("includes detection confidence", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.detection_confidence).toBe(0.9);
+  });
+
+  it("includes finding counts by severity", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.finding_counts_by_severity).toEqual({
+      critical: 0,
+      high: 0,
+      medium: 1,
+      low: 1,
+      info: 0,
+    });
+  });
 });
 
 describe("scoreToBucket", () => {

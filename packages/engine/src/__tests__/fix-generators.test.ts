@@ -263,6 +263,32 @@ describe("fix generators — env var schema (P2.06)", () => {
   });
 });
 
+describe("fix generators — pillar coverage (P2.06)", () => {
+  it("covers all 5 pillar categories with at least one template", async () => {
+    const ctx = createMockContext({
+      "package.json": JSON.stringify({
+        scripts: { build: "tsc", test: "vitest", lint: "eslint" },
+      }),
+    });
+
+    const proposals = await generateFixProposals(ctx, tsDetection);
+
+    // Group proposals by pillar from metadata
+    const pillarSet = new Set(proposals.map((p) => p.metadata.expectedImpact.pillar));
+
+    // P1 (Context): AGENTS.md, .agentignore
+    expect(pillarSet.has("P1")).toBe(true);
+    // P3 (Test Isolation): provider patterns, DI wiring
+    expect(pillarSet.has("P3")).toBe(true);
+    // P4 (Environment): devcontainer, docker-compose, .nvmrc
+    expect(pillarSet.has("P4")).toBe(true);
+    // P5 (Docs): ADR, changelog, env var docs
+    expect(pillarSet.has("P5")).toBe(true);
+    // P8 (Security): CODEOWNERS, pre-commit, PR template, gitleaks
+    expect(pillarSet.has("P8")).toBe(true);
+  });
+});
+
 describe("fix generators — framework-aware templates (P2.06)", () => {
   it("generates NestJS DI wiring for nestjs framework", async () => {
     const nestDetection: DetectionResult = {
