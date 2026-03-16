@@ -781,8 +781,12 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         break;
       }
     }
-    // Second pass: scan other non-test source files for abstraction declarations
+    // Second pass: scan other non-test source files for abstraction declarations.
+    // Capped at 50 reads to bound disk I/O on large repos. Files in common
+    // abstraction directories (src/, lib/, core/, common/, shared/) are checked
+    // first so the cap does not cause non-deterministic misses based on sort order.
     if (!hasAbstractedInterface) {
+      const ABSTRACTION_DIR = /\/(src|lib|core|common|shared)\//i;
       const sourceFiles = context.files.filter((f) => {
         if (TEST_FILE_PATTERNS.some((p) => p.test(f))) return false;
         if (providerFiles.includes(f)) return false;
@@ -790,7 +794,14 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         if (/node_modules|\.d\.ts$|dist\//i.test(f)) return false;
         return true;
       });
-      for (const sf of sourceFiles) {
+      // Prioritise files in common abstraction directories
+      sourceFiles.sort((a, b) => {
+        const aDir = ABSTRACTION_DIR.test(a) ? 0 : 1;
+        const bDir = ABSTRACTION_DIR.test(b) ? 0 : 1;
+        return aDir - bDir;
+      });
+      const MAX_FALLBACK_READS = 50;
+      for (const sf of sourceFiles.slice(0, MAX_FALLBACK_READS)) {
         const content = await context.readFile(sf);
         if (!content) continue;
         if (ABSTRACTION_PATTERN.test(content) || ABSTRACT_CLASS_PATTERN.test(content)) {
