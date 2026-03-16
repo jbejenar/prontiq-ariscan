@@ -92,6 +92,37 @@ const REFERENCE_CONFIG_PATHS = [
   "go.mod",
 ] as const;
 
+/**
+ * Additional config file patterns discovered dynamically from the file list.
+ * These cover common build/test/workspace configs that vary across ecosystems
+ * and would be impractical to enumerate in a static allowlist.
+ */
+const DYNAMIC_CONFIG_PATTERNS: RegExp[] = [
+  /^turbo\.json$/,
+  /^pnpm-workspace\.yaml$/,
+  /^\.ariscan\.yml$/,
+  /^vitest\.config\.[a-z]+$/,
+  /^vitest\.workspace\.[a-z]+$/,
+  /^jest\.config\.[a-z]+$/,
+  /^webpack\.config\.[a-z]+$/,
+  /^rollup\.config\.[a-z]+$/,
+  /^vite\.config\.[a-z]+$/,
+  /^babel\.config\.[a-z]+$/,
+  /^\.babelrc$/,
+  /^tsconfig\.[a-z.]+\.json$/,
+  /^docker-compose\.ya?ml$/,
+  /^\.dockerignore$/,
+  /^\.nvmrc$/,
+  /^\.node-version$/,
+  /^\.tool-versions$/,
+  /^\.editorconfig$/,
+  /^biome\.json$/,
+  /^deno\.json[c]?$/,
+  /^nx\.json$/,
+  /^lerna\.json$/,
+  /^rush\.json$/,
+];
+
 /** Common source-file extensions for docstring extraction */
 const SOURCE_EXTENSIONS = [".ts", ".js", ".py", ".go", ".rs", ".java", ".rb"] as const;
 
@@ -478,7 +509,9 @@ function computeAdditionality(
           .toLowerCase()
           .replace(/[-#*_`()[\].:>]/g, "")
           .trim();
-        if (normalizedLine.split(/\s+/).length < 3) continue;
+        const lineWordCount = normalizedLine.split(/\s+/).length;
+        const minWords = isCommandLike(normalizedLine) ? 2 : 3;
+        if (lineWordCount < minWords) continue;
         const sim = jaccardSimilarity(segment, normalizedLine);
         if (sim > bestLineScore) {
           bestLineScore = sim;
@@ -1030,6 +1063,19 @@ export const contextQualityAnalyzer: PillarAnalyzer = {
         }
       }
     }
+    // Include dynamically-discovered config files matching common patterns
+    for (const f of context.files) {
+      // Only consider root-level files (no slashes)
+      if (f.includes("/")) continue;
+      if (referenceDocs.some((d) => d.path === f)) continue;
+      if (DYNAMIC_CONFIG_PATTERNS.some((p) => p.test(f))) {
+        const content = await context.readFile(f);
+        if (content) {
+          referenceDocs.push({ path: f, content: normalizeConfigContent(content, f) });
+        }
+      }
+    }
+
     // Extract leading docstrings/comments from source files
     let docstringCount = 0;
     for (const f of context.files) {
