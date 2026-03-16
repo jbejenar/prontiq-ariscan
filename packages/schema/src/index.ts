@@ -32,7 +32,16 @@ export {
   DetectionResult,
 } from "./scan-result.js";
 
-export { PillarOverride, ScanConfig, FileConfig } from "./config.js";
+export {
+  PillarOverride,
+  ScanConfig,
+  FileConfig,
+  EnforcementMode,
+  Suppression,
+  PillarThresholds,
+  PolicyProfile,
+  PathRule,
+} from "./config.js";
 
 export {
   ScoreBucket,

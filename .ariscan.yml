@@ -7,4 +7,17 @@
 #
 # Local: pnpm selftest
 
-threshold: 70
+version: "1"
+enforcement: fail
+
+thresholds:
+  composite: 70
+  pillars:
+    P1: 35
+    P2: 35
+    P3: 35
+    P4: 35
+    P5: 35
+    P6: 35
+    P7: 35
+    P8: 35

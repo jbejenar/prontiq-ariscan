@@ -5,6 +5,9 @@ import type {
   ContextFileType,
   ParseStatus,
   PillarId,
+  Suppression,
+  PillarResult,
+  Finding,
 } from "@prontiq/ariscan-schema";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
@@ -194,13 +197,49 @@ export async function scan(
     }),
   );
 
+  // Apply suppressions: mark matching findings and recalculate pillar scores
+  const finalPillarResults = config.suppressions
+    ? applySuppressions(pillarResults, config.suppressions)
+    : pillarResults;
+
   const duration = Math.round(performance.now() - startTime);
 
-  const result = aggregateResults(pillarResults, {
+  const result = aggregateResults(finalPillarResults, {
     version: VERSION,
     repoPath,
     duration,
   });
 
   return { ...result, detection, contextFiles: contextFiles.length > 0 ? contextFiles : undefined };
+}
+
+/**
+ * Apply suppressions to pillar results: mark matching findings as suppressed.
+ * Suppressions are audit-only — they annotate findings with `suppressed: true`
+ * but do not alter pillar scores, because analyzers do not expose per-finding
+ * score contributions and any heuristic adjustment would be unreliable.
+ */
+function applySuppressions(
+  pillarResults: PillarResult[],
+  suppressions: Suppression[],
+): PillarResult[] {
+  const suppressedCodes = new Set(suppressions.map((s) => s.code));
+  if (suppressedCodes.size === 0) return pillarResults;
+
+  return pillarResults.map((pr) => {
+    const hasAnySuppressed = pr.findings.some((f) => suppressedCodes.has(f.code));
+    if (!hasAnySuppressed) return pr;
+
+    const updatedFindings: Finding[] = pr.findings.map((f) => {
+      if (suppressedCodes.has(f.code)) {
+        return { ...f, suppressed: true };
+      }
+      return f;
+    });
+
+    return {
+      ...pr,
+      findings: updatedFindings,
+    };
+  });
 }

@@ -12,13 +12,20 @@ import {
 } from "@prontiq/ariscan-engine";
 import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
 import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
+import { policyCommand } from "./commands/policy.js";
 import { formatTerminal } from "./output/terminal.js";
-import { formatJson, formatNdjson, formatJsonSchema } from "./output/json.js";
+import {
+  formatJson,
+  formatNdjson,
+  formatJsonSchema,
+  formatConfigJsonSchema,
+} from "./output/json.js";
 import { formatMarkdown } from "./output/markdown.js";
 import { formatSarif } from "./output/sarif.js";
 import { generateBadgeSvg, generateBadgeSnippets } from "./output/badge.js";
 import { formatBudgetTerminal, formatBudgetJson } from "./output/budget.js";
-import { resolveConfig } from "./config-loader.js";
+import { resolveFullConfig } from "./config-loader.js";
+import { applyEnforcement } from "./enforcement.js";
 import { PILLAR_NAMES } from "@prontiq/ariscan-schema";
 import type { ScanResult } from "@prontiq/ariscan-schema";
 
@@ -34,7 +41,7 @@ async function resolveRepoPath(path: string): Promise<string> {
 }
 
 async function handleFlagCommands(args: Record<string, unknown>): Promise<boolean> {
-  if (args.telemetryShow) {
+  if (args.telemetryShow || args["telemetry-show"]) {
     await handleTelemetryShow();
     return true;
   }
@@ -42,8 +49,12 @@ async function handleFlagCommands(args: Record<string, unknown>): Promise<boolea
     await handleTelemetrySet(args.telemetry as string);
     return true;
   }
-  if (args.jsonSchema) {
+  if (args.jsonSchema || args["json-schema"]) {
     process.stdout.write(formatJsonSchema());
+    return true;
+  }
+  if (args.policySchema || args["policy-schema"]) {
+    process.stdout.write(formatConfigJsonSchema());
     return true;
   }
   return false;
@@ -72,6 +83,14 @@ async function handleRepoCommands(
 async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
   if (await handleFlagCommands(args)) return;
 
+  // Detect `ariscan policy ...` subcommand
+  if (args.path === "policy") {
+    const { runCommand } = await import("citty");
+    // Strip [node, script, "policy"] so policyCommand only sees subcommand args
+    await runCommand(policyCommand, { rawArgs: process.argv.slice(3) });
+    return;
+  }
+
   const repoPath = await resolveRepoPath(args.path as string);
   if (await handleRepoCommands(repoPath, args)) return;
 
@@ -97,6 +116,8 @@ Examples:
   npx @prontiq/ariscan-cli . --fix              # Generate missing config files
   npx @prontiq/ariscan-cli . --fix --dry-run   # Preview changes without writing
   npx @prontiq/ariscan-cli . --fix --force     # Overwrite existing files
+  npx @prontiq/ariscan-cli policy init          # Generate starter policy
+  npx @prontiq/ariscan-cli policy validate      # Validate policy file
 
 Exit codes:
   0  Score meets or exceeds threshold (default: 0)
@@ -143,6 +164,11 @@ Exit codes:
     jsonSchema: {
       type: "boolean",
       description: "Print the JSON Schema for scan output and exit",
+      default: false,
+    },
+    policySchema: {
+      type: "boolean",
+      description: "Print the JSON Schema for .ariscan.yml policy config and exit",
       default: false,
     },
     badge: {
@@ -275,7 +301,7 @@ async function handleScanMode(
     cliOverrides.format = args.format;
   }
 
-  const config = await resolveConfig({
+  const { scanConfig: config, policyMeta } = await resolveFullConfig({
     repoPath,
     configPath: args.config,
     cliOverrides,
@@ -327,10 +353,7 @@ async function handleScanMode(
 
   outputScanResult(result, format, args.verbose, args.quiet);
 
-  const threshold = config.threshold ?? cliThreshold;
-  if (threshold > 0 && result.score < threshold) {
-    process.exit(1);
-  }
+  applyEnforcement(result, config.threshold ?? cliThreshold, policyMeta);
 }
 
 /** Write scan result to stdout in the requested format. */

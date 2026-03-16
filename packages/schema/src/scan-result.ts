@@ -56,6 +56,8 @@ export const Finding = z.object({
   confidence: Confidence.optional(),
   remediation: Remediation.optional(),
   evidence: Evidence.optional(),
+  /** When true, the finding was matched by a policy suppression and excluded from scoring. */
+  suppressed: z.boolean().optional(),
 });
 export type Finding = z.infer<typeof Finding>;
 

@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
 import { parse as parseYaml } from "yaml";
-import { FileConfig } from "@prontiq/ariscan-schema";
+import { FileConfig, PILLAR_WEIGHTS } from "@prontiq/ariscan-schema";
 import type {
   FileConfig as FileConfigType,
   ScanConfig as ScanConfigType,
+  Suppression as SuppressionType,
 } from "@prontiq/ariscan-schema";
 
 const CONFIG_FILENAME = ".ariscan.yml";
@@ -50,6 +51,145 @@ export async function loadConfigFile(configPath: string): Promise<FileConfigType
   return FileConfig.parse(parsed);
 }
 
+/**
+ * Resolve inheritance: if `extends` is set, load parent config and deep-merge
+ * (child values override parent). Only local file paths are supported.
+ */
+export async function resolveInheritance(
+  config: FileConfigType,
+  configPath: string,
+  visited: Set<string> = new Set(),
+): Promise<FileConfigType> {
+  if (!config.extends) return config;
+
+  const parentPath = resolve(dirname(configPath), config.extends);
+  const normalizedParent = resolve(parentPath);
+
+  if (visited.has(normalizedParent)) {
+    throw new Error(`Circular policy inheritance detected: ${normalizedParent}`);
+  }
+  visited.add(normalizedParent);
+
+  const parentConfig = await loadConfigFile(parentPath);
+  const resolvedParent = await resolveInheritance(parentConfig, parentPath, visited);
+
+  // Deep-merge: child overrides parent
+  return mergeConfigs(resolvedParent, config);
+}
+
+function mergePillarRecord(
+  parent?: Record<string, number>,
+  child?: Record<string, number>,
+): Record<string, number> | undefined {
+  if (!parent && !child) return undefined;
+  const merged = { ...parent, ...child };
+  return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
+function mergeConfigs(parent: FileConfigType, child: FileConfigType): FileConfigType {
+  const mergedPillarThresholds = mergePillarRecord(
+    parent.thresholds?.pillars,
+    child.thresholds?.pillars,
+  );
+
+  return {
+    ...parent,
+    ...child,
+    // Don't carry `extends` forward after resolution
+    extends: undefined,
+    // Merge pillars object
+    pillars:
+      parent.pillars || child.pillars
+        ? {
+            exclude: child.pillars?.exclude ?? parent.pillars?.exclude,
+            weights: mergePillarRecord(parent.pillars?.weights, child.pillars?.weights),
+          }
+        : undefined,
+    // Merge thresholds
+    thresholds:
+      parent.thresholds || child.thresholds
+        ? {
+            composite: child.thresholds?.composite ?? parent.thresholds?.composite,
+            ...(mergedPillarThresholds ? { pillars: mergedPillarThresholds } : {}),
+          }
+        : undefined,
+    // Merge suppressions (child appends to parent)
+    suppressions:
+      parent.suppressions || child.suppressions
+        ? [...(parent.suppressions ?? []), ...(child.suppressions ?? [])]
+        : undefined,
+    // Child profiles override parent profiles by name
+    profiles:
+      parent.profiles || child.profiles ? { ...parent.profiles, ...child.profiles } : undefined,
+  };
+}
+
+/**
+ * Resolve active profile: merge profile's weights/thresholds into base config.
+ */
+export function resolveProfile(config: FileConfigType): FileConfigType {
+  if (!config.activeProfile) return config;
+
+  if (!config.profiles) {
+    throw new Error(`Active profile "${config.activeProfile}" is set but no profiles are defined`);
+  }
+
+  const profile = config.profiles[config.activeProfile];
+  if (!profile) {
+    throw new Error(
+      `Active profile "${config.activeProfile}" not found. Available: ${Object.keys(config.profiles).join(", ")}`,
+    );
+  }
+
+  const result = { ...config };
+
+  if (profile.thresholds) {
+    const mergedPillarThresholds = mergePillarRecord(
+      result.thresholds?.pillars,
+      profile.thresholds.pillars,
+    );
+    result.thresholds = {
+      composite: profile.thresholds.composite ?? result.thresholds?.composite,
+      ...(mergedPillarThresholds ? { pillars: mergedPillarThresholds } : {}),
+    };
+  }
+
+  if (profile.weights) {
+    result.pillars = {
+      ...result.pillars,
+      weights: { ...result.pillars?.weights, ...profile.weights },
+    };
+  }
+
+  return result;
+}
+
+/**
+ * Format a Date as YYYY-MM-DD in local time.
+ */
+function toLocalDateString(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Filter out expired suppressions. Returns only active suppressions.
+ * Date-only expiry values (YYYY-MM-DD) are treated as valid through the
+ * entire stated day by comparing calendar dates, not timestamps.
+ */
+export function filterSuppressions(
+  suppressions: SuppressionType[],
+  now: Date = new Date(),
+): SuppressionType[] {
+  const todayStr = toLocalDateString(now);
+  return suppressions.filter((s) => {
+    if (s.expiry === "no-expiry") return true;
+    return s.expiry >= todayStr;
+  });
+}
+
 function applyWeightOverrides(
   pillars: NonNullable<ScanConfigType["pillars"]>,
   weights: Record<string, number>,
@@ -82,6 +222,12 @@ function buildPillarConfig(
   return Object.keys(pillars).length > 0 ? pillars : undefined;
 }
 
+/** Resolved policy metadata that doesn't map directly to ScanConfig fields. */
+export interface ResolvedPolicyMeta {
+  enforcement?: "warn" | "fail" | "block";
+  pillarThresholds?: Record<string, number>;
+}
+
 /**
  * Convert a FileConfig (YAML structure) into a partial ScanConfig
  * that can be merged with CLI flags.
@@ -89,8 +235,10 @@ function buildPillarConfig(
 export function fileConfigToScanConfig(fileConfig: FileConfigType): Partial<ScanConfigType> {
   const result: Partial<ScanConfigType> = {};
 
-  if (fileConfig.threshold !== undefined) {
-    result.threshold = fileConfig.threshold;
+  // Resolve threshold: thresholds.composite takes precedence over flat threshold
+  const compositeThreshold = fileConfig.thresholds?.composite ?? fileConfig.threshold;
+  if (compositeThreshold !== undefined) {
+    result.threshold = compositeThreshold;
   }
 
   if (fileConfig.format !== undefined) {
@@ -104,7 +252,98 @@ export function fileConfigToScanConfig(fileConfig: FileConfigType): Partial<Scan
     }
   }
 
+  // Pass through active suppressions (expired ones already filtered)
+  if (fileConfig.suppressions && fileConfig.suppressions.length > 0) {
+    result.suppressions = fileConfig.suppressions;
+  }
+
   return result;
+}
+
+/**
+ * Extract policy metadata (enforcement mode, per-pillar thresholds) from FileConfig.
+ */
+export function extractPolicyMeta(fileConfig: FileConfigType): ResolvedPolicyMeta {
+  const meta: ResolvedPolicyMeta = {};
+
+  if (fileConfig.enforcement) {
+    meta.enforcement = fileConfig.enforcement;
+  }
+
+  if (fileConfig.thresholds?.pillars) {
+    meta.pillarThresholds = fileConfig.thresholds.pillars;
+  }
+
+  return meta;
+}
+
+export interface ResolvedConfig {
+  scanConfig: Partial<ScanConfigType>;
+  policyMeta: ResolvedPolicyMeta;
+}
+
+/** Semantic policy error. */
+export interface PolicySemanticError {
+  message: string;
+  field?: string;
+}
+
+/**
+ * Run semantic validation on a resolved policy config.
+ * Shared between `resolveFullConfig()` (scan-time) and `validatePolicyFile()`.
+ * Returns an array of errors; empty means valid.
+ */
+export function validatePolicySemantics(config: FileConfigType): PolicySemanticError[] {
+  const errors: PolicySemanticError[] = [];
+
+  // Check weight sum if all pillar weights are overridden
+  if (config.pillars?.weights) {
+    const weights = config.pillars.weights;
+    const overriddenIds = Object.keys(weights);
+    if (overriddenIds.length === Object.keys(PILLAR_WEIGHTS).length) {
+      const sum = Object.values(weights).reduce((a, b) => a + b, 0);
+      if (Math.abs(sum - 1.0) > 0.001) {
+        errors.push({
+          message: `Pillar weights sum to ${sum.toFixed(3)}, expected 1.0`,
+          field: "pillars.weights",
+        });
+      }
+    }
+  }
+
+  // Check profile weights sum
+  if (config.profiles) {
+    for (const [name, profile] of Object.entries(config.profiles)) {
+      if (profile.weights) {
+        const overriddenIds = Object.keys(profile.weights);
+        if (overriddenIds.length === Object.keys(PILLAR_WEIGHTS).length) {
+          const sum = Object.values(profile.weights).reduce((a, b) => a + b, 0);
+          if (Math.abs(sum - 1.0) > 0.001) {
+            errors.push({
+              message: `Profile "${name}" weights sum to ${sum.toFixed(3)}, expected 1.0`,
+              field: `profiles.${name}.weights`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Check duplicate suppression codes
+  if (config.suppressions) {
+    const codes = new Set<string>();
+    for (const sup of config.suppressions) {
+      if (codes.has(sup.code)) {
+        errors.push({
+          message: `Duplicate suppression code: ${sup.code}`,
+          field: "suppressions",
+        });
+      }
+      codes.add(sup.code);
+    }
+  }
+
+  return errors;
 }
 
 /**
@@ -116,6 +355,18 @@ export async function resolveConfig(options: {
   configPath?: string;
   cliOverrides: Partial<ScanConfigType>;
 }): Promise<Partial<ScanConfigType>> {
+  const resolved = await resolveFullConfig(options);
+  return resolved.scanConfig;
+}
+
+/**
+ * Resolve config with full policy metadata.
+ */
+export async function resolveFullConfig(options: {
+  repoPath: string;
+  configPath?: string;
+  cliOverrides: Partial<ScanConfigType>;
+}): Promise<ResolvedConfig> {
   const { repoPath, configPath, cliOverrides } = options;
 
   // Load config file
@@ -123,25 +374,47 @@ export async function resolveConfig(options: {
   const resolvedConfigPath = configPath ? resolve(configPath) : await findConfigFile(repoPath);
 
   if (resolvedConfigPath) {
-    try {
-      fileConfig = await loadConfigFile(resolvedConfigPath);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(
-        `Warning: Failed to load config file ${resolvedConfigPath}: ${message}\n`,
+    fileConfig = await loadConfigFile(resolvedConfigPath);
+
+    // Resolve inheritance chain
+    fileConfig = await resolveInheritance(fileConfig, resolvedConfigPath);
+
+    // Resolve active profile
+    fileConfig = resolveProfile(fileConfig);
+
+    // Filter expired suppressions
+    if (fileConfig.suppressions) {
+      fileConfig = { ...fileConfig, suppressions: filterSuppressions(fileConfig.suppressions) };
+    }
+
+    // Reject paths rules — not yet enforced at runtime
+    if (fileConfig.paths && fileConfig.paths.length > 0) {
+      throw new Error(
+        `'paths' rules are not yet supported. Path-specific thresholds have no effect at runtime. ` +
+          `Remove the 'paths' section from your policy file until this feature is implemented.`,
       );
+    }
+
+    // Run semantic validation — same checks as `policy validate`
+    const semanticErrors = validatePolicySemantics(fileConfig);
+    if (semanticErrors.length > 0) {
+      const messages = semanticErrors.map((e) => {
+        const prefix = e.field ? `[${e.field}] ` : "";
+        return `${prefix}${e.message}`;
+      });
+      throw new Error(`Invalid policy: ${messages.join("; ")}`);
     }
   }
 
   // Convert file config to scan config
   const fromFile = fileConfig ? fileConfigToScanConfig(fileConfig) : {};
+  const policyMeta = fileConfig ? extractPolicyMeta(fileConfig) : {};
 
   // Merge: CLI flags > config file > defaults
-  // Only include CLI overrides that were explicitly set (not defaults)
-  const merged: Partial<ScanConfigType> = {
+  const scanConfig: Partial<ScanConfigType> = {
     ...fromFile,
     ...cliOverrides,
   };
 
-  return merged;
+  return { scanConfig, policyMeta };
 }

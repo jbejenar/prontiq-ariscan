@@ -10,7 +10,8 @@ import { formatTerminal } from "../output/terminal.js";
 import { formatJson, formatNdjson, formatJsonSchema } from "../output/json.js";
 import { formatMarkdown } from "../output/markdown.js";
 import { formatSarif } from "../output/sarif.js";
-import { resolveConfig } from "../config-loader.js";
+import { resolveFullConfig } from "../config-loader.js";
+import { applyEnforcement } from "../enforcement.js";
 
 export interface ScanOptions {
   path: string;
@@ -74,7 +75,7 @@ export async function runScan(options: ScanOptions): Promise<void> {
   const repoPath = await validateRepoPath(options.path);
   const cliOverrides = buildCliOverrides(options);
 
-  const scanConfig = await resolveConfig({
+  const { scanConfig, policyMeta } = await resolveFullConfig({
     repoPath,
     configPath: options.config,
     cliOverrides,
@@ -97,10 +98,7 @@ export async function runScan(options: ScanOptions): Promise<void> {
 
   process.stdout.write(formatOutput(result, format, options));
 
-  const threshold = scanConfig.threshold ?? options.threshold;
-  if (threshold > 0 && result.score < threshold) {
-    process.exit(1);
-  }
+  applyEnforcement(result, scanConfig.threshold ?? options.threshold, policyMeta);
 }
 
 export const scanCommand = defineCommand({
