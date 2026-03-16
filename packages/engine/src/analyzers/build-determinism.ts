@@ -153,6 +153,11 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
             description: "Run your package manager to generate a lockfile and commit it",
             confidence: "high",
           },
+          evidence: {
+            paper: "GitHub Octoverse, 2025",
+            finding: "94% of LLM compilation errors are type-check failures",
+            confidence: "high",
+          },
         });
       }
     }
@@ -176,6 +181,11 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           message:
             "Modern build tool detected — fast, deterministic builds improve agent feedback loops",
           confidence: "high",
+          evidence: {
+            paper: "esbuild benchmark, 2024",
+            finding: "Modern bundlers provide 10-100x faster builds",
+            confidence: "high",
+          },
         });
       } else if (isWebpack) {
         score += 5;
@@ -355,6 +365,11 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "Linting and formatting configured — agents produce code matching project style",
         confidence: "high",
+        evidence: {
+          paper: "GitHub Octoverse, 2025",
+          finding: "94% of LLM compilation errors are type-check failures",
+          confidence: "high",
+        },
       });
     } else {
       const missing = [!hasEslint ? "linter" : "", !hasPrettier ? "formatter" : ""]

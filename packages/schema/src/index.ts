@@ -1,4 +1,5 @@
 export {
+  SCHEMA_VERSION,
   PillarId,
   PillarDefinition,
   MaturityLevel,

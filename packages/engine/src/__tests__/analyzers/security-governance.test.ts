@@ -22,7 +22,7 @@ describe("securityGovernanceAnalyzer (P8)", () => {
       expect(result.score).toBeLessThanOrEqual(5);
     });
 
-    it("emits findings for missing CODEOWNERS, SECURITY.md, secrets scanning, dependabot", async () => {
+    it("emits findings for missing CODEOWNERS, SECURITY.md, secrets scanning, dependabot, branch protection, SAST", async () => {
       const ctx = createMockContext({});
       const result = await securityGovernanceAnalyzer.analyze(ctx);
       const codes = result.findings.map((f) => f.code);
@@ -30,6 +30,8 @@ describe("securityGovernanceAnalyzer (P8)", () => {
       expect(codes).toContain("ARI-SEC-002"); // SECURITY.md
       expect(codes).toContain("ARI-SEC-003"); // secrets scanning
       expect(codes).toContain("ARI-SEC-004"); // dependabot/renovate
+      expect(codes).toContain("ARI-SEC-009"); // branch protection
+      expect(codes).toContain("ARI-SEC-010"); // SAST
     });
   });
 
@@ -504,6 +506,70 @@ describe("securityGovernanceAnalyzer (P8)", () => {
       // AI controls: SAST (15 max) + AI review (5 max) + agent scope (5 max) = 25 max
       // Only agent scope present = 5/25 = 20%
       expect(result.summary).toContain("AI-specific security: 20%");
+    });
+  });
+
+  describe("ARI-SEC-009: Branch protection finding", () => {
+    it("emits ARI-SEC-009 when no branch protection detected", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-009");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("medium");
+      expect(finding?.confidence).toBe("medium");
+      expect(finding?.remediation).toBeDefined();
+      expect(finding?.evidence).toBeDefined();
+      expect(finding?.evidence?.paper).toContain("Pearce");
+    });
+
+    it("does not emit ARI-SEC-009 when branch protection ruleset exists", async () => {
+      const ctx = createMockContext({
+        ".github/branch-protection.json": '{"rules": []}',
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-009")).toBe(false);
+    });
+
+    it("does not emit ARI-SEC-009 when PR + enforcement patterns exist in workflow", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/ci.yml":
+          "name: CI\non:\n  pull_request:\n    branches: [main]\njobs:\n  check:\n    steps:\n      - name: required status check",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-009")).toBe(false);
+    });
+  });
+
+  describe("ARI-SEC-010: SAST finding", () => {
+    it("emits ARI-SEC-010 when no SAST configured", async () => {
+      const ctx = createMockContext({});
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      const finding = result.findings.find((f) => f.code === "ARI-SEC-010");
+      expect(finding).toBeDefined();
+      expect(finding?.severity).toBe("medium");
+      expect(finding?.confidence).toBe("high");
+      expect(finding?.remediation).toBeDefined();
+      expect(finding?.remediation?.action).toBe("configure-tool");
+      expect(finding?.evidence).toBeDefined();
+      expect(finding?.evidence?.paper).toContain("Veracode");
+    });
+
+    it("does not emit ARI-SEC-010 when CodeQL is configured", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/codeql.yml":
+          "name: CodeQL\njobs:\n  analyze:\n    steps:\n      - uses: github/codeql-action/analyze@v2",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-010")).toBe(false);
+    });
+
+    it("does not emit ARI-SEC-010 when Semgrep is configured", async () => {
+      const ctx = createMockContext({
+        ".github/workflows/sast.yml":
+          "name: SAST\njobs:\n  scan:\n    steps:\n      - run: semgrep scan",
+      });
+      const result = await securityGovernanceAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-SEC-010")).toBe(false);
     });
   });
 
