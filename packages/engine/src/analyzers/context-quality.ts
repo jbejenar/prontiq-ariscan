@@ -122,19 +122,30 @@ function normalizeForComparison(text: string): string {
       .replace(/<[^>]+>/g, "")
       // Remove any remaining lone angle brackets left after tag stripping
       .replace(/[<>]/g, "")
-      // Collapse whitespace
-      .replace(/\s+/g, " ")
+      // Remove list-item markers (-, *, numbered) but keep the text on its own line
+      .replace(/^[\s]*[-*]\s+/gm, "")
+      .replace(/^[\s]*\d+[.)]\s+/gm, "")
+      // Collapse horizontal whitespace (preserve newlines for segmentation)
+      .replace(/[^\S\n]+/g, " ")
       .trim()
   );
 }
 
 /**
  * Split text into meaningful sentences/segments for comparison.
+ * Splits on sentence-ending periods, newlines, and list boundaries.
  * Returns non-empty segments of at least 5 words.
  */
 function splitSegments(text: string): string[] {
-  // Split on sentence boundaries (period, newline) and list items
-  const raw = text.split(/[.\n]+/).map((s) => s.trim());
+  // Split on newlines first, then on sentence-ending periods within each line
+  const raw: string[] = [];
+  for (const line of text.split("\n")) {
+    // Split on periods that end a sentence (followed by space or end of string)
+    const parts = line.split(/\.(?:\s|$)/).map((s) => s.trim());
+    for (const part of parts) {
+      if (part.length > 0) raw.push(part);
+    }
+  }
   // Filter out very short segments (< 5 words) to avoid false positive matches
   return raw.filter((s) => s.split(/\s+/).length >= 5);
 }
@@ -200,18 +211,29 @@ function computeAdditionality(
     if (bestMatch >= SIMILARITY_THRESHOLD) {
       matchedSegments++;
       // Find the original line that best corresponds to this segment
-      const segWords = segment.toLowerCase();
+      // Use Jaccard similarity (same as segment comparison) to handle formatting differences
+      let bestLineScore = 0;
+      let bestLineIdx = -1;
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i] ?? "";
-        const lineLower = line.toLowerCase().trim();
-        if (
-          lineLower.length >= 10 &&
-          segWords.includes(lineLower.replace(/[#*_`()[\]]/g, "").trim())
-        ) {
-          if (!duplicateLines.some((d) => d.line === i + 1)) {
-            duplicateLines.push({ line: i + 1, text: line.trim(), matchedIn: bestMatchPath });
-          }
-          break;
+        const normalizedLine = line
+          .toLowerCase()
+          .replace(/[#*_`()[\].\-:>]/g, "")
+          .trim();
+        if (normalizedLine.split(/\s+/).length < 3) continue;
+        const sim = jaccardSimilarity(segment, normalizedLine);
+        if (sim > bestLineScore) {
+          bestLineScore = sim;
+          bestLineIdx = i;
+        }
+      }
+      if (bestLineIdx >= 0 && bestLineScore >= 0.4) {
+        if (!duplicateLines.some((d) => d.line === bestLineIdx + 1)) {
+          duplicateLines.push({
+            line: bestLineIdx + 1,
+            text: (lines[bestLineIdx] ?? "").trim(),
+            matchedIn: bestMatchPath,
+          });
         }
       }
     }

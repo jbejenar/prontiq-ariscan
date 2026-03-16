@@ -726,6 +726,7 @@ describe("contextQualityAnalyzer (P1)", () => {
       });
       const result = await contextQualityAnalyzer.analyze(ctx);
       const finding = result.findings.find((f) => f.code === "ARI-CTX-011");
+      expect(finding).toBeDefined();
       if (finding) {
         // Should contain line references for duplicative content
         expect(finding.message).toMatch(/L\d+:/);
