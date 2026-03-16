@@ -159,6 +159,14 @@ function isCommandLike(segment: string): boolean {
     return true;
   }
 
+  // --- Path-like launcher syntax ---
+  // Matches ./foo, ../foo, bin/foo, scripts/foo, vendor/bin/foo, etc.
+  // These are common in READMEs and CI docs (e.g. ./gradlew test, bin/rails test,
+  // scripts/build --prod, ./scripts/check.sh)
+  if (/^\.{0,2}\//.test(first) || /^[a-zA-Z][a-zA-Z0-9._-]*\//.test(first)) {
+    return true;
+  }
+
   // --- Executable-first command syntax ---
   // Executable names are lowercase, may contain hyphens or dots (e.g. docker-compose, node.js)
   if (!/^[a-z][a-z0-9._-]*$/i.test(first)) return false;
