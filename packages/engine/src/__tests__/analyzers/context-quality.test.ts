@@ -829,19 +829,20 @@ describe("contextQualityAnalyzer (P1)", () => {
   describe("zero-segment additionality (Bug 5)", () => {
     it("does not award additionality bonus for files with no comparable segments", async () => {
       const readme = "# Project\nA brief description of the project.";
-      // Very short AGENTS.md where all segments are < 5 words after normalization
+      // Very short AGENTS.md where all segments are < 5 words (prose) and
+      // not command-like, so none pass the segment filter
       const agentsMd = [
         "# AGENTS.md",
         "## Build",
-        "```bash",
-        "pnpm install",
-        "pnpm build",
-        "pnpm test",
-        "```",
+        "See above.",
         "## Notes",
         "Short.",
         "Tiny.",
         "Small.",
+        "OK.",
+        "Yes.",
+        "Done.",
+        "Fine.",
       ].join("\n");
 
       const ctx = createMockContext({

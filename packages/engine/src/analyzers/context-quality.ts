@@ -131,10 +131,16 @@ function normalizeForComparison(text: string): string {
   );
 }
 
+/** Pattern matching common CLI tool invocations and short operational commands */
+const COMMAND_LIKE_PATTERN =
+  /^(pnpm|npm|npx|yarn|cargo|go|make|pip|poetry|docker|git|brew|apt|dnf|curl|wget|mkdir|cp|mv|rm|cd)\b/i;
+
 /**
  * Split text into meaningful sentences/segments for comparison.
  * Splits on sentence-ending periods, newlines, and list boundaries.
- * Returns non-empty segments of at least 5 words.
+ * Uses a lower word threshold for command-like segments so that short
+ * operational guidance (e.g. `pnpm install`, `npm ci`) participates
+ * in redundancy scoring.
  */
 function splitSegments(text: string): string[] {
   // Split on newlines first, then on sentence-ending periods within each line
@@ -146,8 +152,14 @@ function splitSegments(text: string): string[] {
       if (part.length > 0) raw.push(part);
     }
   }
-  // Filter out very short segments (< 5 words) to avoid false positive matches
-  return raw.filter((s) => s.split(/\s+/).length >= 5);
+  // Apply different word-count thresholds:
+  // - Command-like segments (CLI invocations, config lines): >= 2 words
+  // - Prose segments: >= 5 words (avoids false positives on short phrases)
+  return raw.filter((s) => {
+    const wordCount = s.split(/\s+/).length;
+    if (COMMAND_LIKE_PATTERN.test(s.trim())) return wordCount >= 2;
+    return wordCount >= 5;
+  });
 }
 
 /**
