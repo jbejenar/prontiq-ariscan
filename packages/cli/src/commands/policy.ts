@@ -5,7 +5,12 @@ import { access, writeFile } from "node:fs/promises";
 import { scan } from "@prontiq/ariscan-engine";
 import { PILLAR_NAMES, PILLAR_WEIGHTS } from "@prontiq/ariscan-schema";
 import type { PillarId, FileConfig as FileConfigType } from "@prontiq/ariscan-schema";
-import { loadConfigFile, findConfigFile } from "../config-loader.js";
+import {
+  loadConfigFile,
+  findConfigFile,
+  resolveInheritance,
+  resolveProfile,
+} from "../config-loader.js";
 
 /**
  * Generate a starter `.ariscan.yml` from current scan scores.
@@ -81,6 +86,31 @@ async function validatePolicyFile(configPath: string): Promise<PolicyError[]> {
     const message = error instanceof Error ? error.message : String(error);
     errors.push({ message: `Schema validation failed: ${message}` });
     return errors;
+  }
+
+  // Resolve inheritance so we validate the effective policy, not just the leaf file
+  try {
+    config = await resolveInheritance(config, configPath);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    errors.push({ message: `Inheritance resolution failed: ${message}` });
+    return errors;
+  }
+
+  // Resolve active profile
+  try {
+    config = resolveProfile(config);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    errors.push({ message: `Profile resolution failed: ${message}`, field: "activeProfile" });
+  }
+
+  // Reject paths rules — not yet enforced at runtime
+  if (config.paths && config.paths.length > 0) {
+    errors.push({
+      message: `'paths' rules are not yet supported. Path-specific thresholds have no effect at runtime. Remove the 'paths' section until this feature is implemented.`,
+      field: "paths",
+    });
   }
 
   // Semantic: check weight sum if weights are overridden
