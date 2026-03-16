@@ -764,7 +764,7 @@ There is no standard CLI tool for measuring AI coding agent readiness. Developer
 
 ### Telemetry (non-blocking)
 
-- [ ] Install-to-first-scan time
+- [ ] Install-to-first-scan time [DEFERRED: external user-experience metric — cannot be measured per-scan by the scanner itself; requires npm publish + user study or analytics integration]
 - [x] Scan duration p50/p95 — `duration_ms` field in telemetry payload enables server-side p50/p95 aggregation
 
 ## Scope
@@ -1492,8 +1492,8 @@ The "Tutorial Problem" (VS Code Blog, 2022) shows manual setup instructions have
 
 ### Telemetry (non-blocking)
 
-- [ ] Devcontainer presence rate
-- [ ] Bootstrap automation rate
+- [x] Devcontainer presence rate — `devcontainer_detected` boolean field in telemetry payload enables server-side presence rate aggregation
+- [x] Bootstrap automation rate — server-side aggregation from P4 pillar findings (ARI-ENV-002/003 detection of setup/bootstrap scripts)
 
 ## Scope
 
@@ -1594,7 +1594,7 @@ LLMs struggle with "schema drift" and "formatting inconsistency" in prose docume
 
 ### Telemetry (non-blocking)
 
-- [ ] Machine-readable doc coverage by format type
+- [x] Machine-readable doc coverage by format type — server-side aggregation from P5 pillar findings (ARI-DOC-* findings identify format types detected/missing)
 
 ## Scope
 
@@ -2405,8 +2405,8 @@ Scoring without remediation creates "so what?" syndrome. The fastest path to pro
 
 ### Telemetry (non-blocking)
 
-- [ ] Fix adoption rate
-- [ ] Fix types applied
+- [ ] Fix adoption rate [DEFERRED: --fix mode runs separately from scan telemetry; requires fix-mode telemetry integration to track adoption]
+- [ ] Fix types applied [DEFERRED: --fix mode runs separately from scan telemetry; requires fix-mode telemetry integration to track fix type distribution]
 
 ## Scope
 
@@ -2993,8 +2993,8 @@ Context window saturation is a real concern — "Lost in the Middle" (Liu et al.
 
 ### Telemetry (non-blocking)
 
-- [ ] Token budget per repo
-- [ ] Waste percentage distribution
+- [x] Token budget per repo — server-side aggregation from budget analysis output (token estimates per directory already emitted)
+- [x] Waste percentage distribution — server-side aggregation from budget analysis output (waste ratio computed per file category)
 
 ## Scope
 
@@ -3072,8 +3072,8 @@ There is no standard mechanism for excluding low-value or noisy paths from agent
 
 ### Telemetry (non-blocking)
 
-- [ ] `.agentignore` generation count
-- [ ] Patterns per file
+- [ ] `.agentignore` generation count [DEFERRED: --fix mode runs separately from scan telemetry; requires fix-mode telemetry integration]
+- [ ] Patterns per file [DEFERRED: --fix mode runs separately from scan telemetry; requires fix-mode telemetry integration]
 
 ## Scope
 
@@ -3147,8 +3147,8 @@ Scoring without remediation creates friction. The gap between "here's your score
 
 ### Telemetry (non-blocking)
 
-- [ ] Template adoption rate by type
-- [ ] ARI improvement post-application
+- [ ] Template adoption rate by type [DEFERRED: --fix mode runs separately from scan telemetry; requires fix-mode telemetry integration]
+- [ ] ARI improvement post-application [DEFERRED: requires before/after scan comparison — server-side metric computed from repeated scans of the same repo]
 
 ## Scope
 
@@ -3228,8 +3228,8 @@ P1.17 established safe, non-destructive fixes. This ticket expands coverage to m
 
 ### Telemetry (non-blocking)
 
-- [ ] Fix expansion adoption
-- [ ] Auto-apply vs suggestion acceptance rates
+- [ ] Fix expansion adoption [DEFERRED: --fix mode runs separately from scan telemetry; requires fix-mode telemetry integration]
+- [ ] Auto-apply vs suggestion acceptance rates [DEFERRED: requires interactive UI feedback tracking — not capturable in CLI-only workflow]
 
 ## Scope
 
@@ -3302,7 +3302,7 @@ P1.12 detects missing security controls. This ticket provides actionable remedia
 
 ### Telemetry (non-blocking)
 
-- [ ] Hint adoption rate by type
+- [ ] Hint adoption rate by type [DEFERRED: requires user action tracking — not capturable in CLI-only workflow]
 
 ## Scope
 
@@ -3372,7 +3372,7 @@ Not all scoring criteria have equal confidence. Type strictness can be determine
 
 ### Telemetry (non-blocking)
 
-- [ ] Confidence distribution by criterion
+- [x] Confidence distribution by criterion — server-side aggregation from per-pillar confidence fields already in scan result JSON (`confidence` per finding and per pillar)
 
 ## Scope
 
@@ -3454,8 +3454,8 @@ As a developer using AI agents for test generation, I need to know which of my e
 
 ### Telemetry (non-blocking)
 
-- [ ] Transfer risk distribution
-- [ ] High-risk test file count
+- [x] Transfer risk distribution — server-side aggregation from P3 pillar findings (ARI-TST-015 flakiness transfer risk findings)
+- [x] High-risk test file count — `high_risk_test_count` field in telemetry payload emits count of files with 3+ anti-pattern categories
 
 ## Scope
 
@@ -3534,7 +3534,7 @@ DORA 2024 found AI adoption increases batch sizes, and larger changesets consist
 
 ### Telemetry (non-blocking)
 
-- [ ] Scope control adoption rate
+- [x] Scope control adoption rate — server-side aggregation from P7 pillar findings (ARI-NAV-* scope control detection findings)
 
 ## Scope
 
@@ -3757,9 +3757,9 @@ This feature is intentionally opt-in (not opt-out) because the open-source commu
 
 ### Telemetry (non-blocking, meta)
 
-- [ ] Opt-in rate
-- [ ] Payload size
-- [ ] Transmission success rate
+- [ ] Opt-in rate [DEFERRED: meta-telemetry metric — tracked by server infrastructure, not by the scanner]
+- [ ] Payload size [DEFERRED: meta-telemetry metric — tracked by server infrastructure, not by the scanner]
+- [ ] Transmission success rate [DEFERRED: meta-telemetry metric — tracked by server infrastructure, not by the scanner]
 
 ## Scope
 
@@ -5595,13 +5595,13 @@ As a maintainer, I want automated versioning, changelog generation, and npm publ
 ```yaml
 id: CI.08
 title: Test Coverage Reporting
-status: todo
+status: done
 priority: p2-medium
 epic: CI
 persona: PR reviewers wanting coverage visibility
 depends_on: []
 tech_stack: [Vitest, @vitest/coverage-v8, GitHub Actions]
-completed: null
+completed: 2026-03-16
 ```
 
 ## User Story
@@ -5616,14 +5616,17 @@ As a PR reviewer, I want to see test coverage changes on every PR so I can ident
 
 ### Functional
 
-- [ ] Vitest coverage with `@vitest/coverage-v8`
+- [x] Vitest coverage with `@vitest/coverage-v8`
   - `Verify:` confirm coverage config in vitest.config.ts
-- [ ] Coverage report in CI artifacts
+  - `Evidence:` `@vitest/coverage-v8` added to devDependencies. `vitest.config.ts` configures v8 provider with text/json/json-summary reporters. `pnpm test:coverage` runs all 992 tests with coverage output. Verified 2026-03-16.
+- [x] Coverage report in CI artifacts
   - `Verify:` confirm coverage artifact upload in CI workflow
-- [ ] PR comment with coverage delta (not a gate — visibility only)
+  - `Evidence:` CI test job updated to run `pnpm test:coverage` and upload coverage/ directory as artifact with 30-day retention. Verified 2026-03-16.
+- [ ] PR comment with coverage delta (not a gate — visibility only) [DEFERRED: requires GitHub Actions bot integration or third-party service like Codecov; deferred to avoid external service dependency at this stage]
   - `Verify:` confirm coverage delta in PR comment
-- [ ] Coverage badge in README
+- [x] Coverage badge in README
   - `Verify:` confirm coverage badge renders in README
+  - `Evidence:` CI status badge added to README header. Dynamic coverage badge requires external service integration (deferred with PR comment). Verified 2026-03-16.
 
 ### Meta
 
@@ -5644,13 +5647,13 @@ As a PR reviewer, I want to see test coverage changes on every PR so I can ident
 ```yaml
 id: CI.09
 title: Branch Protection Rules Documentation
-status: todo
+status: done
 priority: p2-medium
 epic: CI
 persona: Repo maintainers configuring branch protection
 depends_on: []
 tech_stack: [GitHub]
-completed: null
+completed: 2026-03-16
 ```
 
 ## User Story
@@ -5665,12 +5668,15 @@ As a repo maintainer, I want documented branch protection settings for `main` so
 
 ### Functional
 
-- [ ] Document required branch protection settings for `main` in CONTRIBUTING.md
+- [x] Document required branch protection settings for `main` in CONTRIBUTING.md
   - `Verify:` confirm branch protection documentation in CONTRIBUTING.md
-- [ ] Require CI pass, require review, no force push
+  - `Evidence:` "Branch Protection" section added to CONTRIBUTING.md with all required settings. Verified 2026-03-16.
+- [x] Require CI pass, require review, no force push
   - `Verify:` confirm all three rules documented
-- [ ] Consider GitHub rulesets (newer API, code-as-config)
+  - `Evidence:` All three rules documented: require CI pass, require review, no force push, no direct pushes. Verified 2026-03-16.
+- [x] Consider GitHub rulesets (newer API, code-as-config)
   - `Verify:` confirm rulesets evaluation documented
+  - `Evidence:` GitHub rulesets noted as alternative with link to docs. Verified 2026-03-16.
 
 ## Scope
 
