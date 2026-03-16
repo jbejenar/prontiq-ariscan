@@ -60,7 +60,8 @@
       "required": ["level", "name", "description"],
       "properties": {
         "level": {
-          "type": "string"
+          "type": "string",
+          "enum": ["L1", "L2", "L3", "L4", "L5"]
         },
         "name": {
           "type": "string"
@@ -80,7 +81,8 @@
         "required": ["pillar", "name", "score", "weight", "confidence", "findings", "summary"],
         "properties": {
           "pillar": {
-            "type": "string"
+            "type": "string",
+            "enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
           },
           "name": {
             "type": "string"
@@ -131,17 +133,21 @@
     },
     "detection": {
       "type": "object",
+      "required": ["languages", "frameworks", "monorepo"],
       "properties": {
         "languages": {
           "type": "array",
           "items": {
             "type": "object",
+            "required": ["language", "confidence", "primary"],
             "properties": {
               "language": {
                 "type": "string"
               },
               "confidence": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
               },
               "primary": {
                 "type": "boolean"
@@ -153,12 +159,15 @@
           "type": "array",
           "items": {
             "type": "object",
+            "required": ["framework", "confidence"],
             "properties": {
               "framework": {
                 "type": "string"
               },
               "confidence": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
               }
             }
           }
@@ -167,6 +176,7 @@
           "oneOf": [
             {
               "type": "object",
+              "required": ["tool", "workspaceRoot", "packages"],
               "properties": {
                 "tool": {
                   "type": "string"
@@ -247,7 +257,8 @@
           "enum": ["critical", "high", "medium", "low", "info"]
         },
         "pillar": {
-          "type": "string"
+          "type": "string",
+          "enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
         },
         "file": {
           "type": "string"

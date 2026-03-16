@@ -57,7 +57,7 @@ export function getJsonSchemaObject(): Record<string, unknown> {
         type: "object",
         required: ["level", "name", "description"],
         properties: {
-          level: { type: "string" },
+          level: { type: "string", enum: ["L1", "L2", "L3", "L4", "L5"] },
           name: { type: "string" },
           description: { type: "string" },
         },
@@ -69,7 +69,7 @@ export function getJsonSchemaObject(): Record<string, unknown> {
           type: "object",
           required: ["pillar", "name", "score", "weight", "confidence", "findings", "summary"],
           properties: {
-            pillar: { type: "string" },
+            pillar: { type: "string", enum: ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"] },
             name: { type: "string" },
             score: { type: "number", minimum: 0, maximum: 100 },
             weight: { type: "number", minimum: 0, maximum: 1 },
@@ -97,14 +97,16 @@ export function getJsonSchemaObject(): Record<string, unknown> {
       },
       detection: {
         type: "object",
+        required: ["languages", "frameworks", "monorepo"],
         properties: {
           languages: {
             type: "array",
             items: {
               type: "object",
+              required: ["language", "confidence", "primary"],
               properties: {
                 language: { type: "string" },
-                confidence: { type: "number" },
+                confidence: { type: "number", minimum: 0, maximum: 1 },
                 primary: { type: "boolean" },
               },
             },
@@ -113,9 +115,10 @@ export function getJsonSchemaObject(): Record<string, unknown> {
             type: "array",
             items: {
               type: "object",
+              required: ["framework", "confidence"],
               properties: {
                 framework: { type: "string" },
-                confidence: { type: "number" },
+                confidence: { type: "number", minimum: 0, maximum: 1 },
               },
             },
           },
@@ -123,6 +126,7 @@ export function getJsonSchemaObject(): Record<string, unknown> {
             oneOf: [
               {
                 type: "object",
+                required: ["tool", "workspaceRoot", "packages"],
                 properties: {
                   tool: { type: "string" },
                   workspaceRoot: { type: "string" },
@@ -179,7 +183,7 @@ export function getJsonSchemaObject(): Record<string, unknown> {
             type: "string",
             enum: ["critical", "high", "medium", "low", "info"],
           },
-          pillar: { type: "string" },
+          pillar: { type: "string", enum: ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"] },
           file: { type: "string" },
           line: { type: "number" },
           message: { type: "string" },
