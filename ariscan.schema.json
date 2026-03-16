@@ -112,6 +112,13 @@
             "type": "string",
             "enum": ["excellent", "good", "needs-improvement", "poor"],
             "description": "Derived label: >=80 excellent, >=60 good, >=40 needs-improvement, <40 poor"
+          },
+          "researchBasis": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Research papers/sources that justify this pillar's weighting and scoring criteria."
           }
         }
       }
@@ -251,6 +258,11 @@
         "message": {
           "type": "string"
         },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "How confident we are in this finding."
+        },
         "remediation": {
           "type": "object",
           "required": ["action", "description", "confidence"],
@@ -299,6 +311,10 @@
               "enum": ["high", "medium", "low"]
             }
           }
+        },
+        "suppressed": {
+          "type": "boolean",
+          "description": "When true, the finding was matched by a policy suppression and excluded from scoring."
         }
       }
     }

@@ -82,6 +82,12 @@ export function getJsonSchemaObject(): Record<string, unknown> {
               description:
                 "Derived label: >=80 excellent, >=60 good, >=40 needs-improvement, <40 poor",
             },
+            researchBasis: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "Research papers/sources that justify this pillar's weighting and scoring criteria.",
+            },
           },
         },
       },
@@ -177,6 +183,11 @@ export function getJsonSchemaObject(): Record<string, unknown> {
           file: { type: "string" },
           line: { type: "number" },
           message: { type: "string" },
+          confidence: {
+            type: "string",
+            enum: ["high", "medium", "low"],
+            description: "How confident we are in this finding.",
+          },
           remediation: {
             type: "object",
             required: ["action", "description", "confidence"],
