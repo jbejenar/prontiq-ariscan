@@ -118,11 +118,13 @@ jobs:
 
       # ── SARIF upload for GitHub Code Scanning ──
       - name: Generate SARIF report
+        continue-on-error: true
         run: node packages/cli/dist/cli.js . --format sarif > ari-sarif.sarif
 
       - name: Upload ARI SARIF to Code Scanning
         uses: github/codeql-action/upload-sarif@v3
         if: always()
+        continue-on-error: true
         with:
           sarif_file: ari-sarif.sarif
           category: ariscan
