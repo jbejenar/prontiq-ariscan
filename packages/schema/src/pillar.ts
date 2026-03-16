@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+/**
+ * Schema version following semver:
+ *   patch = new optional fields only
+ *   minor = new pillar/criterion, new finding codes, new output fields
+ *   major = removing/renaming fields, changing score semantics, breaking changes
+ *
+ * Backwards compatibility is guaranteed within a major version.
+ */
+export const SCHEMA_VERSION = "1.0.0";
+
 export const PillarId = z.enum(["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]);
 export type PillarId = z.infer<typeof PillarId>;
 

@@ -320,6 +320,32 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     }
     if (hasBranchProtection || hasPRRequirements) {
       score += 15;
+    } else {
+      findings.push({
+        code: "ARI-SEC-009",
+        severity: "medium",
+        pillar: PILLAR,
+        message:
+          "No branch protection detected — no ruleset files or PR-gated workflows with enforcement patterns found",
+        confidence: "medium",
+        remediation: {
+          action: "configure-tool",
+          description:
+            "Configure branch protection for main/master branch.\n\n" +
+            "GitHub branch protection options:\n" +
+            "1. Repository Settings → Branches → Add rule for `main`\n" +
+            "2. Require pull request reviews before merging\n" +
+            "3. Require status checks to pass before merging\n" +
+            "4. Or add a `.github/rulesets/*.json` file for code-defined rulesets",
+          confidence: "medium",
+        },
+        evidence: {
+          paper: "Pearce et al., 2021; CodeRabbit, 2025",
+          finding:
+            "AI PRs have 1.7x more issues — branch protection ensures AI-generated code receives mandatory review before merging",
+          confidence: "high",
+        },
+      });
     }
 
     // SAST configuration — AI-specific (AC#3)
@@ -334,6 +360,38 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
     if (hasSAST) {
       score += 15;
       aiSpecificScore += 15;
+    } else {
+      findings.push({
+        code: "ARI-SEC-010",
+        severity: "medium",
+        pillar: PILLAR,
+        message: "No SAST (Static Application Security Testing) configured in CI workflows",
+        confidence: "high",
+        remediation: {
+          action: "configure-tool",
+          description:
+            "Add a SAST tool to CI for automated security analysis of code changes.\n\n" +
+            "GitHub Actions example (.github/workflows/sast.yml):\n" +
+            "```yaml\n" +
+            "name: SAST\n" +
+            "on: [push, pull_request]\n" +
+            "jobs:\n" +
+            "  codeql:\n" +
+            "    runs-on: ubuntu-latest\n" +
+            "    steps:\n" +
+            "      - uses: actions/checkout@v4\n" +
+            "      - uses: github/codeql-action/init@v3\n" +
+            "      - uses: github/codeql-action/analyze@v3\n" +
+            "```",
+          confidence: "high",
+        },
+        evidence: {
+          paper: "Veracode, 2025; Apiiro, 2025",
+          finding:
+            "AI-generated code has 36-72% vulnerability rates depending on language — SAST catches common vulnerability patterns before they reach production",
+          confidence: "high",
+        },
+      });
     }
     aiSpecificMax += 15;
 

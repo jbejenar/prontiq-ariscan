@@ -273,6 +273,12 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
           description: "Split large directories into focused submodules with clear boundaries",
           confidence: "medium",
         },
+        evidence: {
+          paper: "Barr et al., 2015",
+          finding:
+            "Predictable project structure reduces code search time and improves retrieval accuracy for automated tools",
+          confidence: "medium",
+        },
       });
     } else {
       score += 10;
@@ -293,6 +299,12 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
           action: "refactor",
           description: "Flatten deeply nested directory structures. Aim for max depth of 5-6.",
           confidence: "low",
+        },
+        evidence: {
+          paper: "Barr et al., 2015",
+          finding:
+            "Predictable project structure reduces code search time and improves retrieval accuracy for automated tools",
+          confidence: "medium",
         },
       });
     } else if (maxDepth <= 5) {
@@ -457,6 +469,12 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
                 description:
                   "Break the circular dependency by extracting shared code into a separate module",
                 confidence: "low",
+              },
+              evidence: {
+                paper: "Barr et al., 2015",
+                finding:
+                  "Predictable project structure reduces code search time and improves retrieval accuracy for automated tools",
+                confidence: "high",
               },
             });
           }

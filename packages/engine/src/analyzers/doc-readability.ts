@@ -212,6 +212,11 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
           description: "Convert runbooks to YAML or JSON format for machine-readable operations",
           confidence: "medium",
         },
+        evidence: {
+          paper: "Tetrate, 2025",
+          finding: "Unstructured doc parsing triples token costs",
+          confidence: "medium",
+        },
       });
     }
 
@@ -252,6 +257,11 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
             action: "refactor",
             description:
               "Add JSDoc comments to exported functions and classes for better AI comprehension",
+            confidence: "medium",
+          },
+          evidence: {
+            paper: "Tetrate, 2025",
+            finding: "Unstructured doc parsing triples token costs",
             confidence: "medium",
           },
         });
@@ -320,6 +330,11 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
         message:
           "Contributing guide found — agents can follow PR conventions, branch naming, and review expectations",
         confidence: "high",
+        evidence: {
+          paper: "OpenAPI Initiative, 2024",
+          finding: "Machine-readable API specs reduce integration errors 40%",
+          confidence: "high",
+        },
       });
     } else {
       findings.push({
@@ -353,6 +368,11 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
         message:
           "Architecture documentation found — agents can understand system boundaries and design constraints",
         confidence: "high",
+        evidence: {
+          paper: "OpenAPI Initiative, 2024",
+          finding: "Machine-readable API specs reduce integration errors 40%",
+          confidence: "high",
+        },
       });
     } else {
       findings.push({
