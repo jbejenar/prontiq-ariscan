@@ -132,28 +132,37 @@ function normalizeForComparison(text: string): string {
 }
 
 /**
- * Detect whether a segment looks like a CLI command rather than prose.
- * Uses syntax-based heuristics instead of a tool-name whitelist so that
- * commands from any ecosystem (turbo, vitest, eslint, uv, pytest, dotnet,
- * tsx, node, etc.) are recognized.
+ * Detect whether a segment looks like a CLI command or config/assignment
+ * line rather than prose.  Uses syntax-based heuristics so that commands
+ * and config from any ecosystem are recognized without a tool-name whitelist.
  *
- * A segment is command-like if it:
- *  - starts with a single lowercase/kebab-case word (the executable), AND
- *  - the rest contains flags (--foo, -x), sub-commands, file paths, or
- *    other non-prose tokens; OR
- *  - is 2-4 words where every word is lowercase/kebab-case with no
- *    sentence-ending punctuation (typical of `tool subcommand arg`).
+ * A segment is command-or-config-like if it:
+ *  - Is a config/assignment line: `key: value`, `key=value`, YAML `uses:`/`run:` lines
+ *  - Starts with an executable token followed by flags, paths, or sub-commands
+ *  - Is a short (2-4 word) all-lowercase segment with no sentence punctuation
  */
 function isCommandLike(segment: string): boolean {
   const trimmed = segment.trim();
   const words = trimmed.split(/\s+/);
   if (words.length < 2) return false;
 
+  // --- Config / assignment syntax ---
+  // Matches `key: value`, `key=value`, `KEY=value` patterns
+  // e.g. "test: pnpm test", "build: turbo build", "uses: actions/checkout@v4",
+  //      "NODE_ENV=production", "run: npm ci"
   const first = words[0] ?? "";
+  if (/^[a-zA-Z][a-zA-Z0-9_.-]*[:=]$/.test(first) || /^[a-zA-Z][a-zA-Z0-9_.-]*=/.test(first)) {
+    return true;
+  }
+  // Also catch `key=value` as a single token (no space after =)
+  if (/^[a-zA-Z][a-zA-Z0-9_.-]*=.+/.test(trimmed) && words.length <= 4) {
+    return true;
+  }
+
+  // --- Executable-first command syntax ---
   // Executable names are lowercase, may contain hyphens or dots (e.g. docker-compose, node.js)
   if (!/^[a-z][a-z0-9._-]*$/i.test(first)) return false;
   // Reject if the first word looks like a common English article/pronoun/verb
-  // (reduces false positives on short prose fragments)
   const PROSE_STARTERS = new Set([
     "the",
     "this",
@@ -212,7 +221,8 @@ function isCommandLike(segment: string): boolean {
   if (hasFlag || hasPath) return true;
 
   // Short all-lowercase segments with no sentence punctuation: likely commands
-  if (words.length <= 4 && trimmed === trimmed.toLowerCase() && !/[,;:!?]/.test(trimmed)) {
+  // Allow colons in this check since config lines are handled above
+  if (words.length <= 4 && trimmed === trimmed.toLowerCase() && !/[,;!?]/.test(trimmed)) {
     return true;
   }
 
