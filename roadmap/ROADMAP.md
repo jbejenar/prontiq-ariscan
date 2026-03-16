@@ -5693,7 +5693,7 @@ As a repo maintainer, I want documented branch protection settings for `main` so
 ```yaml
 id: CI.10
 title: SARIF Upload for Code Scanning
-status: todo
+status: in-progress
 priority: p2-medium
 epic: CI
 persona: Contributors using GitHub Copilot or code scanning features
@@ -5714,12 +5714,14 @@ As a contributor using GitHub Copilot, I want ARI findings to appear as GitHub c
 
 ### Functional
 
-- [ ] `--format sarif` output from ariscan
+- [x] `--format sarif` output from ariscan
   - `Verify:` `npx ariscan --format sarif` produces valid SARIF
-- [ ] Upload SARIF to GitHub Code Scanning in CI
+  - `Evidence:` SARIF 2.1.0 formatter implemented in `packages/cli/src/output/sarif.ts` (P1.14). Verified: `node packages/cli/dist/cli.js . --format sarif` produces valid SARIF 2.1.0. Added 2026-03-08.
+- [x] Upload SARIF to GitHub Code Scanning in CI
   - `Verify:` confirm SARIF upload step in CI workflow
+  - `Evidence:` Added "Generate SARIF report" and "Upload ARI SARIF to Code Scanning" steps to `.github/workflows/ci.yml` using `github/codeql-action/upload-sarif@v3` with `category: ariscan`. Added `security-events: write` permission. Added 2026-03-17.
 - [ ] ARI findings appear as GitHub code scanning alerts
-  - `Verify:` confirm alerts visible in GitHub Security tab
+  - `Verify:` confirm alerts visible in GitHub Security tab (requires push to main)
 
 ### Meta
 
