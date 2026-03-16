@@ -100,12 +100,15 @@ function createLargeRepoContext(fileCount: number): RepoContext {
   };
 }
 
-describe("performance: discovery (file listing)", () => {
-  it("completes file discovery for 100k files in <1 second", () => {
+describe("performance: file-list processing", () => {
+  it("allocates, sorts, and freezes 100k file paths in <1 second", () => {
     const startTime = performance.now();
 
-    // Simulate discovery: creating a sorted file list of 100k entries
-    // This mirrors what repo-context.ts does when walking the filesystem
+    // Measures in-memory file-list processing (allocation, sort, freeze).
+    // This covers the post-walk phase of repo-context.ts — the array
+    // construction that happens after fast-glob returns raw paths.
+    // End-to-end discovery (filesystem walking via fast-glob) requires
+    // a real filesystem and is not testable with mock contexts.
     const files: string[] = [];
     const dirs = [
       "src/components",
@@ -136,12 +139,12 @@ describe("performance: discovery (file listing)", () => {
 
     const elapsed = performance.now() - startTime;
 
-    // P1.03: discovery must complete in <1 second for 100k files
+    // P1.03: file-list processing must complete in <1 second for 100k paths
     expect(elapsed).toBeLessThan(1000);
     expect(files.length).toBe(100_000);
 
     // eslint-disable-next-line no-console
-    console.log(`Discovery: 100k files listed and sorted in ${Math.round(elapsed)}ms`);
+    console.log(`File-list processing: 100k paths sorted and frozen in ${Math.round(elapsed)}ms`);
   });
 });
 

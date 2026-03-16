@@ -546,15 +546,18 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
       );
       if (pytestTimeoutMatch && pytestTimeoutMatch[1]) {
         const pytestTimeout = parseInt(pytestTimeoutMatch[1], 10);
-        latencyLabel = "measured";
-        if (pytestTimeout <= 30) {
-          latencyEstimate = `fast (pytest timeout: ${pytestTimeout}s)`;
-          score += 5;
-        } else if (pytestTimeout <= 60) {
-          latencyEstimate = `medium (pytest timeout: ${pytestTimeout}s)`;
-          score += 3;
-        } else {
-          latencyEstimate = `slow (pytest timeout: ${pytestTimeout}s)`;
+        // Only apply pytest measured result when no stronger measured signal exists
+        if (latencyLabel !== "measured") {
+          latencyLabel = "measured";
+          if (pytestTimeout <= 30) {
+            latencyEstimate = `fast (pytest timeout: ${pytestTimeout}s)`;
+            score += 5;
+          } else if (pytestTimeout <= 60) {
+            latencyEstimate = `medium (pytest timeout: ${pytestTimeout}s)`;
+            score += 3;
+          } else {
+            latencyEstimate = `slow (pytest timeout: ${pytestTimeout}s)`;
+          }
         }
         latencySignals.push(`pytest timeout=${pytestTimeout}s`);
       } else if (latencyLabel === "unknown") {
