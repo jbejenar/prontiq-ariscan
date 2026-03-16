@@ -115,9 +115,9 @@ function normalizeForComparison(text: string): string {
       .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
       // Remove image syntax
       .replace(/!\[([^\]]*)\]\([^)]*\)/g, "")
-      // Remove bold/italic markers (use non-greedy match to avoid backtracking)
-      .replace(/\*{1,3}([^*]+?)\*{1,3}/g, "$1")
-      .replace(/_{1,3}([^_]+?)_{1,3}/g, "$1")
+      // Remove bold/italic marker characters (*, _) left after other stripping
+      .replace(/\*+/g, "")
+      .replace(/_+/g, "")
       // Remove HTML tags
       .replace(/<[a-zA-Z/][^>]*>/g, "")
       // Remove any remaining angle brackets
