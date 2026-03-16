@@ -1,0 +1,88 @@
+name: Publish to npm
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false # never cancel a publish mid-flight
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    # Only run when the version-bump PR merges
+    if: >-
+      startsWith(github.event.head_commit.message, 'chore: version packages')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      # Self-scan to produce artifact for GitHub Release
+      - name: Self-scan (ARI)
+        run: node packages/cli/dist/cli.js . --json > scan-result.json
+
+      - name: Publish to npm
+        id: npm-publish
+        run: |
+          pnpm changeset publish --provenance 2>&1 | tee publish-output.txt
+
+          # Extract published packages for the release step
+          PUBLISHED=$(grep -oE '@prontiq/ariscan-[a-z]+@[0-9]+\.[0-9]+\.[0-9]+' publish-output.txt || true)
+          echo "published=$PUBLISHED" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$PUBLISHED" ]; then
+            echo "published_any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published_any=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Create GitHub Releases with ARI scan artifact
+      - name: Create GitHub Releases
+        if: steps.npm-publish.outputs.published_any == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Read the version from CLI package (all packages share the same version)
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+
+          for PKG in schema engine cli; do
+            TAG="@prontiq/ariscan-${PKG}@${VERSION}"
+            echo "Creating release for $TAG"
+
+            # Create a git tag
+            git tag "$TAG" 2>/dev/null || true
+            git push origin "$TAG" 2>/dev/null || true
+
+            gh release create "$TAG" \
+              scan-result.json \
+              --title "$TAG" \
+              --notes "Published from $(git rev-parse --short HEAD). ARI scan result attached." \
+              2>/dev/null || \
+            gh release upload "$TAG" scan-result.json --clobber 2>/dev/null || \
+              echo "Warning: could not attach artifact to $TAG"
+          done
