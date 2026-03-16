@@ -717,52 +717,52 @@ There is no standard CLI tool for measuring AI coding agent readiness. Developer
 ### Functional
 
 - [x] `npx @prontiq/ariscan-cli .` command that scans the current directory and produces a scored report.
-  - Verify: Run `npx @prontiq/ariscan-cli . --json` and confirm JSON output with `score` field
-  - Evidence: `cli.ts` defines main command with positional `path` defaulting to `"."`
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --json` and confirm JSON output with `score` field
+  - `Evidence:` `cli.ts` defines main command with positional `path` defaulting to `"."`
 - [x] Config loading with clear precedence: CLI flags > `.ariscan.yml` > built-in defaults.
-  - Verify: Run `pnpm --filter @prontiq/ariscan-engine test -- --run config-loader` and confirm all tests pass
-  - Evidence: Implemented in `config-loader.ts` with directory walk-up, YAML parsing, Zod validation via `FileConfig` schema. `resolveConfig()` merges CLI > file > defaults. 16 unit tests.
+  - `Verify:` Run `pnpm --filter @prontiq/ariscan-engine test -- --run config-loader` and confirm all tests pass
+  - `Evidence:` Implemented in `config-loader.ts` with directory walk-up, YAML parsing, Zod validation via `FileConfig` schema. `resolveConfig()` merges CLI > file > defaults. 16 unit tests.
 - [x] Deterministic exit codes: 0 (pass), 1 (fail — below threshold), 2 (error — scan could not complete).
-  - Verify: Run `npx @prontiq/ariscan-cli /nonexistent 2>/dev/null; echo $?` and confirm exit code 2
-  - Evidence: `process.exit(2)` on path not found and scan error. `process.exit(1)` when score < threshold. Implicit 0 on success.
+  - `Verify:` Run `npx @prontiq/ariscan-cli /nonexistent 2>/dev/null; echo $?` and confirm exit code 2
+  - `Evidence:` `process.exit(2)` on path not found and scan error. `process.exit(1)` when score < threshold. Implicit 0 on success.
 - [x] `--verbose` and `--quiet` modes for debugging and CI respectively.
-  - Verify: Run `npx @prontiq/ariscan-cli . --verbose` and confirm detailed pillar output; run with `--quiet` and confirm single-line output
-  - Evidence: `--verbose` shows pillar details, detection info, context files, and all findings. `--quiet` outputs single-line CI-friendly summary "ARI score/100 level (name)". Added 2026-03-08.
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --verbose` and confirm detailed pillar output; run with `--quiet` and confirm single-line output
+  - `Evidence:` `--verbose` shows pillar details, detection info, context files, and all findings. `--quiet` outputs single-line CI-friendly summary "ARI score/100 level (name)". Added 2026-03-08.
 - [x] Zero external network calls during scan (fully offline operation).
-  - Verify: Run `grep -r "fetch\|http\|axios" packages/engine/src packages/cli/src` and confirm no network imports
-  - Evidence: No `fetch`, `http`, `axios`, or network imports in engine/CLI
+  - `Verify:` Run `grep -r "fetch\|http\|axios" packages/engine/src packages/cli/src` and confirm no network imports
+  - `Evidence:` No `fetch`, `http`, `axios`, or network imports in engine/CLI
 
 ### Documentation
 
 - [x] `--help` output documenting all core flags, examples, and config file format.
-  - Verify: Run `npx @prontiq/ariscan-cli --help` and confirm output contains flags and examples
-  - Evidence: citty auto-generates flag docs + 3 usage examples in description (basic scan, JSON output, threshold)
+  - `Verify:` Run `npx @prontiq/ariscan-cli --help` and confirm output contains flags and examples
+  - `Evidence:` citty auto-generates flag docs + 3 usage examples in description (basic scan, JSON output, threshold)
 - [x] `--help` includes at least 3 usage examples.
-  - Verify: Run `npx @prontiq/ariscan-cli --help | grep -c "npx"` and confirm ≥3
-  - Evidence: 3 examples: `npx @prontiq/ariscan-cli .`, `npx @prontiq/ariscan-cli /path --json`, `npx @prontiq/ariscan-cli . --threshold 60`
+  - `Verify:` Run `npx @prontiq/ariscan-cli --help | grep -c "npx"` and confirm ≥3
+  - `Evidence:` 3 examples: `npx @prontiq/ariscan-cli .`, `npx @prontiq/ariscan-cli /path --json`, `npx @prontiq/ariscan-cli . --threshold 60`
 - [x] Exit code matrix documented for CI users in both `--help` and published docs.
-  - Verify: Run `npx @prontiq/ariscan-cli --help` and confirm exit codes 0/1/2 are documented
-  - Evidence: Exit codes 0/1/2 documented in `--help` description. Added 2026-03-10.
+  - `Verify:` Run `npx @prontiq/ariscan-cli --help` and confirm exit codes 0/1/2 are documented
+  - `Evidence:` Exit codes 0/1/2 documented in `--help` description. Added 2026-03-10.
 
 ### Testing
 
 - [x] Config precedence (CLI > local config > defaults) is tested with unit tests covering each override layer.
-  - Verify: Run `pnpm --filter @prontiq/ariscan-engine test -- --run config-loader` and confirm all 16 tests pass
-  - Evidence: 16 tests in `config-loader.test.ts` covering YAML parsing, validation, directory traversal, merging
+  - `Verify:` Run `pnpm --filter @prontiq/ariscan-engine test -- --run config-loader` and confirm all 16 tests pass
+  - `Evidence:` 16 tests in `config-loader.test.ts` covering YAML parsing, validation, directory traversal, merging
 
 ### Performance
 
 - [x] Runs to completion on repos up to 100k files within 60 seconds on commodity hardware.
-  - Verify: Run `pnpm --filter @prontiq/ariscan-engine test -- --run performance` and confirm 100k-file test passes
-  - Evidence: Performance test: 100k files in ~685ms (mock context), sub-linear scaling verified (8.1x for 10x files). Added 2026-03-14.
+  - `Verify:` Run `pnpm --filter @prontiq/ariscan-engine test -- --run performance` and confirm 100k-file test passes
+  - `Evidence:` Performance test: 100k files in ~685ms (mock context), sub-linear scaling verified (8.1x for 10x files). Added 2026-03-14.
 
 ### Meta
 
 - [x] AI-first patterns: `ARI-*` error taxonomy scaffold, AGENTS.md + CLAUDE.md for the ariscan repo itself (dog-fooding).
-  - Verify: Check `test -f AGENTS.md && test -f CLAUDE.md && echo PASS`
-  - Evidence: AGENTS.md, CLAUDE.md, `.agentignore` all present and maintained for dog-fooding.
+  - `Verify:` Check `test -f AGENTS.md && test -f CLAUDE.md && echo PASS`
+  - `Evidence:` AGENTS.md, CLAUDE.md, `.agentignore` all present and maintained for dog-fooding.
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Install-to-first-scan time
 - [ ] Scan duration p50/p95
@@ -824,46 +824,46 @@ Agent readiness criteria differ by language — TypeScript strict mode is irrele
 ### Functional
 
 - [x] Detection engine for: TypeScript, JavaScript, Python, Go, Rust, Java, C#, Ruby, PHP.
-  - Verify: Run scan on a multi-language fixture repo and confirm all languages detected in JSON output
-  - Evidence: Implemented in `detection/languages.ts` with file extension + marker file boosting
+  - `Verify:` Run scan on a multi-language fixture repo and confirm all languages detected in JSON output
+  - `Evidence:` Implemented in `detection/languages.ts` with file extension + marker file boosting
 - [x] Framework detection: React, Next.js, Vue, Nuxt, Express, FastAPI, Django, Flask, Spring Boot, .NET, Rails.
-  - Verify: Run scan on a Next.js fixture repo and confirm `frameworks` array in JSON output
-  - Evidence: Implemented in `detection/frameworks.ts` — 14 frameworks via config files and deps. Also: Astro, Svelte, Angular.
+  - `Verify:` Run scan on a Next.js fixture repo and confirm `frameworks` array in JSON output
+  - `Evidence:` Implemented in `detection/frameworks.ts` — 14 frameworks via config files and deps. Also: Astro, Svelte, Angular.
 - [x] Monorepo detection: Turborepo, Nx, Lerna, pnpm workspaces, Cargo workspaces, Go modules.
-  - Verify: Run scan on this repo and confirm monorepo detected in JSON output
-  - Evidence: Implemented in `detection/monorepo.ts` — 6 monorepo tools. Go workspaces instead of Go modules.
+  - `Verify:` Run scan on this repo and confirm monorepo detected in JSON output
+  - `Evidence:` Implemented in `detection/monorepo.ts` — 6 monorepo tools. Go workspaces instead of Go modules.
 - [x] Detection confidence score (0-1) per detected language/framework in JSON output.
-  - Verify: Run `npx @prontiq/ariscan-cli . --json | jq '.languages[0].confidence'` and confirm numeric value
-  - Evidence: Each `DetectedLanguage`/`DetectedFramework` includes confidence field
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --json | jq '.languages[0].confidence'` and confirm numeric value
+  - `Evidence:` Each `DetectedLanguage`/`DetectedFramework` includes confidence field
 - [x] Primary language determination for weight calibration.
-  - Verify: Run `npx @prontiq/ariscan-cli . --json | jq '.languages[] | select(.primary==true)'` and confirm one result
-  - Evidence: Languages sorted by confidence, `primary: true` flag on highest
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --json | jq '.languages[] | select(.primary==true)'` and confirm one result
+  - `Evidence:` Languages sorted by confidence, `primary: true` flag on highest
 - [x] Graceful fallback to "unknown" with appropriate confidence level when detection is ambiguous.
-  - Verify: Run scan on empty directory and confirm no crash, empty arrays returned
-  - Evidence: Returns empty arrays when no languages/frameworks detected
+  - `Verify:` Run scan on empty directory and confirm no crash, empty arrays returned
+  - `Evidence:` Returns empty arrays when no languages/frameworks detected
 
 ### Testing
 
 <!-- REVIEW: Original marked done but criterion "False-language detection rate <5% on benchmark cohort of 50+ repos" lacks completion evidence. -->
 - [ ] False-language detection rate <5% on benchmark cohort of 50+ repos.
-  - Verify: Run benchmark suite on 50+ repos and compute false detection rate
-  - Evidence:
+  - `Verify:` Run benchmark suite on 50+ repos and compute false detection rate
+  - `Evidence:`
 
 ### Performance
 
 <!-- REVIEW: Original marked done but criterion "Detection completes in <2 seconds for repos up to 100k files" lacks completion evidence. -->
 - [ ] Detection completes in <2 seconds for repos up to 100k files.
-  - Verify: Run detection on 100k-file fixture and measure duration
-  - Evidence:
+  - `Verify:` Run detection on 100k-file fixture and measure duration
+  - `Evidence:`
 
 ### Functional
 
 <!-- REVIEW: Original marked done but criterion "Monorepo detection identifies workspace root and package boundaries" lacks completion evidence. -->
 - [ ] Monorepo detection identifies workspace root and package boundaries.
-  - Verify: Run scan on monorepo and confirm `monorepo.packages` array populated
-  - Evidence: Detects monorepo tool but not package boundaries (partial)
+  - `Verify:` Run scan on monorepo and confirm `monorepo.packages` array populated
+  - `Evidence:` Detects monorepo tool but not package boundaries (partial)
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Detection accuracy rate
 - [ ] Languages per scan distribution
@@ -924,53 +924,53 @@ The AI coding agent ecosystem is fragmented across multiple context file formats
 ### Functional
 
 - [x] Discovery of all known context file formats:
-  - Verify: Run scan on a fixture repo with multiple context file types and confirm all discovered
-  - Evidence: Discovers AGENTS.md, CLAUDE.md, .cursorrules, .cursor/rules, .github/copilot-instructions.md, .aider.conf.yml, .aiderignore, .agentignore, .mcp.json, mcp.config.js, .claude/settings.json, .claude/commands/. Cross-agent compatibility report moved to P2.
+  - `Verify:` Run scan on a fixture repo with multiple context file types and confirm all discovered
+  - `Evidence:` Discovers AGENTS.md, CLAUDE.md, .cursorrules, .cursor/rules, .github/copilot-instructions.md, .aider.conf.yml, .aiderignore, .agentignore, .mcp.json, mcp.config.js, .claude/settings.json, .claude/commands/. Cross-agent compatibility report moved to P2.
   - [x] `AGENTS.md` (root and nested per AGENTS.md spec for monorepos)
-    - Verify: Run scan on monorepo and confirm nested AGENTS.md files discovered
-    - Evidence: Root + nested discovery for monorepos added 2026-03-09
+    - `Verify:` Run scan on monorepo and confirm nested AGENTS.md files discovered
+    - `Evidence:` Root + nested discovery for monorepos added 2026-03-09
   - [x] `CLAUDE.md` / `.claude/` directory files
-    - Verify: Run `npx @prontiq/ariscan-cli . --json | jq '.contextFiles[] | select(.type=="claude-md")'`
-    - Evidence: .claude/settings.json and .claude/commands/ discovery added 2026-03-09
+    - `Verify:` Run `npx @prontiq/ariscan-cli . --json | jq '.contextFiles[] | select(.type=="claude-md")'`
+    - `Evidence:` .claude/settings.json and .claude/commands/ discovery added 2026-03-09
   - [x] `.cursorrules` / `.cursor/rules/`
-    - Verify: Check fixture scan for cursorrules detection
-    - Evidence: Discovered via file pattern matching
+    - `Verify:` Check fixture scan for cursorrules detection
+    - `Evidence:` Discovered via file pattern matching
   - [x] `copilot-instructions.md` / `.github/copilot-instructions.md`
-    - Verify: Check fixture scan for copilot-instructions detection
-    - Evidence: Both paths checked
+    - `Verify:` Check fixture scan for copilot-instructions detection
+    - `Evidence:` Both paths checked
   - [x] MCP configuration files (`.mcp.json`, `mcp.config.js`)
-    - Verify: Check fixture scan for MCP config detection
-    - Evidence: Added 2026-03-09
+    - `Verify:` Check fixture scan for MCP config detection
+    - `Evidence:` Added 2026-03-09
   - [x] `.aider.conf.yml` / `.aiderignore`
-    - Verify: Check fixture scan for aider config detection
-    - Evidence: Both paths checked
+    - `Verify:` Check fixture scan for aider config detection
+    - `Evidence:` Both paths checked
 - [x] For each discovered file: path, file type, size, last modified date, parse status (valid/warning/error).
-  - Verify: Run `npx @prontiq/ariscan-cli . --json | jq '.contextFiles[0] | keys'` and confirm all fields present
-  - Evidence: ContextFileInfo includes lastModified via fs.stat and parseStatus via content validation in scan.ts `discoverContextFiles()`
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --json | jq '.contextFiles[0] | keys'` and confirm all fields present
+  - `Evidence:` ContextFileInfo includes lastModified via fs.stat and parseStatus via content validation in scan.ts `discoverContextFiles()`
 - [x] Cross-agent compatibility report: which agents have dedicated context files vs none.
-  - Verify: Run scan and check for ARI-CTX-010 finding in output
-  - Evidence: ARI-CTX-010: maps files to 5 agent categories — Claude Code, Cursor, GitHub Copilot, Aider, Generic. Reports covered vs uncovered with remediation. Added 2026-03-09.
+  - `Verify:` Run scan and check for ARI-CTX-010 finding in output
+  - `Evidence:` ARI-CTX-010: maps files to 5 agent categories — Claude Code, Cursor, GitHub Copilot, Aider, Generic. Reports covered vs uncovered with remediation. Added 2026-03-09.
 - [x] Nested file discovery for monorepos (subdirectory-level AGENTS.md files).
-  - Verify: Run scan on monorepo fixture and confirm nested files in contextFiles array
-  - Evidence: Added 2026-03-09
+  - `Verify:` Run scan on monorepo fixture and confirm nested files in contextFiles array
+  - `Evidence:` Added 2026-03-09
 - [x] Non-parsable files surfaced with actionable warnings.
-  - Verify: Create a malformed JSON context file and confirm ARI-CTX-009 finding
-  - Evidence: ARI-CTX-009: validates JSON parse, YAML emptiness, empty files. Added 2026-03-09.
+  - `Verify:` Create a malformed JSON context file and confirm ARI-CTX-009 finding
+  - `Evidence:` ARI-CTX-009: validates JSON parse, YAML emptiness, empty files. Added 2026-03-09.
 
 ### Testing
 
 <!-- REVIEW: Original marked partial but criterion "Zero false negatives on benchmark cohort" lacks completion evidence. -->
 - [ ] Zero false negatives on benchmark cohort (every known context file is found).
-  - Verify: Run benchmark suite and confirm all context files discovered
-  - Evidence:
+  - `Verify:` Run benchmark suite and confirm all context files discovered
+  - `Evidence:`
 
 ### Performance
 
 - [ ] Discovery completes in <1 second for repos up to 100k files.
-  - Verify: Run discovery on 100k-file fixture and measure duration
-  - Evidence:
+  - `Verify:` Run discovery on 100k-file fixture and measure duration
+  - `Evidence:`
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Context files per repo distribution
 - [ ] Cross-agent coverage ratio
@@ -1031,49 +1031,49 @@ The most impactful finding from Gloaguen et al. (2026, ETH Zurich) is that auto-
 ### Functional
 
 - [ ] Semantic comparison engine: context file content vs README, CONTRIBUTING, docstrings, CI workflows, and config files.
-  - Verify: Run scan on fixture with duplicative AGENTS.md and confirm redundancy percentage reported
-  - Evidence:
+  - `Verify:` Run scan on fixture with duplicative AGENTS.md and confirm redundancy percentage reported
+  - `Evidence:`
 - [ ] Redundancy percentage per context file (% of content duplicated elsewhere in repo).
-  - Verify: Check JSON output for redundancy percentage field
-  - Evidence:
+  - `Verify:` Check JSON output for redundancy percentage field
+  - `Evidence:`
 - [ ] Additionality score: percentage of context file that encodes genuinely new information.
-  - Verify: Check JSON output for additionality score field
-  - Evidence:
+  - `Verify:` Check JSON output for additionality score field
+  - `Evidence:`
 - [x] Front-loading analysis: critical info in first 20% of file (per "Lost in the Middle").
-  - Verify: Run scan and check for ARI-CTX-005 finding
-  - Evidence: ARI-CTX-005 added 2026-03-09
+  - `Verify:` Run scan and check for ARI-CTX-005 finding
+  - `Evidence:` ARI-CTX-005 added 2026-03-09
 - [x] Conciseness ratio: token count of context file vs total useful information encoded.
-  - Verify: Run scan and check for ARI-CTX-008 finding
-  - Evidence: ARI-CTX-008 conciseness check added 2026-03-09
+  - `Verify:` Run scan and check for ARI-CTX-008 finding
+  - `Evidence:` ARI-CTX-008 conciseness check added 2026-03-09
 - [x] Staleness detection: last modified date of context file vs last significant code change.
-  - Verify: Run scan and check for ARI-CTX-006 finding
-  - Evidence: ARI-CTX-006 cross-references paths in context files against repo files, added 2026-03-09
+  - `Verify:` Run scan and check for ARI-CTX-006 finding
+  - `Evidence:` ARI-CTX-006 cross-references paths in context files against repo files, added 2026-03-09
 - [x] Negative instruction coverage: detection of explicit "do NOT" constraints.
-  - Verify: Add "do NOT" instructions to AGENTS.md and confirm score increase
-  - Evidence: Regex `/\b(don't|do not|never|avoid)\b/i` awards +5 points
+  - `Verify:` Add "do NOT" instructions to AGENTS.md and confirm score increase
+  - `Evidence:` Regex `/\b(don't|do not|never|avoid)\b/i` awards +5 points
 - [x] Scoring baseline: no context file → 20% (neutral baseline).
-  - Verify: Run scan on repo with no context files and confirm P1 score = 20
-  - Evidence: Implemented: `score = 20`
+  - `Verify:` Run scan on repo with no context files and confirm P1 score = 20
+  - `Evidence:` Implemented: `score = 20`
 - [ ] LLM-generated file that duplicates README → 0-10% penalty.
-  - Verify: Run scan on fixture with auto-generated AGENTS.md and confirm penalty applied
-  - Evidence:
+  - `Verify:` Run scan on fixture with auto-generated AGENTS.md and confirm penalty applied
+  - `Evidence:`
 - [x] Concise, additive, front-loaded human-written file → 80-100%.
-  - Verify: Run scan on well-crafted AGENTS.md and confirm score ≥80
-  - Evidence: Front-loading ARI-CTX-005 + conciseness ARI-CTX-008 + heuristic bonuses enable high scores. Added 2026-03-09.
+  - `Verify:` Run scan on well-crafted AGENTS.md and confirm score ≥80
+  - `Evidence:` Front-loading ARI-CTX-005 + conciseness ARI-CTX-008 + heuristic bonuses enable high scores. Added 2026-03-09.
 - [x] Front-loading score separately reported in output.
-  - Verify: Run scan and confirm ARI-CTX-005 is a separate finding
-  - Evidence: ARI-CTX-005 emitted as separate finding. Added 2026-03-09.
+  - `Verify:` Run scan and confirm ARI-CTX-005 is a separate finding
+  - `Evidence:` ARI-CTX-005 emitted as separate finding. Added 2026-03-09.
 - [x] Scoring is deterministic across repeated runs on the same repo state.
-  - Verify: Run scan twice and `diff` the JSON outputs
-  - Evidence: Pure heuristics, no randomness
+  - `Verify:` Run scan twice and `diff` the JSON outputs
+  - `Evidence:` Pure heuristics, no randomness
 - [ ] Recommendation output clearly distinguishes additive vs duplicative content with specific line references.
-  - Verify: Check scan output for line-level additive/duplicative annotations
-  - Evidence:
+  - `Verify:` Check scan output for line-level additive/duplicative annotations
+  - `Evidence:`
 - [ ] Redundancy percentage reported to one decimal place with methodology explanation.
-  - Verify: Check JSON output for redundancy percentage format
-  - Evidence:
+  - `Verify:` Check JSON output for redundancy percentage format
+  - `Evidence:`
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Additionality score distribution
 - [ ] % repos with redundant context files
@@ -1147,37 +1147,37 @@ DORA 2024 found that AI adoption actually *decreased* delivery throughput by 1.5
 ### Functional
 
 - [ ] Parse `package.json` scripts, `Makefile`, `pyproject.toml`, CI config files to infer feedback latency.
-  - Verify: Run scan on fixture with all config types and confirm latency estimates in output
-  - Evidence: Partial — parses package.json scripts, checks Makefile/pyproject.toml existence, CI presence. Only presence checks, no latency inference.
+  - `Verify:` Run scan on fixture with all config types and confirm latency estimates in output
+  - `Evidence:` Partial — parses package.json scripts, checks Makefile/pyproject.toml existence, CI presence. Only presence checks, no latency inference.
 - [x] Estimated execution times for: unit tests, type checking, linting, full CI pipeline.
-  - Verify: Run scan and check for ARI-FBK-009 finding with estimated times
-  - Evidence: ARI-FBK-009: estimated feedback latency with measured/inferred/unknown confidence labels. Added 2026-03-09.
+  - `Verify:` Run scan and check for ARI-FBK-009 finding with estimated times
+  - `Evidence:` ARI-FBK-009: estimated feedback latency with measured/inferred/unknown confidence labels. Added 2026-03-09.
 - [x] Detection of watch mode / hot reload configuration (binary: present or not).
-  - Verify: Run scan and check for ARI-FBK-007 finding
-  - Evidence: Checks `test:watch`/`test:dev` scripts. ARI-FBK-007 watch mode detection as separate finding. Added 2026-03-09.
+  - `Verify:` Run scan and check for ARI-FBK-007 finding
+  - `Evidence:` Checks `test:watch`/`test:dev` scripts. ARI-FBK-007 watch mode detection as separate finding. Added 2026-03-09.
 - [x] Detection of incremental build support (Turbopack, Vite, SWC, esbuild vs Webpack, TSC incremental).
-  - Verify: Run scan and check for ARI-FBK-008 finding
-  - Evidence: Regex for `vite|esbuild|tsup|swc|turbo`. ARI-FBK-008 incremental build detection as separate finding. Added 2026-03-09.
+  - `Verify:` Run scan and check for ARI-FBK-008 finding
+  - `Evidence:` Regex for `vite|esbuild|tsup|swc|turbo`. ARI-FBK-008 incremental build detection as separate finding. Added 2026-03-09.
 - [x] Detection of pre-commit hooks configured for lint + typecheck + format.
-  - Verify: Check `test -f .husky/pre-commit && echo PASS`
-  - Evidence: Checks `.husky`, `.pre-commit-config.yaml`, `lefthook.yml`
+  - `Verify:` Check `test -f .husky/pre-commit && echo PASS`
+  - `Evidence:` Checks `.husky`, `.pre-commit-config.yaml`, `lefthook.yml`
 - [x] Changeset scope controls: PR size limits, conventional commits, automated splitting guidance.
-  - Verify: Run scan and check for ARI-FBK-006 finding
-  - Evidence: ARI-FBK-006: detects commitlint configs, `.changeset/config.json`, dangerfile
+  - `Verify:` Run scan and check for ARI-FBK-006 finding
+  - `Evidence:` ARI-FBK-006: detects commitlint configs, `.changeset/config.json`, dangerfile
 - [x] Estimated times include confidence label (measured vs inferred vs unknown) and missing-data fallback behavior.
-  - Verify: Run scan and confirm ARI-FBK-009 finding includes confidence labels
-  - Evidence: ARI-FBK-009 estimated feedback latency with measured/inferred/unknown labels added 2026-03-09
+  - `Verify:` Run scan and confirm ARI-FBK-009 finding includes confidence labels
+  - `Evidence:` ARI-FBK-009 estimated feedback latency with measured/inferred/unknown labels added 2026-03-09
 - [x] Watch mode and incremental build detection are binary and clearly reported.
-  - Verify: Confirm ARI-FBK-007 and ARI-FBK-008 as separate findings in output
-  - Evidence: ARI-FBK-007 (watch mode) and ARI-FBK-008 (incremental build) as separate findings added 2026-03-09
+  - `Verify:` Confirm ARI-FBK-007 and ARI-FBK-008 as separate findings in output
+  - `Evidence:` ARI-FBK-007 (watch mode) and ARI-FBK-008 (incremental build) as separate findings added 2026-03-09
 - [x] Changeset scope controls are detected and scored.
-  - Verify: Confirm ARI-FBK-006 finding present
-  - Evidence: ARI-FBK-006: commitlint, .changeset, dangerfile
+  - `Verify:` Confirm ARI-FBK-006 finding present
+  - `Evidence:` ARI-FBK-006: commitlint, .changeset, dangerfile
 - [x] Scoring differentiates local feedback (2x weight) from CI feedback (1x weight) per research.
-  - Verify: Review scoring logic in feedback-loop analyzer for 2x/1x weighting
-  - Evidence: Restructured scoring: local signals 2x weight, CI signals 1x weight, added 2026-03-09
+  - `Verify:` Review scoring logic in feedback-loop analyzer for 2x/1x weighting
+  - `Evidence:` Restructured scoring: local signals 2x weight, CI signals 1x weight, added 2026-03-09
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Feedback speed distribution by language/framework
 
@@ -1241,57 +1241,57 @@ Test isolation is elevated to 18% weight (from 12.5% equal weight) because resea
 ### Functional
 
 - [x] Cloud credential dependency detection: Direct AWS SDK, GCP SDK, Azure SDK imports in test files.
-  - Verify: Run scan on fixture with AWS imports in test files and confirm ARI-TST-001
-  - Evidence: ARI-TST-001. Regex `AWS|azure|gcp|google.cloud`.
+  - `Verify:` Run scan on fixture with AWS imports in test files and confirm ARI-TST-001
+  - `Evidence:` ARI-TST-001. Regex `AWS|azure|gcp|google.cloud`.
 - [x] Direct HTTP/API calls detection: `fetch`, `axios`, `requests`, `http.Client` calls in test code.
-  - Verify: Run scan on fixture with fetch in test and confirm ARI-TST-002
-  - Evidence: ARI-TST-002
+  - `Verify:` Run scan on fixture with fetch in test and confirm ARI-TST-002
+  - `Evidence:` ARI-TST-002
 - [x] Mutable global environment detection: Tests modifying `process.env`, global state, shared fixtures.
-  - Verify: Run scan and confirm ARI-TST-011 finding
-  - Evidence: ARI-TST-011: detects process.env assignment, global/globalThis/window mutation added 2026-03-09
+  - `Verify:` Run scan and confirm ARI-TST-011 finding
+  - `Evidence:` ARI-TST-011: detects process.env assignment, global/globalThis/window mutation added 2026-03-09
 - [x] Unstable time/random usage: `Date.now()`, `Math.random()`, `time.time()` in assertions.
-  - Verify: Run scan and confirm ARI-TST-003/004 findings
-  - Evidence: ARI-TST-003/004. Detects `Date.now`, `new Date`, `time.Now`, `datetime.now`, `Math.random`.
+  - `Verify:` Run scan and confirm ARI-TST-003/004 findings
+  - `Evidence:` ARI-TST-003/004. Detects `Date.now`, `new Date`, `time.Now`, `datetime.now`, `Math.random`.
 - [x] Unordered collection assertions: Map/Set/dict assertions without sorting.
-  - Verify: Run scan and confirm ARI-TST-009 finding
-  - Evidence: ARI-TST-009: regex detection for `toEqual(new Set|toEqual(new Map|assertDictEqual|assert_eq!.*HashMap` in test files
+  - `Verify:` Run scan and confirm ARI-TST-009 finding
+  - `Evidence:` ARI-TST-009: regex detection for `toEqual(new Set|toEqual(new Map|assertDictEqual|assert_eq!.*HashMap` in test files
 - [x] Test order dependency: Shared state between tests, global setup/teardown with side effects.
-  - Verify: Run scan and confirm ARI-TST-012 finding
-  - Evidence: ARI-TST-012: detects describe.only, it.only, beforeAll with state added 2026-03-09
+  - `Verify:` Run scan and confirm ARI-TST-012 finding
+  - `Evidence:` ARI-TST-012: detects describe.only, it.only, beforeAll with state added 2026-03-09
 - [x] External file system dependency: Tests reading/writing to absolute paths or temp dirs without cleanup.
-  - Verify: Run scan and confirm ARI-TST-008 finding
-  - Evidence: ARI-TST-008: detects `readFileSync|writeFileSync|fs.readFile|os.path|Path(` in test files
+  - `Verify:` Run scan and confirm ARI-TST-008 finding
+  - `Evidence:` ARI-TST-008: detects `readFileSync|writeFileSync|fs.readFile|os.path|Path(` in test files
 - [x] Concurrency/race conditions: `setTimeout`, `sleep`, timing-dependent assertions.
-  - Verify: Run scan and confirm ARI-TST-013 finding
-  - Evidence: ARI-TST-013: detects setTimeout, sleep, timing-dependent test patterns added 2026-03-09
+  - `Verify:` Run scan and confirm ARI-TST-013 finding
+  - `Evidence:` ARI-TST-013: detects setTimeout, sleep, timing-dependent test patterns added 2026-03-09
 - [x] Each finding maps to severity (critical/warning/info), root cause category (from Luo 2014 taxonomy), fix hint with code example, and agent impact explanation.
-  - Verify: Run scan with `--json` and confirm findings have severity, evidence.paper, remediation fields
-  - Evidence: Severity includes critical level. Luo 2014 root cause taxonomy evidence fields. Language-specific code example fix hints and agent impact explanations on all 14 findings. Completed 2026-03-09.
+  - `Verify:` Run scan with `--json` and confirm findings have severity, evidence.paper, remediation fields
+  - `Evidence:` Severity includes critical level. Luo 2014 root cause taxonomy evidence fields. Language-specific code example fix hints and agent impact explanations on all 14 findings. Completed 2026-03-09.
 - [x] Provider pattern / DI detection: whether infrastructure is abstracted behind interfaces.
-  - Verify: Run scan on fixture with provider files and confirm bonus applied
-  - Evidence: Checks filenames for `provider|factory|container|inject`, excluding `.devcontainer`. Awards +15 points.
+  - `Verify:` Run scan on fixture with provider files and confirm bonus applied
+  - `Evidence:` Checks filenames for `provider|factory|container|inject`, excluding `.devcontainer`. Awards +15 points.
 - [x] Memory/mock implementation detection: in-memory implementations for cloud providers.
-  - Verify: Run scan on fixture with mock directories and confirm bonus applied
-  - Evidence: Checks `__mocks__`, `.mock.`, `mock/`. Awards +10 points.
+  - `Verify:` Run scan on fixture with mock directories and confirm bonus applied
+  - `Evidence:` Checks `__mocks__`, `.mock.`, `mock/`. Awards +10 points.
 - [x] Detection covers TypeScript/JavaScript (jest, vitest, mocha), Python (pytest, unittest), Go (testing), Java (JUnit), Rust (cargo test).
-  - Verify: Grep analyzer source for language-specific test patterns
-  - Evidence: Covers TS/JS, Go, Python, Java, C#, Ruby, Rust. Rust `#[cfg(test)]`/`#[test]` detection + `std::thread::sleep`/`tokio::time::sleep` anti-patterns added 2026-03-10.
+  - `Verify:` Grep analyzer source for language-specific test patterns
+  - `Evidence:` Covers TS/JS, Go, Python, Java, C#, Ruby, Rust. Rust `#[cfg(test)]`/`#[test]` detection + `std::thread::sleep`/`tokio::time::sleep` anti-patterns added 2026-03-10.
 
 ### Testing
 
 <!-- REVIEW: Original marked done but criterion "False-positive rate <10% on benchmark cohort" lacks completion evidence. -->
 - [ ] False-positive rate <10% on benchmark cohort.
-  - Verify: Run benchmark suite and compute false positive rate
-  - Evidence:
+  - `Verify:` Run benchmark suite and compute false positive rate
+  - `Evidence:`
 
 ### Functional
 
 <!-- REVIEW: Original marked done but criterion "Provider pattern detection clearly distinguishes direct SDK usage from abstracted interfaces" lacks completion evidence. -->
 - [ ] Provider pattern detection clearly distinguishes direct SDK usage from abstracted interfaces.
-  - Verify: Run scan on fixture with both patterns and confirm correct classification
-  - Evidence: Filename heuristic only, not structural code analysis (partial)
+  - `Verify:` Run scan on fixture with both patterns and confirm correct classification
+  - `Evidence:` Filename heuristic only, not structural code analysis (partial)
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Anti-pattern distribution by category
 - [ ] Detection count per repo
@@ -1368,31 +1368,31 @@ Berndt et al. (2026) found that 63% of LLM-generated flaky tests were caused by 
 ### Functional
 
 - [ ] AST-level analysis for assertions on non-deterministic data structures (Map, Set, Object.keys, dict, HashMap).
-  - Verify: Run scan on fixture with Map assertions in tests and confirm AST-level finding
-  - Evidence: Regex-level detection exists in P1.06 (ARI-TST-009). AST-level analysis deferred to P3.07.
+  - `Verify:` Run scan on fixture with Map assertions in tests and confirm AST-level finding
+  - `Evidence:` Regex-level detection exists in P1.06 (ARI-TST-009). AST-level analysis deferred to P3.07.
 - [ ] Detection of comparison operators on unordered types without prior sorting/normalization.
-  - Verify: Run scan on fixture and confirm specific comparison operators flagged
-  - Evidence:
+  - `Verify:` Run scan on fixture and confirm specific comparison operators flagged
+  - `Evidence:`
 - [ ] Detection of array assertions where order may vary (query results, file listings, API responses).
-  - Verify: Run scan on fixture with array assertions and confirm findings
-  - Evidence:
+  - `Verify:` Run scan on fixture with array assertions and confirm findings
+  - `Evidence:`
 - [ ] Suggested fixes: `toSorted()`, `Array.from().sort()`, `sorted()`, custom comparators.
-  - Verify: Check finding remediation field for suggested fixes
-  - Evidence:
+  - `Verify:` Check finding remediation field for suggested fixes
+  - `Evidence:`
 - [ ] Detection covers at least TypeScript/JavaScript, Python, and Go.
-  - Verify: Run scan on fixtures for each language and confirm findings
-  - Evidence:
+  - `Verify:` Run scan on fixtures for each language and confirm findings
+  - `Evidence:`
 - [ ] Each finding includes the specific assertion line and a copy-pasteable fix.
-  - Verify: Check finding output for line number and fix code
-  - Evidence:
+  - `Verify:` Check finding output for line number and fix code
+  - `Evidence:`
 
 ### Documentation
 
 - [ ] Rule docs include false-positive caveats (e.g., arrays that are intentionally ordered).
-  - Verify: Check error taxonomy docs for P1.07 rules with caveat notes
-  - Evidence:
+  - `Verify:` Check error taxonomy docs for P1.07 rules with caveat notes
+  - `Evidence:`
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Ordering anti-pattern frequency by language
 
@@ -1457,43 +1457,43 @@ The "Tutorial Problem" (VS Code Blog, 2022) shows manual setup instructions have
 ### Functional
 
 - [x] `.devcontainer/devcontainer.json` — exists and is valid JSON with required fields.
-  - Verify: Run scan and confirm ARI-ENV-005 finding for devcontainer validation
-  - Evidence: ARI-ENV-005: validates postCreateCommand/onCreateCommand, features. Enhanced 2026-03-09.
+  - `Verify:` Run scan and confirm ARI-ENV-005 finding for devcontainer validation
+  - `Evidence:` ARI-ENV-005: validates postCreateCommand/onCreateCommand, features. Enhanced 2026-03-09.
 - [x] `docker-compose.yml` / `docker-compose.yaml` — services defined for local dependencies.
-  - Verify: Run scan on fixture with docker-compose and confirm detection
-  - Evidence: Checks 3 filename variants
+  - `Verify:` Run scan on fixture with docker-compose and confirm detection
+  - `Evidence:` Checks 3 filename variants
 - [x] Bootstrap script — single-command setup (`make setup`, `pnpm bootstrap`, `./scripts/setup.sh`).
-  - Verify: Run scan and confirm bootstrap detection in output
-  - Evidence: Checks scripts/setup.sh, Makefile, justfile, package.json setup/bootstrap/prepare/postinstall
+  - `Verify:` Run scan and confirm bootstrap detection in output
+  - `Evidence:` Checks scripts/setup.sh, Makefile, justfile, package.json setup/bootstrap/prepare/postinstall
 - [x] Doctor/health-check command — validates environment prerequisites.
-  - Verify: Run scan and confirm ARI-ENV-004 finding
-  - Evidence: ARI-ENV-004: detects `doctor`/`health`/`check`/`verify`/`validate` scripts in package.json
+  - `Verify:` Run scan and confirm ARI-ENV-004 finding
+  - `Evidence:` ARI-ENV-004: detects `doctor`/`health`/`check`/`verify`/`validate` scripts in package.json
 - [x] Time-to-first-test-pass estimate (from setup complexity analysis).
-  - Verify: Run scan and confirm ARI-ENV-013 finding with time estimate
-  - Evidence: ARI-ENV-013: estimates TTFTP in minutes based on install, build, env setup, devcontainer, and test script presence. Labels fast/moderate/slow with breakdown factors. Added 2026-03-10.
+  - `Verify:` Run scan and confirm ARI-ENV-013 finding with time estimate
+  - `Evidence:` ARI-ENV-013: estimates TTFTP in minutes based on install, build, env setup, devcontainer, and test script presence. Labels fast/moderate/slow with breakdown factors. Added 2026-03-10.
 - [x] Environment variable documentation — all required env vars documented with defaults/examples.
-  - Verify: Run scan and confirm env var documentation check in output
-  - Evidence: Checks `.env.example`/`.env.template`. ARI-ENV-007: compares code usage vs .env.example entries. Enhanced 2026-03-09.
+  - `Verify:` Run scan and confirm env var documentation check in output
+  - `Evidence:` Checks `.env.example`/`.env.template`. ARI-ENV-007: compares code usage vs .env.example entries. Enhanced 2026-03-09.
 - [x] Required tool versions — `.nvmrc`, `.tool-versions`, `engines` field in `package.json`, `python-requires`.
-  - Verify: Check `test -f .nvmrc && echo PASS`
-  - Evidence: Checks .nvmrc, .node-version, .tool-versions, .python-version, rust-toolchain.toml, engines
+  - `Verify:` Check `test -f .nvmrc && echo PASS`
+  - `Evidence:` Checks .nvmrc, .node-version, .tool-versions, .python-version, rust-toolchain.toml, engines
 - [x] Seed/fixture data — test data provisioned automatically.
-  - Verify: Run scan and confirm seed/fixture detection in output
-  - Evidence: Detects `seeds/`, `fixtures/`, `testdata/` directories + seed/fixture scripts in package.json
+  - `Verify:` Run scan and confirm seed/fixture detection in output
+  - `Evidence:` Detects `seeds/`, `fixtures/`, `testdata/` directories + seed/fixture scripts in package.json
 - [x] "Likely first-run blockers" section identifying the top 3-5 issues a new agent would hit.
-  - Verify: Run scan and confirm ARI-ENV-006 finding
-  - Evidence: ARI-ENV-006: detects missing .env.example, no install command, no tsconfig added 2026-03-09
+  - `Verify:` Run scan and confirm ARI-ENV-006 finding
+  - `Evidence:` ARI-ENV-006: detects missing .env.example, no install command, no tsconfig added 2026-03-09
 - [x] Each criterion scored independently with clear pass/fail/partial status.
-  - Verify: Run scan and confirm ARI-ENV-008 through ARI-ENV-012 findings
-  - Evidence: ARI-ENV-008 through ARI-ENV-012 per-criterion status labels added 2026-03-09
+  - `Verify:` Run scan and confirm ARI-ENV-008 through ARI-ENV-012 findings
+  - `Evidence:` ARI-ENV-008 through ARI-ENV-012 per-criterion status labels added 2026-03-09
 - [x] Devcontainer validation checks required fields (image/build, features, settings).
-  - Verify: Run scan and confirm ARI-ENV-005 checks image/build field
-  - Evidence: ARI-ENV-005: checks image/build, settings fields added 2026-03-09
+  - `Verify:` Run scan and confirm ARI-ENV-005 checks image/build field
+  - `Evidence:` ARI-ENV-005: checks image/build, settings fields added 2026-03-09
 - [x] Environment variable completeness scored against actual usage in codebase.
-  - Verify: Run scan and confirm ARI-ENV-007 compares process.env usage
-  - Evidence: ARI-ENV-007: compares process.env usage in code vs .env.example entries added 2026-03-09
+  - `Verify:` Run scan and confirm ARI-ENV-007 compares process.env usage
+  - `Evidence:` ARI-ENV-007: compares process.env usage in code vs .env.example entries added 2026-03-09
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Devcontainer presence rate
 - [ ] Bootstrap automation rate
@@ -1556,46 +1556,46 @@ LLMs struggle with "schema drift" and "formatting inconsistency" in prose docume
 ### Functional
 
 - [x] API contracts: OpenAPI/Swagger detection.
-  - Verify: Run scan on fixture with openapi.yml and confirm detection
-  - Evidence: Regex for `openapi|swagger` in filenames
+  - `Verify:` Run scan on fixture with openapi.yml and confirm detection
+  - `Evidence:` Regex for `openapi|swagger` in filenames
 - [x] API contracts: tRPC router definitions.
-  - Verify: Run scan on fixture with tRPC router and confirm detection
-  - Evidence: Checks `trpc|\.router\.[jt]s`
+  - `Verify:` Run scan on fixture with tRPC router and confirm detection
+  - `Evidence:` Checks `trpc|\.router\.[jt]s`
 - [x] API contracts: GraphQL schema files.
-  - Verify: Run scan on fixture with .graphql files and confirm detection
-  - Evidence: Checks `.graphql`/`.gql` files
+  - `Verify:` Run scan on fixture with .graphql files and confirm detection
+  - `Evidence:` Checks `.graphql`/`.gql` files
 - [x] Error taxonomy: Structured error codes with machine-readable definitions.
-  - Verify: Run scan on this repo and confirm error taxonomy detected
-  - Evidence: Checks `error.taxonomy|error.codes|errors?\.(json|ya?ml)`
+  - `Verify:` Run scan on this repo and confirm error taxonomy detected
+  - `Evidence:` Checks `error.taxonomy|error.codes|errors?\.(json|ya?ml)`
 - [x] Machine-readable runbooks: Executable or structured runbooks (YAML/JSON, not prose-only).
-  - Verify: Run scan and check for ARI-DOC-002 finding
-  - Evidence: ARI-DOC-002 runbook detection added 2026-03-09
+  - `Verify:` Run scan and check for ARI-DOC-002 finding
+  - `Evidence:` ARI-DOC-002 runbook detection added 2026-03-09
 - [x] Env var schema: Typed environment validation (zod, joi, t3-env, pydantic BaseSettings).
-  - Verify: Run scan on fixture with zod env schema and confirm detection
-  - Evidence: Checks package.json deps for JS libs + Python pydantic BaseSettings / pydantic-settings in pyproject.toml. Updated 2026-03-10.
+  - `Verify:` Run scan on fixture with zod env schema and confirm detection
+  - `Evidence:` Checks package.json deps for JS libs + Python pydantic BaseSettings / pydantic-settings in pyproject.toml. Updated 2026-03-10.
 - [x] ADR / decision records: Architecture Decision Records present.
-  - Verify: Run scan on this repo and confirm ADR/RFC detection
-  - Evidence: Checks files matching `adr|decision|rfc` with `.md`
+  - `Verify:` Run scan on this repo and confirm ADR/RFC detection
+  - `Evidence:` Checks files matching `adr|decision|rfc` with `.md`
 - [x] Changelog format: Conventional commits / Keep a Changelog format.
-  - Verify: Check `test -f CHANGELOG.md && echo PASS`
-  - Evidence: Checks `CHANGELOG.md`
+  - `Verify:` Check `test -f CHANGELOG.md && echo PASS`
+  - `Evidence:` Checks `CHANGELOG.md`
 - [x] Type exports / JSDoc coverage: Public API types exported, JSDoc on public functions.
-  - Verify: Run scan and check for ARI-DOC-003 finding
-  - Evidence: ARI-DOC-003 JSDoc coverage measurement added 2026-03-09
+  - `Verify:` Run scan and check for ARI-DOC-003 finding
+  - `Evidence:` ARI-DOC-003 JSDoc coverage measurement added 2026-03-09
 - [x] Documentation-code consistency: Docs reference current function names, parameters, paths (drift detection).
-  - Verify: Run scan and check for ARI-DOC-004 finding
-  - Evidence: ARI-DOC-004 documentation-code drift detection added 2026-03-09
+  - `Verify:` Run scan and check for ARI-DOC-004 finding
+  - `Evidence:` ARI-DOC-004 documentation-code drift detection added 2026-03-09
 - [x] Per-criterion findings include priority level and confidence markers.
-  - Verify: Run scan with `--json` and confirm all DOC findings have severity and confidence
-  - Evidence: All doc-readability findings carry severity + confidence. Updated 2026-03-10.
+  - `Verify:` Run scan with `--json` and confirm all DOC findings have severity and confidence
+  - `Evidence:` All doc-readability findings carry severity + confidence. Updated 2026-03-10.
 - [x] Each criterion independently scored with clear rationale.
-  - Verify: Run scan and confirm per-finding rationale in output
-  - Evidence: Per-finding rationale explaining agent impact. Updated 2026-03-10.
+  - `Verify:` Run scan and confirm per-finding rationale in output
+  - `Evidence:` Per-finding rationale explaining agent impact. Updated 2026-03-10.
 - [x] Supports TypeScript, Python, Go, Java at minimum.
-  - Verify: Run scan on Python fixture with pydantic and confirm env var detection
-  - Evidence: Env var validation: JS (package.json deps) + Python (pydantic BaseSettings). File detection is language-agnostic. Updated 2026-03-10.
+  - `Verify:` Run scan on Python fixture with pydantic and confirm env var detection
+  - `Evidence:` Env var validation: JS (package.json deps) + Python (pydantic BaseSettings). File detection is language-agnostic. Updated 2026-03-10.
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Machine-readable doc coverage by format type
 
@@ -1658,68 +1658,68 @@ This is potentially the single highest-ROI criterion across the entire rubric. 9
 ### Functional
 
 - [x] TypeScript: `strict: true` in `tsconfig.json` — the master switch.
-  - Verify: Run `jq '.compilerOptions.strict' tsconfig.json` and confirm true
-  - Evidence: Checked individually
+  - `Verify:` Run `jq '.compilerOptions.strict' tsconfig.json` and confirm true
+  - `Evidence:` Checked individually
 - [x] TypeScript: `strictNullChecks` — prevents runtime null/undefined crashes.
-  - Verify: Run scan and confirm strictNullChecks detection
-  - Evidence: Checked individually
+  - `Verify:` Run scan and confirm strictNullChecks detection
+  - `Evidence:` Checked individually
 - [x] TypeScript: `noImplicitAny` — prevents agents from using untyped escape hatches.
-  - Verify: Run scan and confirm noImplicitAny detection
-  - Evidence: Checked individually
+  - `Verify:` Run scan and confirm noImplicitAny detection
+  - `Evidence:` Checked individually
 - [x] TypeScript: `isolatedModules` — ensures fast standalone transpilation.
-  - Verify: Run scan and confirm isolatedModules detection
-  - Evidence: Checked
+  - `Verify:` Run scan and confirm isolatedModules detection
+  - `Evidence:` Checked
 - [x] TypeScript: `projectReferences` — monorepo build optimization.
-  - Verify: Run scan and confirm project references detection
-  - Evidence: Checks `references` array in tsconfig.json, +5 points for non-empty
+  - `Verify:` Run scan and confirm project references detection
+  - `Evidence:` Checks `references` array in tsconfig.json, +5 points for non-empty
 - [ ] Type coverage percentage (via `type-coverage` tool metrics).
-  - Verify: Run `type-coverage` on project and confirm percentage reported
-  - Evidence:
+  - `Verify:` Run `type-coverage` on project and confirm percentage reported
+  - `Evidence:`
 - [x] Python: `mypy` strict mode, `pyright` configuration.
-  - Verify: Run scan on Python fixture with mypy.ini and confirm detection
-  - Evidence: Checks mypy.ini, .mypy.ini, pyrightconfig.json, pyproject.toml sections
+  - `Verify:` Run scan on Python fixture with mypy.ini and confirm detection
+  - `Evidence:` Checks mypy.ini, .mypy.ini, pyrightconfig.json, pyproject.toml sections
 - [x] Go: check for `interface{}` / `any` abuse.
-  - Verify: Run scan on Go fixture and confirm ARI-BLD-004 finding
-  - Evidence: ARI-BLD-004: scans `.go` files for `interface{}` and `any` usage, penalizes >10 occurrences
+  - `Verify:` Run scan on Go fixture and confirm ARI-BLD-004 finding
+  - `Evidence:` ARI-BLD-004: scans `.go` files for `interface{}` and `any` usage, penalizes >10 occurrences
 - [x] Rust: check for excessive `unwrap()`, missing error types.
-  - Verify: Run scan on Rust fixture and confirm ARI-BLD-005 finding
-  - Evidence: ARI-BLD-005: scans `.rs` files for `.unwrap()` usage, penalizes >20 occurrences
+  - `Verify:` Run scan on Rust fixture and confirm ARI-BLD-005 finding
+  - `Evidence:` ARI-BLD-005: scans `.rs` files for `.unwrap()` usage, penalizes >20 occurrences
 - [x] Java: nullability annotations, generics usage.
-  - Verify: Run scan on Java fixture and confirm ARI-BLD-008 finding
-  - Evidence: ARI-BLD-008: detects @NonNull/@Nullable/@NotNull annotations and NullAway/Checker Framework/ErrorProne in pom.xml/build.gradle. Added 2026-03-08.
+  - `Verify:` Run scan on Java fixture and confirm ARI-BLD-008 finding
+  - `Evidence:` ARI-BLD-008: detects @NonNull/@Nullable/@NotNull annotations and NullAway/Checker Framework/ErrorProne in pom.xml/build.gradle. Added 2026-03-08.
 - [x] C#: nullable reference types enabled.
-  - Verify: Run scan on C# fixture and confirm ARI-BLD-009 finding
-  - Evidence: ARI-BLD-009: checks `<Nullable>enable</Nullable>` in .csproj and `#nullable enable` directives in source files. Added 2026-03-08.
+  - `Verify:` Run scan on C# fixture and confirm ARI-BLD-009 finding
+  - `Evidence:` ARI-BLD-009: checks `<Nullable>enable</Nullable>` in .csproj and `#nullable enable` directives in source files. Added 2026-03-08.
 - [x] Lockfile presence and consistency.
-  - Verify: Run scan and confirm lockfile detection
-  - Evidence: Checks 10 lockfile formats
+  - `Verify:` Run scan and confirm lockfile detection
+  - `Evidence:` Checks 10 lockfile formats
 - [x] Lockfile not gitignored.
-  - Verify: Run scan and confirm lockfile gitignore check
-  - Evidence: Verified
+  - `Verify:` Run scan and confirm lockfile gitignore check
+  - `Evidence:` Verified
 - [x] Build tool modernity: Vite/SWC/esbuild vs legacy Webpack.
-  - Verify: Run scan and confirm ARI-BLD-010 finding
-  - Evidence: Detects `tsup|esbuild|vite|swc|unbuild|turbo` vs `webpack`. ARI-BLD-010: info finding for modern bundlers, low-severity finding with migration advice + research evidence for webpack. Added 2026-03-10.
+  - `Verify:` Run scan and confirm ARI-BLD-010 finding
+  - `Evidence:` Detects `tsup|esbuild|vite|swc|unbuild|turbo` vs `webpack`. ARI-BLD-010: info finding for modern bundlers, low-severity finding with migration advice + research evidence for webpack. Added 2026-03-10.
 - [x] Monorepo clarity: project references, incremental builds, clear package boundaries.
-  - Verify: Run scan and confirm ARI-BLD-006 finding
-  - Evidence: ARI-BLD-006: checks turbo, nx, lerna, pnpm-workspace project references. ARI-BLD-007: lockfile drift detection (packageManager field vs actual lockfile). Added 2026-03-09.
+  - `Verify:` Run scan and confirm ARI-BLD-006 finding
+  - `Evidence:` ARI-BLD-006: checks turbo, nx, lerna, pnpm-workspace project references. ARI-BLD-007: lockfile drift detection (packageManager field vs actual lockfile). Added 2026-03-09.
 - [x] Cross-pillar type bonus: strict TypeScript repos receive bonus on P2 and P7.
-  - Verify: Run scan on strict TS repo and confirm P2/P7 scores include bonus
-  - Evidence: `applyCrossPillarTypeBonus()` adds +5 to P2 and P7 when P6 >= 70. Added 2026-03-08.
+  - `Verify:` Run scan on strict TS repo and confirm P2/P7 scores include bonus
+  - `Evidence:` `applyCrossPillarTypeBonus()` adds +5 to P2 and P7 when P6 >= 70. Added 2026-03-08.
 - [x] Linting & formatting config detection.
-  - Verify: Run scan and confirm ARI-BLD-011 finding
-  - Evidence: ARI-BLD-011: detects ESLint + Prettier configs (10+ ESLint formats, 11+ Prettier formats, package.json fields). +5 when both present. Added 2026-03-16.
+  - `Verify:` Run scan and confirm ARI-BLD-011 finding
+  - `Evidence:` ARI-BLD-011: detects ESLint + Prettier configs (10+ ESLint formats, 11+ Prettier formats, package.json fields). +5 when both present. Added 2026-03-16.
 - [x] Strictness checks are clearly separated from style rules.
-  - Verify: Review analyzer code for strictness vs style separation
-  - Evidence: Verified
+  - `Verify:` Review analyzer code for strictness vs style separation
+  - `Evidence:` Verified
 - [x] TypeScript config analysis is field-level (not just "strict: true" binary).
-  - Verify: Run scan and confirm individual strictness fields checked
-  - Evidence: Checks strict, strictNullChecks, noImplicitAny, isolatedModules individually
+  - `Verify:` Run scan and confirm individual strictness fields checked
+  - `Evidence:` Checks strict, strictNullChecks, noImplicitAny, isolatedModules individually
 <!-- REVIEW: Original marked partial but criterion "Cross-language type strictness is confidence-labeled" lacks full completion evidence. -->
 - [ ] Cross-language type strictness is confidence-labeled.
-  - Verify: Check JSON output for per-check confidence labels
-  - Evidence: Partial — overall confidence "high" for TS, "medium" otherwise. No per-check confidence.
+  - `Verify:` Check JSON output for per-check confidence labels
+  - `Evidence:` Partial — overall confidence "high" for TS, "medium" otherwise. No per-check confidence.
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Strict mode adoption rate
 - [ ] Type coverage distribution
@@ -1781,47 +1781,47 @@ Developers spend up to 70% of their time comprehending code (Multitudes DX resea
 ### Functional
 
 - [x] Directory depth: Maximum nesting depth, files per directory (cognitive load).
-  - Verify: Run scan and confirm directory depth metric in output
-  - Evidence: Penalizes >8, rewards <=5
+  - `Verify:` Run scan and confirm directory depth metric in output
+  - `Evidence:` Penalizes >8, rewards <=5
 - [x] Naming consistency: Consistent file/function/variable naming patterns across the repo.
-  - Verify: Run scan and confirm naming consistency metric
-  - Evidence: Measures camelCase/kebab/snake/Pascal distribution
+  - `Verify:` Run scan and confirm naming consistency metric
+  - `Evidence:` Measures camelCase/kebab/snake/Pascal distribution
 - [x] Module boundary clarity: Clear separation between domains/features/layers.
-  - Verify: Run scan and confirm module boundary detection
-  - Evidence: Checks `src/` or `packages/`
+  - `Verify:` Run scan and confirm module boundary detection
+  - `Evidence:` Checks `src/` or `packages/`
 - [x] Import graph complexity: Fan-in/fan-out metrics, circular dependency detection.
-  - Verify: Run scan and check for ARI-NAV-004 and ARI-NAV-005 findings
-  - Evidence: ARI-NAV-004: flags files with >20 imports. ARI-NAV-005: builds import map and detects mutual imports.
+  - `Verify:` Run scan and check for ARI-NAV-004 and ARI-NAV-005 findings
+  - `Evidence:` ARI-NAV-004: flags files with >20 imports. ARI-NAV-005: builds import map and detects mutual imports.
 - [x] Dead code percentage: Unreachable/unused exports, files with no imports.
-  - Verify: Run scan and check for ARI-NAV-006 finding
-  - Evidence: ARI-NAV-006 dead code detection heuristic added 2026-03-09. Improved heuristic: excludes config files, CLI entry points, type declarations, barrel re-exports. Self-scan shows 0 false positives. Added 2026-03-10.
+  - `Verify:` Run scan and check for ARI-NAV-006 finding
+  - `Evidence:` ARI-NAV-006 dead code detection heuristic added 2026-03-09. Improved heuristic: excludes config files, CLI entry points, type declarations, barrel re-exports. Self-scan shows 0 false positives. Added 2026-03-10.
 - [x] Code duplication: Clone detection, DRY violations.
-  - Verify: Run scan and check for ARI-NAV-008 finding
-  - Evidence: ARI-NAV-008 normalized line-chunk hashing added 2026-03-09
+  - `Verify:` Run scan and check for ARI-NAV-008 finding
+  - `Evidence:` ARI-NAV-008 normalized line-chunk hashing added 2026-03-09
 - [x] Cognitive complexity score: Nested conditionals, excessive boolean operators, large methods.
-  - Verify: Run scan and check for ARI-NAV-007 finding
-  - Evidence: ARI-NAV-007 cognitive complexity estimate. Per-function cognitive complexity with SonarSource-inspired metric, good/moderate/poor labels. Added 2026-03-09.
+  - `Verify:` Run scan and check for ARI-NAV-007 finding
+  - `Evidence:` ARI-NAV-007 cognitive complexity estimate. Per-function cognitive complexity with SonarSource-inspired metric, good/moderate/poor labels. Added 2026-03-09.
 - [x] "Most costly navigation paths" summary: the top 5 areas where agents will struggle most.
-  - Verify: Run scan and confirm navigation paths summary in output
-  - Evidence: Added 2026-03-09
+  - `Verify:` Run scan and confirm navigation paths summary in output
+  - `Evidence:` Added 2026-03-09
 - [x] Each metric includes threshold calibration (what counts as good/moderate/poor).
-  - Verify: Run scan and confirm threshold labels in output
-  - Evidence: All 7 metrics now include explicit good/moderate/poor labels. Added 2026-03-10.
+  - `Verify:` Run scan and confirm threshold labels in output
+  - `Evidence:` All 7 metrics now include explicit good/moderate/poor labels. Added 2026-03-10.
 - [x] Circular dependency detection reports specific import chains.
-  - Verify: Run scan and confirm ARI-NAV-005 includes import chain details
-  - Evidence: ARI-NAV-005: builds import map, reports mutual import pairs
+  - `Verify:` Run scan and confirm ARI-NAV-005 includes import chain details
+  - `Evidence:` ARI-NAV-005: builds import map, reports mutual import pairs
 - [x] Dead code detection has <15% false-positive rate.
-  - Verify: Run scan and review dead code findings for false positives
-  - Evidence: Improved heuristic excludes config files, CLI entries, type declarations, barrel re-exports. Self-scan shows 0 false positives. Added 2026-03-10.
+  - `Verify:` Run scan and review dead code findings for false positives
+  - `Evidence:` Improved heuristic excludes config files, CLI entries, type declarations, barrel re-exports. Self-scan shows 0 false positives. Added 2026-03-10.
 - [x] Cognitive complexity scored per function/method with aggregation per file.
-  - Verify: Run scan and confirm per-function complexity in output
-  - Evidence: ARI-NAV-007: per-function cognitive complexity with SonarSource-inspired metric. Added 2026-03-09.
+  - `Verify:` Run scan and confirm per-function complexity in output
+  - `Evidence:` ARI-NAV-007: per-function cognitive complexity with SonarSource-inspired metric. Added 2026-03-09.
 <!-- REVIEW: Original marked done but criterion "Structural clarity for retrieval" lacks completion evidence. -->
 - [ ] Structural clarity for retrieval: evaluation of call hierarchies and predictable patterns.
-  - Verify: Run scan and confirm structural clarity metric in output
-  - Evidence:
+  - `Verify:` Run scan and confirm structural clarity metric in output
+  - `Evidence:`
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Directory depth distribution
 - [ ] Circular dependency prevalence
@@ -1888,47 +1888,47 @@ AI-generated code consistently shows higher vulnerability rates than human-writt
 
 <!-- REVIEW: Original marked done (minor gaps) but criterion "Branch protection: Main/master branch protected, PR reviews required" lacks full completion evidence. -->
 - [ ] Branch protection: Main/master branch protected, PR reviews required.
-  - Verify: Run scan and confirm branch protection finding
-  - Evidence: Partial — infers from CI config files. Tightened heuristic 2026-03-09: pull_request trigger alone no longer counts. Does NOT check GitHub API or PR review requirements.
+  - `Verify:` Run scan and confirm branch protection finding
+  - `Evidence:` Partial — infers from CI config files. Tightened heuristic 2026-03-09: pull_request trigger alone no longer counts. Does NOT check GitHub API or PR review requirements.
 - [x] CODEOWNERS: File present, covering critical paths.
-  - Verify: Check `test -f CODEOWNERS || test -f .github/CODEOWNERS && echo PASS`
-  - Evidence: Checks CODEOWNERS, .github/CODEOWNERS, docs/CODEOWNERS
+  - `Verify:` Check `test -f CODEOWNERS || test -f .github/CODEOWNERS && echo PASS`
+  - `Evidence:` Checks CODEOWNERS, .github/CODEOWNERS, docs/CODEOWNERS
 - [x] Secrets scanning: Pre-commit secrets detection configured (gitleaks, truffleHog, detect-secrets).
-  - Verify: Run scan and confirm secrets scanning detection
-  - Evidence: Checks .gitleaks.toml, .pre-commit-config.yaml, .sops.yaml, CI workflow content
+  - `Verify:` Run scan and confirm secrets scanning detection
+  - `Evidence:` Checks .gitleaks.toml, .pre-commit-config.yaml, .sops.yaml, CI workflow content
 - [x] Dependency audit: Automated vulnerability scanning (Dependabot, Renovate, Snyk) configured.
-  - Verify: Check `test -f .github/dependabot.yml && echo PASS`
-  - Evidence: Checks .github/dependabot.yml, renovate.json
+  - `Verify:` Check `test -f .github/dependabot.yml && echo PASS`
+  - `Evidence:` Checks .github/dependabot.yml, renovate.json
 <!-- REVIEW: Original marked done (minor gaps) but criterion "SAST for AI-generated code" lacks full completion evidence. -->
 - [ ] SAST for AI-generated code: Static analysis mandatory on agent-authored PRs.
-  - Verify: Run scan and confirm SAST detection finding
-  - Evidence: Partial — checks CI for `codeql|semgrep|snyk|sonar|eslint.*security`. Does not verify it targets agent-authored PRs.
+  - `Verify:` Run scan and confirm SAST detection finding
+  - `Evidence:` Partial — checks CI for `codeql|semgrep|snyk|sonar|eslint.*security`. Does not verify it targets agent-authored PRs.
 - [x] AI-specific review checklist: PR template includes AI-code-specific security items.
-  - Verify: Run scan and confirm ARI-SEC-005 finding
-  - Evidence: ARI-SEC-005: checks PR templates for `ai|agent|llm|copilot|gpt|claude|machine-generated` regex
+  - `Verify:` Run scan and confirm ARI-SEC-005 finding
+  - `Evidence:` ARI-SEC-005: checks PR templates for `ai|agent|llm|copilot|gpt|claude|machine-generated` regex
 - [x] Licence compliance: Licence checker in CI.
-  - Verify: Run scan and confirm ARI-SEC-007 finding
-  - Evidence: ARI-SEC-007: licence compliance tooling check added 2026-03-09
+  - `Verify:` Run scan and confirm ARI-SEC-007 finding
+  - `Evidence:` ARI-SEC-007: licence compliance tooling check added 2026-03-09
 - [x] Agent scope controls: Agents restricted from sensitive paths.
-  - Verify: Check `test -f .agentignore && echo PASS`
-  - Evidence: ARI-SEC-006: checks `.agentignore`, `.claudeignore`, `.copilotignore`, `CLAUDE.md`, `.claude/settings.json`
+  - `Verify:` Check `test -f .agentignore && echo PASS`
+  - `Evidence:` ARI-SEC-006: checks `.agentignore`, `.claudeignore`, `.copilotignore`, `CLAUDE.md`, `.claude/settings.json`
 - [x] Missing controls prioritized by operational risk level with rationale.
-  - Verify: Run scan and confirm findings sorted by severity
-  - Evidence: All findings include `evidence` fields with research-backed risk rationale. Findings sorted by severity for risk-priority ordering. Added 2026-03-10.
+  - `Verify:` Run scan and confirm findings sorted by severity
+  - `Evidence:` All findings include `evidence` fields with research-backed risk rationale. Findings sorted by severity for risk-priority ordering. Added 2026-03-10.
 - [x] AI-specific security posture assessment separately scored.
-  - Verify: Run scan and confirm AI-specific sub-score in summary
-  - Evidence: AI-specific sub-score (SAST + AI review checklist + agent scope controls) computed and displayed in summary. Added 2026-03-10.
+  - `Verify:` Run scan and confirm AI-specific sub-score in summary
+  - `Evidence:` AI-specific sub-score (SAST + AI review checklist + agent scope controls) computed and displayed in summary. Added 2026-03-10.
 - [x] Each detected control shows configuration status (configured/partial/missing).
-  - Verify: Run scan and confirm status labels in output
-  - Evidence: Summary shows configured/partial/missing labels added 2026-03-09
+  - `Verify:` Run scan and confirm status labels in output
+  - `Evidence:` Summary shows configured/partial/missing labels added 2026-03-09
 - [x] Gate behavior (L2 cap) clearly documented in output when triggered.
-  - Verify: Run scan on fixture with low P8 score and confirm L2 cap warning
-  - Evidence: Implemented in composite.ts, displayed in terminal.ts
+  - `Verify:` Run scan on fixture with low P8 score and confirm L2 cap warning
+  - `Evidence:` Implemented in composite.ts, displayed in terminal.ts
 - [x] Language-specific vulnerability context provided.
-  - Verify: Run scan and confirm ARI-SEC-008 finding
-  - Evidence: ARI-SEC-008: detects primary languages from file extensions and provides research-backed vulnerability rates per language — Java 72%, JS 56%, TS 48%, Python 38%, Go 44%, Rust 25%, C# 52%, Ruby 46%. Added 2026-03-10.
+  - `Verify:` Run scan and confirm ARI-SEC-008 finding
+  - `Evidence:` ARI-SEC-008: detects primary languages from file extensions and provides research-backed vulnerability rates per language — Java 72%, JS 56%, TS 48%, Python 38%, Go 44%, Rust 25%, C# 52%, Ruby 46%. Added 2026-03-10.
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Governance control coverage rate
 - [ ] Gate trigger frequency
@@ -1993,8 +1993,8 @@ Individual pillar scores are useful for diagnosis but teams need a single "headl
 ### Functional
 
 - [x] 8-pillar weighted aggregation using research-calibrated weights.
-  - Verify: Run scan and confirm weighted composite score in JSON output
-  - Evidence: P1=15%, P2=15%, P3=18%, P4=10%, P5=10%, P6=15%, P7=12%, P8=5% — matches spec exactly
+  - `Verify:` Run scan and confirm weighted composite score in JSON output
+  - `Evidence:` P1=15%, P2=15%, P3=18%, P4=10%, P5=10%, P6=15%, P7=12%, P8=5% — matches spec exactly
 
   | Pillar | Weight | Research Justification |
   |---|---|---|
@@ -2008,8 +2008,8 @@ Individual pillar scores are useful for diagnosis but teams need a single "headl
   | P8: Security & Governance | 5% (gate) | Pearce 2021, IEEE-ISTAS 2025 |
 
 - [x] Maturity level mapping (L1–L5) with research calibration.
-  - Verify: Run scan and confirm level and levelMeta in JSON output
-  - Evidence: L1(0-25), L2(26-45), L3(46-65), L4(66-80), L5(81-100)
+  - `Verify:` Run scan and confirm level and levelMeta in JSON output
+  - `Evidence:` L1(0-25), L2(26-45), L3(46-65), L4(66-80), L5(81-100)
 
   | Level | Name | Score | What Agents Can Achieve | Research Calibration |
   |---|---|---|---|---|
@@ -2020,29 +2020,29 @@ Individual pillar scores are useful for diagnosis but teams need a single "headl
   | L5 | Autonomous | 81-100 | Complex cross-service tasks, agent self-verifies | DORA Elite + full isolation + structured docs + type safety |
 
 - [x] Security gate enforcement: P8 <40% caps overall level at L2 regardless of composite score.
-  - Verify: Run scan on fixture with low P8 and confirm L2 cap
-  - Evidence: `SECURITY_GATE` enforced in `applySecurityGate()`
+  - `Verify:` Run scan on fixture with low P8 and confirm L2 cap
+  - `Evidence:` `SECURITY_GATE` enforced in `applySecurityGate()`
 - [x] Cross-pillar type bonus: strict TypeScript repos receive bonus on P2 and P7.
-  - Verify: Run scan on strict TS repo and confirm P2/P7 bonus
-  - Evidence: `applyCrossPillarTypeBonus()` adds +5 to P2 and P7 when P6 >= 70. Implemented in composite.ts. Added 2026-03-08.
+  - `Verify:` Run scan on strict TS repo and confirm P2/P7 bonus
+  - `Evidence:` `applyCrossPillarTypeBonus()` adds +5 to P2 and P7 when P6 >= 70. Implemented in composite.ts. Added 2026-03-08.
 - [x] Component weighting and confidence are visible in output (both terminal and JSON).
-  - Verify: Run scan and confirm weight % shown per pillar
-  - Evidence: Terminal shows weight %. JSON includes weight per pillar.
+  - `Verify:` Run scan and confirm weight % shown per pillar
+  - `Evidence:` Terminal shows weight %. JSON includes weight per pillar.
 - [x] Maturity level includes "what agents can achieve at this level" description.
-  - Verify: Run scan and confirm levelMeta.description in JSON
-  - Evidence: `levelMeta.description` populated and displayed
+  - `Verify:` Run scan and confirm levelMeta.description in JSON
+  - `Evidence:` `levelMeta.description` populated and displayed
 - [x] Security gate clearly documented and enforced.
-  - Verify: Run scan with low P8 and confirm gate warning in output
-  - Evidence: Gate logic + terminal warning
+  - `Verify:` Run scan with low P8 and confirm gate warning in output
+  - `Evidence:` Gate logic + terminal warning
 - [x] Cross-pillar bonus calculation is transparent and explainable.
-  - Verify: Review `applyCrossPillarTypeBonus()` in composite.ts
-  - Evidence: `applyCrossPillarTypeBonus()` is a pure function in composite.ts. Added 2026-03-08.
+  - `Verify:` Review `applyCrossPillarTypeBonus()` in composite.ts
+  - `Evidence:` `applyCrossPillarTypeBonus()` is a pure function in composite.ts. Added 2026-03-08.
 <!-- REVIEW: Original marked done (minor gaps) but criterion "Weighting rationale cites specific research sources" lacks completion evidence. -->
 - [ ] Weighting rationale cites specific research sources in output.
-  - Verify: Run scan and check output for research citations per pillar weight
-  - Evidence: No research citations in output — only in roadmap document.
+  - `Verify:` Run scan and check output for research citations per pillar weight
+  - `Evidence:` No research citations in output — only in roadmap document.
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Maturity level distribution
 - [ ] Composite score distribution
@@ -2096,73 +2096,73 @@ CI integration is the primary adoption vector for sustained usage. Without a sta
 ### Functional
 
 - [x] `--json` flag producing versioned output.
-  - Verify: Run `npx @prontiq/ariscan-cli . --json` and confirm valid JSON
-  - Evidence: Boolean flag, shorthand for `--format json`
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --json` and confirm valid JSON
+  - `Evidence:` Boolean flag, shorthand for `--format json`
 - [x] Schema includes: scan metadata (version, timestamp, duration).
-  - Verify: Run scan `--json | jq '.metadata'` and confirm fields
-  - Evidence: `ScanMetadata` schema
+  - `Verify:` Run scan `--json | jq '.metadata'` and confirm fields
+  - `Evidence:` `ScanMetadata` schema
 - [x] Schema includes: composite score.
-  - Verify: Run scan `--json | jq '.score'` and confirm numeric
-  - Evidence: `ScanResult.score`
+  - `Verify:` Run scan `--json | jq '.score'` and confirm numeric
+  - `Evidence:` `ScanResult.score`
 - [x] Schema includes: maturity level.
-  - Verify: Run scan `--json | jq '.level'` and confirm L1-L5
-  - Evidence: `ScanResult.level` + `ScanResult.levelMeta`
+  - `Verify:` Run scan `--json | jq '.level'` and confirm L1-L5
+  - `Evidence:` `ScanResult.level` + `ScanResult.levelMeta`
 - [x] Schema includes: per-pillar breakdown (score, confidence, findings, recommendations).
-  - Verify: Run scan `--json | jq '.pillars[0] | keys'` and confirm all fields
-  - Evidence: `PillarResult` with all fields
+  - `Verify:` Run scan `--json | jq '.pillars[0] | keys'` and confirm all fields
+  - `Evidence:` `PillarResult` with all fields
 - [x] Schema includes: language/framework detection results.
-  - Verify: Run scan `--json | jq '.detection'` and confirm fields
-  - Evidence: In `ScanResult.detection` field with `DetectedLanguage[]`, `DetectedFramework[]`, `DetectedMonorepo | null`
+  - `Verify:` Run scan `--json | jq '.detection'` and confirm fields
+  - `Evidence:` In `ScanResult.detection` field with `DetectedLanguage[]`, `DetectedFramework[]`, `DetectedMonorepo | null`
 - [x] Schema includes: context file inventory.
-  - Verify: Run scan `--json | jq '.contextFiles'` and confirm array
-  - Evidence: `ContextFileInfo` type with path, type, size, lineCount added to ScanResult 2026-03-09
+  - `Verify:` Run scan `--json | jq '.contextFiles'` and confirm array
+  - `Evidence:` `ContextFileInfo` type with path, type, size, lineCount added to ScanResult 2026-03-09
 - [x] Schema file published in repo and npm package.
-  - Verify: Check `test -f ariscan.schema.json && echo PASS`
-  - Evidence: Zod schemas in @prontiq/ariscan-schema. `ariscan.schema.json` published in repo root. `getJsonSchemaObject()` export. Added 2026-03-10.
+  - `Verify:` Check `test -f ariscan.schema.json && echo PASS`
+  - `Evidence:` Zod schemas in @prontiq/ariscan-schema. `ariscan.schema.json` published in repo root. `getJsonSchemaObject()` export. Added 2026-03-10.
 - [x] `--json-schema` flag that outputs the schema itself for validation tooling.
-  - Verify: Run `npx @prontiq/ariscan-cli --jsonSchema` and confirm JSON Schema output
-  - Evidence: `--jsonSchema` flag wired 2026-03-09: outputs JSON Schema and exits
+  - `Verify:` Run `npx @prontiq/ariscan-cli --jsonSchema` and confirm JSON Schema output
+  - `Evidence:` `--jsonSchema` flag wired 2026-03-09: outputs JSON Schema and exits
 - [x] All findings use `ARI-*` taxonomy codes.
-  - Verify: Run scan `--json | jq '.findings[].code'` and confirm ARI-XXX-NNN pattern
-  - Evidence: `Finding.code` regex enforces `^ARI-[A-Z]{3}-\d{3}$`
+  - `Verify:` Run scan `--json | jq '.findings[].code'` and confirm ARI-XXX-NNN pattern
+  - `Evidence:` `Finding.code` regex enforces `^ARI-[A-Z]{3}-\d{3}$`
 - [x] SARIF projection.
-  - Verify: Run `npx @prontiq/ariscan-cli . --format sarif` and confirm valid SARIF 2.1.0
-  - Evidence: SARIF 2.1.0 formatter implemented in `output/sarif.ts`, wired to `--format sarif`. Added 2026-03-08.
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --format sarif` and confirm valid SARIF 2.1.0
+  - `Evidence:` SARIF 2.1.0 formatter implemented in `output/sarif.ts`, wired to `--format sarif`. Added 2026-03-08.
 - [x] Schema includes `$schema` and `$id` fields for validation tooling.
-  - Verify: Run scan `--json | jq '."$schema"'` and confirm present
-  - Evidence: Added to JSON output 2026-03-09
+  - `Verify:` Run scan `--json | jq '."$schema"'` and confirm present
+  - `Evidence:` Added to JSON output 2026-03-09
 
 ### Documentation
 
 - [ ] Semver impact rules: patch = new optional fields only, minor = new pillar/criterion, major = breaking schema changes.
-  - Verify: Check for versioning policy document
-  - Evidence:
+  - `Verify:` Check for versioning policy document
+  - `Evidence:`
 - [ ] Schema file published and semver impact rules documented.
-  - Verify: Check documentation for semver policy
-  - Evidence:
+  - `Verify:` Check documentation for semver policy
+  - `Evidence:`
 - [ ] Backwards compatibility guaranteed within major version.
-  - Verify: Check for compatibility policy document
-  - Evidence:
+  - `Verify:` Check for compatibility policy document
+  - `Evidence:`
 
 ### Testing
 
 - [x] Output validates against published schema (tested in CI).
-  - Verify: Run `pnpm test` and confirm schema validation tests pass
-  - Evidence: 5 CI validation tests: required fields, finding code pattern, score ranges, maturity level enum, composite score bounds. Added 2026-03-10.
+  - `Verify:` Run `pnpm test` and confirm schema validation tests pass
+  - `Evidence:` 5 CI validation tests: required fields, finding code pattern, score ranges, maturity level enum, composite score bounds. Added 2026-03-10.
 
 ### Functional
 
 - [ ] Structured remediation data (action, generator command, estimated impact) fully required.
-  - Verify: Run scan `--json | jq '.findings[0].remediation'` and confirm all fields present
-  - Evidence: Partial — has action, description, estimatedImpact, confidence, path. EstimatedImpact enum type added 2026-03-09. No generator command. remediation/evidence optional — spec says required.
+  - `Verify:` Run scan `--json | jq '.findings[0].remediation'` and confirm all fields present
+  - `Evidence:` Partial — has action, description, estimatedImpact, confidence, path. EstimatedImpact enum type added 2026-03-09. No generator command. remediation/evidence optional — spec says required.
 - [ ] JSON output is streamable (newline-delimited) for large repos.
-  - Verify: Run scan on large repo and confirm NDJSON format
-  - Evidence: Single JSON.stringify blob
+  - `Verify:` Run scan on large repo and confirm NDJSON format
+  - `Evidence:` Single JSON.stringify blob
 - [ ] Every finding includes `ARI-*` code, structured remediation data, and research citation.
-  - Verify: Run scan `--json | jq '.findings[0] | {code, remediation, evidence}'` and confirm all present
-  - Evidence: Partial — ARI codes enforced. remediation/evidence optional.
+  - `Verify:` Run scan `--json | jq '.findings[0] | {code, remediation, evidence}'` and confirm all present
+  - `Evidence:` Partial — ARI codes enforced. remediation/evidence optional.
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] `--json` flag usage rate
 
@@ -2216,31 +2216,31 @@ JSON output serves machines; teams need a human-readable format for communicatio
 ### Functional
 
 - [x] Markdown report ordered by impact and effort (highest-impact, lowest-effort fixes first).
-  - Verify: Run `npx @prontiq/ariscan-cli . --format markdown` and confirm ordered recommendations
-  - Evidence: Remediations sorted by impact × ease score — severity × confidence. Updated 2026-03-10.
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --format markdown` and confirm ordered recommendations
+  - `Evidence:` Remediations sorted by impact × ease score — severity × confidence. Updated 2026-03-10.
 - [x] "First 3 actions" quick-start section highlighting immediate wins.
-  - Verify: Run markdown report and confirm "Quick Start: Top 3 Actions" section
-  - Evidence: Quick Start: Top 3 Actions section in markdown output. Added 2026-03-10.
+  - `Verify:` Run markdown report and confirm "Quick Start: Top 3 Actions" section
+  - `Evidence:` Quick Start: Top 3 Actions section in markdown output. Added 2026-03-10.
 - [x] Per-pillar sections with: score, confidence level, key findings, specific recommendations.
-  - Verify: Run markdown report and confirm per-pillar sections
-  - Evidence: Pillar table with score bars, findings section with remediations
+  - `Verify:` Run markdown report and confirm per-pillar sections
+  - `Evidence:` Pillar table with score bars, findings section with remediations
 - [x] Summary header with composite score, maturity level badge, and scan metadata.
-  - Verify: Run markdown report and confirm header section
-  - Evidence: Badge header with score, level, scan timestamp, duration
+  - `Verify:` Run markdown report and confirm header section
+  - `Evidence:` Badge header with score, level, scan timestamp, duration
 - [x] Terminal-friendly colored output (when not piped to file).
-  - Verify: Run `npx @prontiq/ariscan-cli .` in terminal and confirm ANSI colors
-  - Evidence: terminal.ts uses chalk for ANSI colors
+  - `Verify:` Run `npx @prontiq/ariscan-cli .` in terminal and confirm ANSI colors
+  - `Evidence:` terminal.ts uses chalk for ANSI colors
 - [x] Recommendations are ordered by impact × ease (not by pillar number).
-  - Verify: Run markdown report and confirm recommendation ordering
-  - Evidence: impactEaseScore() sorts by severity × confidence. Added 2026-03-10.
+  - `Verify:` Run markdown report and confirm recommendation ordering
+  - `Evidence:` impactEaseScore() sorts by severity × confidence. Added 2026-03-10.
 - [x] Report renders correctly in GitHub PR comments, Slack markdown, and static markdown viewers.
-  - Verify: Run markdown report and paste into GitHub PR comment to verify rendering
-  - Evidence: Uses Unicode block chars, standard markdown tables — no emoji dependency
+  - `Verify:` Run markdown report and paste into GitHub PR comment to verify rendering
+  - `Evidence:` Uses Unicode block chars, standard markdown tables — no emoji dependency
 - [x] Terminal output uses ANSI colors when TTY detected, plain text otherwise.
-  - Verify: Run `npx @prontiq/ariscan-cli . | head` (piped) and confirm no ANSI codes
-  - Evidence: chalk handles TTY detection automatically
+  - `Verify:` Run `npx @prontiq/ariscan-cli . | head` (piped) and confirm no ANSI codes
+  - `Evidence:` chalk handles TTY detection automatically
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Report generation count
 - [ ] Format preference (terminal vs file)
@@ -2295,35 +2295,35 @@ README badges are a proven viral distribution mechanism in the OSS ecosystem. Ba
 ### Functional
 
 - [x] Badge format: "Agent-Ready: L4 (78/100)" with color coding (red/orange/yellow/green/blue by level).
-  - Verify: Run `npx @prontiq/ariscan-cli . --badge /tmp/badge.svg` and check SVG content
-  - Evidence: SVG badge with 5 color levels: L1 red, L2 orange, L3 yellow, L4 green, L5 bright green. Added 2026-03-08.
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --badge /tmp/badge.svg` and check SVG content
+  - `Evidence:` SVG badge with 5 color levels: L1 red, L2 orange, L3 yellow, L4 green, L5 bright green. Added 2026-03-08.
 - [x] SVG badge generation from scan results (no external service dependency).
-  - Verify: Check `test -f output/badge.ts && echo PASS` in packages/cli/src/
-  - Evidence: `generateBadgeSvg()` in `output/badge.ts`. Added 2026-03-08.
+  - `Verify:` Check `test -f output/badge.ts && echo PASS` in packages/cli/src/
+  - `Evidence:` `generateBadgeSvg()` in `output/badge.ts`. Added 2026-03-08.
 - [x] Embed snippet in markdown, HTML, and reStructuredText formats.
-  - Verify: Run badge command and confirm 3 format snippets in output
-  - Evidence: `generateBadgeSnippets()` outputs all 3 formats. Added 2026-03-08.
+  - `Verify:` Run badge command and confirm 3 format snippets in output
+  - `Evidence:` `generateBadgeSnippets()` outputs all 3 formats. Added 2026-03-08.
 - [x] `ariscan badge` command to generate badge file and embed snippet.
-  - Verify: Run `npx @prontiq/ariscan-cli badge` and confirm badge generated
-  - Evidence: `--badge <path>` flag generates SVG file and prints embed snippets. Added 2026-03-08.
+  - `Verify:` Run `npx @prontiq/ariscan-cli badge` and confirm badge generated
+  - `Evidence:` `--badge <path>` flag generates SVG file and prints embed snippets. Added 2026-03-08.
 - [x] Supports static generation without external tracker dependency.
-  - Verify: Confirm no network calls during badge generation
-  - Evidence: Pure SVG generation, no network calls.
+  - `Verify:` Confirm no network calls during badge generation
+  - `Evidence:` Pure SVG generation, no network calls.
 - [x] Color scheme is accessible (WCAG AA contrast).
-  - Verify: Check badge colors against WCAG AA contrast requirements
-  - Evidence: Uses shields.io-compatible palette with high contrast text
+  - `Verify:` Check badge colors against WCAG AA contrast requirements
+  - `Evidence:` Uses shields.io-compatible palette with high contrast text
 - [x] Embed snippet is copy-pasteable from CLI output.
-  - Verify: Run badge command and confirm snippets printed to stderr
-  - Evidence: Printed to stderr after badge generation.
+  - `Verify:` Run badge command and confirm snippets printed to stderr
+  - `Evidence:` Printed to stderr after badge generation.
 
 ### Testing
 
 <!-- REVIEW: Original marked done but criterion "Badge renders correctly on GitHub, GitLab, Bitbucket, and npmjs.com" lacks completion evidence. -->
 - [ ] Badge renders correctly on GitHub, GitLab, Bitbucket, and npmjs.com.
-  - Verify: Upload badge SVG to each platform and verify rendering
-  - Evidence: Untested on all platforms
+  - `Verify:` Upload badge SVG to each platform and verify rendering
+  - `Evidence:` Untested on all platforms
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Badge generation count
 
@@ -2376,37 +2376,37 @@ Scoring without remediation creates "so what?" syndrome. The fastest path to pro
 ### Functional
 
 - [x] `AGENTS.md` generation: additive-only content (build commands, test patterns, constraint specifics — NOT README restatement).
-  - Verify: Run `npx @prontiq/ariscan-cli . --fix --dry-run` and confirm AGENTS.md in output
-  - Evidence: Done 2026-03-10. computeOverlap() avoids README duplication.
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --fix --dry-run` and confirm AGENTS.md in output
+  - `Evidence:` Done 2026-03-10. computeOverlap() avoids README duplication.
 - [x] `.agentignore` generation: exclude generated files, `dist/`, `coverage/`, lockfiles, `node_modules/`, build artifacts.
-  - Verify: Run `npx @prontiq/ariscan-cli . --fix --dry-run` and confirm .agentignore in output
-  - Evidence: Done 2026-03-10
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --fix --dry-run` and confirm .agentignore in output
+  - `Evidence:` Done 2026-03-10
 - [x] `.devcontainer/devcontainer.json` starter template based on detected stack.
-  - Verify: Run `npx @prontiq/ariscan-cli . --fix --dry-run` and confirm devcontainer in output
-  - Evidence: Done 2026-03-10
+  - `Verify:` Run `npx @prontiq/ariscan-cli . --fix --dry-run` and confirm devcontainer in output
+  - `Evidence:` Done 2026-03-10
 - [x] Provider pattern skeleton (interface + in-memory implementation) for detected cloud SDK usage.
-  - Verify: Run fix on fixture with AWS SDK and confirm provider skeleton generated
-  - Evidence: Done 2026-03-10: generates StorageProvider interface + InMemoryStorageProvider for TypeScript/Python/Go with automatic cloud SDK detection
+  - `Verify:` Run fix on fixture with AWS SDK and confirm provider skeleton generated
+  - `Evidence:` Done 2026-03-10: generates StorageProvider interface + InMemoryStorageProvider for TypeScript/Python/Go with automatic cloud SDK detection
 - [x] `--dry-run` mode showing exact changes before any write.
-  - Verify: Run `--fix --dry-run` and confirm no files written, changes shown
-  - Evidence: Done 2026-03-10
+  - `Verify:` Run `--fix --dry-run` and confirm no files written, changes shown
+  - `Evidence:` Done 2026-03-10
 - [x] Each generated file includes TODO prompts for human review.
-  - Verify: Run fix and check generated files for TODO comments
-  - Evidence: Done 2026-03-10. TODOs reference ARI-CTX-001, etc.
+  - `Verify:` Run fix and check generated files for TODO comments
+  - `Evidence:` Done 2026-03-10. TODOs reference ARI-CTX-001, etc.
 - [x] Rationale comments explaining why each section was generated.
-  - Verify: Check generated files for rationale comments
-  - Evidence: Done 2026-03-10
+  - `Verify:` Check generated files for rationale comments
+  - `Evidence:` Done 2026-03-10
 - [x] Zero destructive file edits without explicit opt-in.
-  - Verify: Run `--fix` and confirm existing files not overwritten
-  - Evidence: Done 2026-03-10 — generators check fileExists first
+  - `Verify:` Run `--fix` and confirm existing files not overwritten
+  - `Evidence:` Done 2026-03-10 — generators check fileExists first
 - [x] Generated AGENTS.md scores higher on additionality than a naive "dump everything" approach.
-  - Verify: Compare scan scores before/after AGENTS.md generation
-  - Evidence: Done 2026-03-10 — computeOverlap() avoids README duplication
+  - `Verify:` Compare scan scores before/after AGENTS.md generation
+  - `Evidence:` Done 2026-03-10 — computeOverlap() avoids README duplication
 - [x] `--fix` is idempotent (running twice produces no additional changes).
-  - Verify: Run `--fix` twice and confirm no additional changes on second run
-  - Evidence: Done 2026-03-10 — alreadyExists flag
+  - `Verify:` Run `--fix` twice and confirm no additional changes on second run
+  - `Evidence:` Done 2026-03-10 — alreadyExists flag
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Fix adoption rate
 - [ ] Fix types applied
@@ -2465,55 +2465,55 @@ Benchmark scores on recognizable projects build credibility, drive interest, and
 ### Functional
 
 - [ ] Scan and publish scores for 20+ well-known OSS repos across multiple ecosystems:
-  - Verify: Count published benchmark results and confirm ≥20
-  - Evidence:
+  - `Verify:` Count published benchmark results and confirm ≥20
+  - `Evidence:`
   - [ ] TypeScript/JavaScript: React, Next.js, Vue, Nuxt, Express, Remix, Astro.
-    - Verify: Check benchmark results for each repo
-    - Evidence:
+    - `Verify:` Check benchmark results for each repo
+    - `Evidence:`
   - [ ] Python: FastAPI, Django, Flask, Pydantic, LangChain.
-    - Verify: Check benchmark results for each repo
-    - Evidence:
+    - `Verify:` Check benchmark results for each repo
+    - `Evidence:`
   - [ ] Go: Kubernetes (subset), Terraform, Hugo.
-    - Verify: Check benchmark results for each repo
-    - Evidence:
+    - `Verify:` Check benchmark results for each repo
+    - `Evidence:`
   - [ ] Rust: Ripgrep, Tokio.
-    - Verify: Check benchmark results for each repo
-    - Evidence:
+    - `Verify:` Check benchmark results for each repo
+    - `Evidence:`
   - [ ] Java: Spring Boot.
-    - Verify: Check benchmark results for each repo
-    - Evidence:
+    - `Verify:` Check benchmark results for each repo
+    - `Evidence:`
   - [ ] Multi-language: VS Code, Chromium (subset).
-    - Verify: Check benchmark results for each repo
-    - Evidence:
+    - `Verify:` Check benchmark results for each repo
+    - `Evidence:`
 - [ ] Results are reproducible: same revisions → same scores.
-  - Verify: Run benchmark with pinned revisions twice and diff results
-  - Evidence:
+  - `Verify:` Run benchmark with pinned revisions twice and diff results
+  - `Evidence:`
 - [ ] Results cover at least 4 different primary languages.
-  - Verify: Count distinct primary languages in benchmark results
-  - Evidence:
+  - `Verify:` Count distinct primary languages in benchmark results
+  - `Evidence:`
 
 ### Documentation
 
 - [ ] Methodology notes explaining scoring version, date, and any repo-specific caveats.
-  - Verify: Check benchmark results page for methodology section
-  - Evidence:
+  - `Verify:` Check benchmark results page for methodology section
+  - `Evidence:`
 - [ ] Results page (markdown in repo, later promoted to website).
-  - Verify: Check `test -f benchmarks/RESULTS.md && echo PASS`
-  - Evidence:
+  - `Verify:` Check `test -f benchmarks/RESULTS.md && echo PASS`
+  - `Evidence:`
 - [ ] Methodology notes explain any anomalies or caveats.
-  - Verify: Review methodology section for caveat documentation
-  - Evidence:
+  - `Verify:` Review methodology section for caveat documentation
+  - `Evidence:`
 
 ### Meta
 
 - [ ] Rerun script + pinned revision list for reproducibility.
-  - Verify: Run `./benchmarks/run.sh` and confirm it executes
-  - Evidence:
+  - `Verify:` Run `./benchmarks/run.sh` and confirm it executes
+  - `Evidence:`
 - [ ] Rerun script + pinned revision list are included and tested.
-  - Verify: Check `test -f benchmarks/revisions.json && echo PASS`
-  - Evidence:
+  - `Verify:` Check `test -f benchmarks/revisions.json && echo PASS`
+  - `Evidence:`
 
-## Telemetry (non-blocking)
+### Telemetry (non-blocking)
 
 - [ ] Benchmark page views
 - [ ] Repos inspired to scan
