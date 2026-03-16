@@ -11,7 +11,7 @@ export type PillarOverride = z.infer<typeof PillarOverride>;
 export const ScanConfig = z.object({
   threshold: z.number().min(0).max(100).default(0),
   targetLevel: MaturityLevel.optional(),
-  format: z.enum(["terminal", "json", "sarif", "markdown"]).default("terminal"),
+  format: z.enum(["terminal", "json", "ndjson", "sarif", "markdown"]).default("terminal"),
   output: z.string().optional(),
   verbose: z.boolean().default(false),
   quiet: z.boolean().default(false),
@@ -27,7 +27,7 @@ export type ScanConfig = z.infer<typeof ScanConfig>;
  */
 export const FileConfig = z.object({
   threshold: z.number().min(0).max(100).optional(),
-  format: z.enum(["terminal", "json", "sarif", "markdown"]).optional(),
+  format: z.enum(["terminal", "json", "ndjson", "sarif", "markdown"]).optional(),
   pillars: z
     .object({
       exclude: z.array(PillarId).optional(),

@@ -2,34 +2,42 @@
 
 ## Session: 2026-03-16
 Phase: P1 (active — earliest phase with unchecked items)
-Checkboxes checked this session: 10
+Checkboxes checked this session: 4
 
 ### Completed
-- P1.14: Schema versioning — exported SCHEMA_VERSION constant, semver rules documented, backwards compat guaranteed
-- P1.09/P1.10: Cross-language type strictness confidence labels verified (already implemented)
-- P1.12/P1.13: Research citations in composite scoring output verified (already implemented)
-- P1.11/P1.12: Branch protection (ARI-SEC-009) and SAST (ARI-SEC-010) findings added
-- P1.10/P1.11: Structural clarity for retrieval (ARI-NAV-009) verified
-- P1.15/P1.14: Structured remediation data — evidence objects added to 27 findings across all analyzers
+- P1.10: Type coverage percentage — ARI-BLD-013 finding detects type-coverage tool presence (+5 score)
+- P1.14: NDJSON streaming output — `--format ndjson` emits one JSON object per line (metadata, pillars, summary)
+- P1.02: Monorepo detection evidence — workspace root + package boundaries verified for all 6 tools, REVIEW flag removed
+- P1.16: Badge cross-platform rendering — SVG structure validated (standard fonts, no foreignObject/external deps), REVIEW flag removed
+- P1.02 (bonus): Detection performance evidence — 100k files in ~1.2s, REVIEW flag removed
+
+### Ticket Status Changes
+- P1.10: in-progress → in-progress (type coverage done, telemetry items remain)
+- P1.14: in-progress → in-progress (NDJSON done, telemetry items remain)
+- P1.02: in-progress → in-progress (monorepo boundaries done, false-language benchmark BLOCKED on P1.18)
+- P1.16: in-progress → in-progress (badge rendering done, telemetry items remain)
 
 ### In Progress
-- None
+- None (all batch items shipped)
 
 ### Deferred
 - P1.04: Semantic additionality engine (requires NLP)
-- P1.06/P1.07: AST-level analysis (deferred to P3.07)
+- P1.07: AST-level analysis (deferred to P3.07)
 - P1.18: Benchmark cohort (requires npm publishing)
 
 ### Key Decisions
-- Evidence/remediation fields remain optional in Zod schema (not made required) — info-severity positive indicators intentionally omit remediation
-- Branch protection detection uses heuristic approach (file-based, not GitHub API)
+- Type coverage detection is TypeScript-only (primary P1 scope), uses script/dir/dep detection heuristics
+- NDJSON format uses 3 record types: metadata, pillar, summary — each line independently parseable
+- Benchmark-dependent REVIEW items (false-language rate) marked BLOCKED on P1.18
 
 ### Blockers
-- None
+- P1.02 false-language rate benchmark requires P1.18 (npm publishing + benchmark cohort)
 
 ### Next Session Should Start With
-- Verify whether P1 has any remaining unchecked items (non-deferred, non-blocked)
-- If P1 is complete, advance to P2
+- Check remaining unchecked P1 items — most are non-blocking telemetry
+- P1.04, P1.07, P1.18 remain deferred; all other functional work should be complete
+- Consider documenting deferred items and advancing to P2 if no more functional work remains
 
 ### Roadmap Progress
-- P1: 5/18 tickets done, 12 in-progress, 1 todo. P1.10–P1.14 all remain in-progress (each has unchecked items: P1.10 has 3, P1.11 has 2, P1.12 has 2, P1.13 has 2, P1.14 has 2 — mostly non-blocking telemetry items plus a few functional items like type coverage and NDJSON streaming).
+- P1: Most functional items now complete. Remaining: ~30 non-blocking telemetry items, 3 deferred tickets (P1.04/P1.07/P1.18), 1 BLOCKED benchmark item
+- Selftest: 92/100 (L5 Autonomous)

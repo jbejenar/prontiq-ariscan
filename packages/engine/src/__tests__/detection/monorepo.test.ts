@@ -119,6 +119,67 @@ describe("detectMonorepo", () => {
     expect(result).toBeNull();
   });
 
+  describe("workspace root and package boundary evidence (P1.02)", () => {
+    it("all supported tools return workspaceRoot '.' and a non-empty packages list", async () => {
+      const cases: Array<{ name: string; files: Record<string, string> }> = [
+        {
+          name: "Turborepo",
+          files: {
+            "turbo.json": '{"pipeline":{"build":{}}}',
+            "package.json": JSON.stringify({ workspaces: ["packages/*"] }),
+            "packages/web/src/index.ts": "",
+            "packages/api/src/index.ts": "",
+          },
+        },
+        {
+          name: "pnpm workspaces",
+          files: {
+            "pnpm-workspace.yaml": "packages:\n  - 'packages/*'\n",
+            "packages/core/src/index.ts": "",
+          },
+        },
+        {
+          name: "Nx",
+          files: {
+            "nx.json": '{"tasksRunnerOptions":{}}',
+            "package.json": JSON.stringify({ workspaces: ["apps/*"] }),
+            "apps/frontend/src/main.ts": "",
+          },
+        },
+        {
+          name: "Lerna",
+          files: {
+            "lerna.json": JSON.stringify({ packages: ["packages/*"] }),
+            "packages/core/src/index.ts": "",
+          },
+        },
+        {
+          name: "Cargo workspaces",
+          files: {
+            "Cargo.toml": '[workspace]\nmembers = ["crates/*"]\n\n[package]\nname = "root"',
+            "crates/core/src/lib.rs": "",
+          },
+        },
+        {
+          name: "Go workspaces",
+          files: {
+            "go.work": "go 1.21\n\nuse (\n\t./cmd/api\n)\n",
+            "cmd/api/main.go": "package main",
+          },
+        },
+      ];
+
+      for (const { name, files } of cases) {
+        const ctx = createMockContext(files);
+        const result = await detectMonorepo(ctx);
+        expect(result, `${name} should detect monorepo`).not.toBeNull();
+        if (!result) continue;
+        expect(result.workspaceRoot).toBe(".");
+        expect(result.packages.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
   it("ignores Cargo.toml without [workspace] section", async () => {
     const ctx = createMockContext({
       "Cargo.toml": '[package]\nname = "my-app"\nversion = "0.1.0"',

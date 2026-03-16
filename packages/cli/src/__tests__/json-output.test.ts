@@ -1,7 +1,7 @@
-/** Tests for JSON output formatting and JSON Schema generation. */
+/** Tests for JSON output formatting, NDJSON streaming, and JSON Schema generation. */
 import { describe, it, expect } from "vitest";
 import type { ScanResult } from "@prontiq/ariscan-schema";
-import { formatJson, getJsonSchemaObject } from "../output/json.js";
+import { formatJson, formatNdjson, getJsonSchemaObject } from "../output/json.js";
 
 const mockResult: ScanResult = {
   metadata: {
@@ -93,5 +93,105 @@ describe("getJsonSchemaObject additional coverage", () => {
     const actionEnum = remProps?.["action"]?.["enum"] as string[];
     expect(actionEnum).toContain("create-file");
     expect(actionEnum).toContain("refactor");
+  });
+});
+
+const ndjsonResult: ScanResult = {
+  ...mockResult,
+  pillars: [
+    {
+      pillar: "P1",
+      name: "Agent Context Quality",
+      score: 70,
+      weight: 0.15,
+      confidence: "high",
+      findings: [],
+      summary: "Good context",
+    },
+    {
+      pillar: "P6",
+      name: "Build Determinism & Type Safety",
+      score: 85,
+      weight: 0.15,
+      confidence: "high",
+      findings: [],
+      summary: "Strong build",
+    },
+  ],
+};
+
+describe("formatNdjson", () => {
+  it("produces one JSON object per line", () => {
+    const output = formatNdjson(ndjsonResult);
+    const lines = output.trim().split("\n");
+    // metadata + 2 pillars + summary = 4 lines
+    expect(lines).toHaveLength(4);
+  });
+
+  it("each line is independently parseable JSON", () => {
+    const output = formatNdjson(ndjsonResult);
+    const lines = output.trim().split("\n");
+    for (const line of lines) {
+      expect(() => JSON.parse(line)).not.toThrow();
+    }
+  });
+
+  it("first line has type metadata", () => {
+    const output = formatNdjson(ndjsonResult);
+    const lines = output.trim().split("\n");
+    const first = JSON.parse(lines[0] ?? "");
+    expect(first.type).toBe("metadata");
+    expect(first.version).toBe("0.1.0");
+    expect(first.timestamp).toBeDefined();
+  });
+
+  it("middle lines have type pillar", () => {
+    const output = formatNdjson(ndjsonResult);
+    const lines = output.trim().split("\n");
+    const pillarLines = lines.slice(1, -1);
+    for (const line of pillarLines) {
+      const parsed = JSON.parse(line);
+      expect(parsed.type).toBe("pillar");
+      expect(parsed.pillar).toBeDefined();
+      expect(parsed.score).toBeDefined();
+    }
+  });
+
+  it("last line has type summary with score and level", () => {
+    const output = formatNdjson(ndjsonResult);
+    const lines = output.trim().split("\n");
+    const last = JSON.parse(lines[lines.length - 1] ?? "");
+    expect(last.type).toBe("summary");
+    expect(last.score).toBe(55);
+    expect(last.level).toBe("L3");
+    expect(last.securityGateTriggered).toBe(false);
+  });
+
+  it("ends with a newline", () => {
+    const output = formatNdjson(ndjsonResult);
+    expect(output.endsWith("\n")).toBe(true);
+  });
+
+  it("includes detection in summary when present", () => {
+    const resultWithDetection: ScanResult = {
+      ...ndjsonResult,
+      detection: {
+        languages: [{ language: "TypeScript", confidence: 0.95, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      },
+    };
+    const output = formatNdjson(resultWithDetection);
+    const lines = output.trim().split("\n");
+    const last = JSON.parse(lines[lines.length - 1] ?? "");
+    expect(last.detection).toBeDefined();
+    expect(last.detection.languages[0].language).toBe("TypeScript");
+  });
+
+  it("handles empty pillars array", () => {
+    const output = formatNdjson(mockResult);
+    const lines = output.trim().split("\n");
+    // metadata + summary = 2 lines (no pillar lines)
+    expect(lines).toHaveLength(2);
   });
 });

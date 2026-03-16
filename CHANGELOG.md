@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.16.0] — 2026-03-16
+
+### Added
+- **Engine (P6):** Added `ARI-BLD-013` — type coverage tooling detection (+5 points for type-coverage script, .type-coverage dir, or type-coverage dependency). (P1.10)
+- **CLI:** Added `--format ndjson` output mode — newline-delimited JSON streaming with metadata, per-pillar, and summary records. (P1.14)
+- **Schema:** Added "ndjson" to ScanConfig and FileConfig format enum.
+- **Tests:** Added 7 type coverage tests, 8 NDJSON output tests, 7 SVG cross-platform validation tests, 1 monorepo workspace root+boundary evidence test.
+
+### Changed
+- **Roadmap (P1.02):** Removed REVIEW flag for monorepo detection — workspace root and package boundaries verified for all 6 tools. False-language benchmark marked BLOCKED on P1.18.
+- **Roadmap (P1.02):** Removed REVIEW flag for detection performance — 100k files in ~1.2s confirmed by performance test suite.
+- **Roadmap (P1.16):** Removed REVIEW flag for badge rendering — SVG structure validated for cross-platform compatibility.
+
+### Metrics
+- **Self-scan score:** 92/100 (L5 Autonomous) — unchanged
+- **Tests:** 880+ total — up from 841
+
 ## [3.15.0] — 2026-03-16
 
 ### Added

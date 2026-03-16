@@ -65,6 +65,61 @@ describe("generateBadgeSnippets additional coverage", () => {
   });
 });
 
+describe("SVG cross-platform rendering (P1.16)", () => {
+  it("is valid XML with proper SVG namespace", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toMatch(/^<svg\s/);
+    expect(svg).toMatch(/<\/svg>$/);
+  });
+
+  it("uses only standard system font families (no @font-face or external fonts)", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).toContain("Verdana");
+    expect(svg).toContain("Geneva");
+    expect(svg).toContain("DejaVu Sans");
+    expect(svg).toContain("sans-serif");
+    // Must not use external fonts or @font-face
+    expect(svg).not.toContain("@font-face");
+    expect(svg).not.toContain("href=");
+  });
+
+  it("has explicit width, height, and uses no foreignObject", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).toMatch(/width="\d+"/);
+    expect(svg).toMatch(/height="\d+"/);
+    expect(svg).not.toContain("foreignObject");
+  });
+
+  it("uses only inline styles (no <style> blocks or external CSS)", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).not.toContain("<style");
+    expect(svg).not.toContain("class=");
+  });
+
+  it("contains accessible role and aria-label", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).toContain('role="img"');
+    expect(svg).toContain("aria-label=");
+  });
+
+  it("uses no JavaScript or event handlers", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).not.toContain("<script");
+    expect(svg).not.toContain("onclick");
+    expect(svg).not.toContain("onload");
+  });
+
+  it("embeds all text directly (no <use> or <tref> elements)", () => {
+    const svg = generateBadgeSvg(mockResult);
+    expect(svg).not.toContain("<use ");
+    expect(svg).not.toContain("<tref");
+    // Text content is directly in <text> elements
+    expect(svg).toContain("<text");
+    expect(svg).toContain("Agent-Ready");
+  });
+});
+
 describe("formatBadge", () => {
   it("combines SVG and snippets", () => {
     const output = formatBadge(mockResult, "badge.svg");
