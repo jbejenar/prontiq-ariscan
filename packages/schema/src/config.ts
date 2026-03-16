@@ -1,6 +1,23 @@
 import { z } from "zod";
 import { PillarId, MaturityLevel } from "./pillar.js";
 
+const VALID_PILLAR_IDS = new Set(PillarId.options);
+
+/** A z.record that only accepts valid PillarId keys. */
+function pillarRecord<V extends z.ZodTypeAny>(valueSchema: V) {
+  return z.record(z.string(), valueSchema).superRefine((rec, ctx) => {
+    for (const key of Object.keys(rec)) {
+      if (!VALID_PILLAR_IDS.has(key as z.infer<typeof PillarId>)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid pillar ID "${key}". Valid IDs: ${[...VALID_PILLAR_IDS].join(", ")}`,
+          path: [key],
+        });
+      }
+    }
+  });
+}
+
 export const PillarOverride = z.object({
   weight: z.number().min(0).max(1).optional(),
   threshold: z.number().min(0).max(100).optional(),
@@ -37,14 +54,14 @@ export type Suppression = z.infer<typeof Suppression>;
 
 export const PillarThresholds = z.object({
   composite: z.number().min(0).max(100).optional(),
-  pillars: z.record(z.string(), z.number().min(0).max(100)).optional(),
+  pillars: pillarRecord(z.number().min(0).max(100)).optional(),
 });
 export type PillarThresholds = z.infer<typeof PillarThresholds>;
 
 export const PolicyProfile = z.object({
   name: z.string().min(1),
   thresholds: PillarThresholds.optional(),
-  weights: z.record(z.string(), z.number().min(0).max(1)).optional(),
+  weights: pillarRecord(z.number().min(0).max(1)).optional(),
 });
 export type PolicyProfile = z.infer<typeof PolicyProfile>;
 
@@ -70,7 +87,7 @@ export const FileConfig = z.object({
   pillars: z
     .object({
       exclude: z.array(PillarId).optional(),
-      weights: z.record(z.string(), z.number().min(0).max(1)).optional(),
+      weights: pillarRecord(z.number().min(0).max(1)).optional(),
     })
     .optional(),
   suppressions: z.array(Suppression).optional(),

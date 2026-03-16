@@ -160,10 +160,14 @@ describe("PillarThresholds schema", () => {
     expect(result.pillars?.P1).toBe(60);
   });
 
-  it("accepts arbitrary string keys for pillars (validated at semantic level)", () => {
-    // Schema accepts any string keys; pillar ID validation is done at the semantic level
+  it("accepts valid PillarId keys", () => {
     const result = PillarThresholds.parse({ pillars: { P1: 50, P2: 60 } });
     expect(result.pillars?.P1).toBe(50);
+  });
+
+  it("rejects invalid pillar IDs", () => {
+    expect(() => PillarThresholds.parse({ pillars: { P9: 50 } })).toThrow();
+    expect(() => PillarThresholds.parse({ pillars: { INVALID: 50 } })).toThrow();
   });
 });
 

@@ -88,8 +88,8 @@ function mergePillarRecord(
 
 function mergeConfigs(parent: FileConfigType, child: FileConfigType): FileConfigType {
   const mergedPillarThresholds = mergePillarRecord(
-    parent.thresholds?.pillars as Record<string, number> | undefined,
-    child.thresholds?.pillars as Record<string, number> | undefined,
+    parent.thresholds?.pillars,
+    child.thresholds?.pillars,
   );
 
   return {
@@ -141,8 +141,8 @@ export function resolveProfile(config: FileConfigType): FileConfigType {
 
   if (profile.thresholds) {
     const mergedPillarThresholds = mergePillarRecord(
-      result.thresholds?.pillars as Record<string, number> | undefined,
-      profile.thresholds.pillars as Record<string, number> | undefined,
+      result.thresholds?.pillars,
+      profile.thresholds.pillars,
     );
     result.thresholds = {
       composite: profile.thresholds.composite ?? result.thresholds?.composite,
@@ -306,31 +306,24 @@ export async function resolveFullConfig(options: {
   const resolvedConfigPath = configPath ? resolve(configPath) : await findConfigFile(repoPath);
 
   if (resolvedConfigPath) {
-    try {
-      fileConfig = await loadConfigFile(resolvedConfigPath);
+    fileConfig = await loadConfigFile(resolvedConfigPath);
 
-      // Resolve inheritance chain
-      fileConfig = await resolveInheritance(fileConfig, resolvedConfigPath);
+    // Resolve inheritance chain
+    fileConfig = await resolveInheritance(fileConfig, resolvedConfigPath);
 
-      // Resolve active profile
-      fileConfig = resolveProfile(fileConfig);
+    // Resolve active profile
+    fileConfig = resolveProfile(fileConfig);
 
-      // Filter expired suppressions
-      if (fileConfig.suppressions) {
-        fileConfig = { ...fileConfig, suppressions: filterSuppressions(fileConfig.suppressions) };
-      }
+    // Filter expired suppressions
+    if (fileConfig.suppressions) {
+      fileConfig = { ...fileConfig, suppressions: filterSuppressions(fileConfig.suppressions) };
+    }
 
-      // Warn about paths rules that are not yet enforced
-      if (fileConfig.paths && fileConfig.paths.length > 0) {
-        process.stderr.write(
-          `Warning: 'paths' rules are defined in policy but not yet enforced. ` +
-            `Path-specific thresholds will be ignored.\n`,
-        );
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+    // Warn about paths rules that are not yet enforced
+    if (fileConfig.paths && fileConfig.paths.length > 0) {
       process.stderr.write(
-        `Warning: Failed to load config file ${resolvedConfigPath}: ${message}\n`,
+        `Warning: 'paths' rules are defined in policy but not yet enforced. ` +
+          `Path-specific thresholds will be ignored.\n`,
       );
     }
   }
