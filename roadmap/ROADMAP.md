@@ -963,9 +963,9 @@ The AI coding agent ecosystem is fragmented across multiple context file formats
 
 ### Performance
 
-- [x] Discovery completes in <1 second for repos up to 100k files.
-  - `Verify:` Run discovery on 100k-file fixture and measure duration
-  - `Evidence:` Performance test in performance.test.ts: 100k files listed and sorted in ~32ms. Test asserts <1s threshold. Added 2026-03-16.
+- [ ] Discovery completes in <1 second for repos up to 100k files. [BLOCKED: requires end-to-end benchmark with real or temp-backed filesystem fixture; current benchmark only measures post-walk file-list processing (~32ms), not actual discovery/filesystem walking]
+  - `Verify:` Run end-to-end discovery on 100k-file fixture (real or temp-backed filesystem) and measure duration
+  - `Partial evidence:` File-list processing benchmark in performance.test.ts: 100k files listed and sorted in ~32ms. This covers post-walk array processing only, not filesystem discovery. Added 2026-03-16.
 
 ### Telemetry (non-blocking)
 
