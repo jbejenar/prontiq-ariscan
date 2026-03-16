@@ -117,8 +117,11 @@ function normalizeForComparison(text: string): string {
       .replace(/!\[([^\]]*)\]\([^)]*\)/g, "")
       // Remove bold/italic markers
       .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, "$1")
-      // Remove HTML tags
+      // Remove HTML tags (loop to handle nested/malformed tags like <<script>)
       .replace(/<[^>]+>/g, "")
+      .replace(/<[^>]+>/g, "")
+      // Remove any remaining lone angle brackets left after tag stripping
+      .replace(/[<>]/g, "")
       // Collapse whitespace
       .replace(/\s+/g, " ")
       .trim()
