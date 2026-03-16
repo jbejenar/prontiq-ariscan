@@ -192,6 +192,47 @@ describe("buildTelemetryPayload", () => {
       info: 0,
     });
   });
+
+  it("reports devcontainer_detected true when ScanResult has devcontainerDetected", () => {
+    const result = makeScanResult({ devcontainerDetected: true });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.devcontainer_detected).toBe(true);
+  });
+
+  it("reports devcontainer_detected false when ScanResult has devcontainerDetected false", () => {
+    const result = makeScanResult({ devcontainerDetected: false });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.devcontainer_detected).toBe(false);
+  });
+
+  it("reports devcontainer_detected undefined when field is absent", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.devcontainer_detected).toBeUndefined();
+  });
+
+  it("reports high_risk_test_count as 0 when no ARI-TST-015 findings", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.high_risk_test_count).toBe(0);
+  });
+
+  it("reports high_risk_test_count > 0 when ARI-TST-015 findings exist", () => {
+    const result = makeScanResult({
+      findings: [
+        { code: "ARI-TST-015", severity: "medium", pillar: "P5", message: "High-risk test file" },
+        {
+          code: "ARI-TST-015",
+          severity: "medium",
+          pillar: "P5",
+          message: "Another high-risk test",
+        },
+        { code: "ARI-CTX-001", severity: "low", pillar: "P1", message: "Other finding" },
+      ],
+    });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.high_risk_test_count).toBe(2);
+  });
 });
 
 describe("scoreToBucket", () => {

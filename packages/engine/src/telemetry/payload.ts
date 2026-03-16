@@ -70,8 +70,7 @@ export function buildTelemetryPayload(
     finding_counts_by_pillar: Object.keys(pillarCounts).length > 0 ? pillarCounts : undefined,
 
     // Round 2 fields
-    devcontainer_detected: !result.findings.some((f) => f.code === "ARI-ENV-001"),
-    high_risk_test_count:
-      result.findings.filter((f) => f.code === "ARI-TST-015").length || undefined,
+    devcontainer_detected: result.devcontainerDetected,
+    high_risk_test_count: result.findings.filter((f) => f.code === "ARI-TST-015").length,
   };
 }

@@ -178,5 +178,7 @@ export const ScanResult = z.object({
   detection: DetectionResult.optional(),
   /** Discovered context files in the scanned repository. */
   contextFiles: z.array(ContextFileInfo).optional(),
+  /** Whether a devcontainer configuration was detected in the repository. */
+  devcontainerDetected: z.boolean().optional(),
 });
 export type ScanResult = z.infer<typeof ScanResult>;

@@ -210,7 +210,16 @@ export async function scan(
     duration,
   });
 
-  return { ...result, detection, contextFiles: contextFiles.length > 0 ? contextFiles : undefined };
+  // Explicit devcontainer detection — propagated into ScanResult so telemetry
+  // doesn't need to reverse-infer from finding codes.
+  const devcontainerDetected = await context.fileExists(".devcontainer/devcontainer.json");
+
+  return {
+    ...result,
+    detection,
+    contextFiles: contextFiles.length > 0 ? contextFiles : undefined,
+    devcontainerDetected,
+  };
 }
 
 /**
