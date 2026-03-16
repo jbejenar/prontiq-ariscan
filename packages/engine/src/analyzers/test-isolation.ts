@@ -790,7 +790,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         if (/node_modules|\.d\.ts$|dist\//i.test(f)) return false;
         return true;
       });
-      for (const sf of sourceFiles.slice(0, 20)) {
+      for (const sf of sourceFiles) {
         const content = await context.readFile(sf);
         if (!content) continue;
         if (ABSTRACTION_PATTERN.test(content) || ABSTRACT_CLASS_PATTERN.test(content)) {
