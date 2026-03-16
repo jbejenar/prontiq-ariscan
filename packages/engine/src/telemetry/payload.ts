@@ -21,7 +21,21 @@ export function buildTelemetryPayload(
   durationMs: number,
   options?: TelemetryOptions,
 ): TelemetryPayload {
-  const primaryLang = result.detection?.languages.find((l) => l.primary)?.language ?? "unknown";
+  const primaryLangEntry = result.detection?.languages.find((l) => l.primary);
+  const primaryLang = primaryLangEntry?.language ?? "unknown";
+
+  // Aggregate finding counts by severity
+  const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  for (const f of result.findings) {
+    if (f.severity in severityCounts) {
+      severityCounts[f.severity as keyof typeof severityCounts]++;
+    }
+  }
+
+  // Count distinct agent context file types
+  const contextFileTypes = result.contextFiles
+    ? new Set(result.contextFiles.map((cf) => cf.type)).size
+    : undefined;
 
   return {
     scan_id: randomUUID(),
@@ -40,5 +54,12 @@ export function buildTelemetryPayload(
     badge_generated: options?.badgeGenerated,
     language_count: result.detection?.languages.length,
     framework_count: result.detection?.frameworks.length,
+    context_file_count: result.contextFiles?.length,
+    agent_context_types: contextFileTypes,
+    security_gate_triggered: result.securityGateTriggered,
+    maturity_level: result.level,
+    monorepo_detected: result.detection?.monorepo != null,
+    detection_confidence: primaryLangEntry?.confidence,
+    finding_counts_by_severity: severityCounts,
   };
 }
