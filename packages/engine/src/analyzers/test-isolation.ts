@@ -772,8 +772,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
       if (!content) continue;
       if (
         /\binterface\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i.test(content) ||
-        /\babstract\s+class\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i.test(content) ||
-        /\b(implements|extends)\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i.test(content)
+        /\babstract\s+class\s+\w*(Provider|Service|Repository|Client|Gateway)\b/i.test(content)
       ) {
         hasAbstractedInterface = true;
         break;

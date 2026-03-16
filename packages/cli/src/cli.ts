@@ -307,7 +307,10 @@ async function handleScanMode(
   }
 
   // Fire-and-forget telemetry (only if consent is active)
-  const telemetryPayload = buildTelemetryPayload(result, result.metadata.duration);
+  const telemetryPayload = buildTelemetryPayload(result, result.metadata.duration, {
+    format,
+    badgeGenerated: !!args.badge,
+  });
   sendTelemetry(telemetryPayload);
 
   if (args.badge) {
