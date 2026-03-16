@@ -1,5 +1,7 @@
 # Prontiq ARI — `@prontiq/ariscan-cli`
 
+[![CI](https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml/badge.svg)](https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml)
+
 > Measure and improve how ready your codebase is for AI coding agents.
 
 **ARI** (Agent Readiness Index) is a composite score (0-100) derived from 8 research-calibrated pillars. Run `npx @prontiq/ariscan-cli .` to get an actionable readiness report in under 10 minutes.
