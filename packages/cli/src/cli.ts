@@ -85,8 +85,9 @@ async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
 
   // Detect `ariscan policy ...` subcommand
   if (args.path === "policy") {
-    const { runMain } = await import("citty");
-    await runMain(policyCommand);
+    const { runCommand } = await import("citty");
+    // Strip [node, script, "policy"] so policyCommand only sees subcommand args
+    await runCommand(policyCommand, { rawArgs: process.argv.slice(3) });
     return;
   }
 
