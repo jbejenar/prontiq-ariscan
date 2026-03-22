@@ -55,7 +55,7 @@
     "citty": "^0.2.1",
     "consola": "^3.4.0",
     "picocolors": "^1.1.0",
-    "yaml": "^2.6.0"
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

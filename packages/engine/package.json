@@ -38,7 +38,7 @@
   "dependencies": {
     "@prontiq/ariscan-schema": "workspace:*",
     "fast-glob": "^3.3.0",
-    "yaml": "^2.6.0"
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
