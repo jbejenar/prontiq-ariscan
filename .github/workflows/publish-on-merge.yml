@@ -60,20 +60,27 @@ jobs:
               echo "- $pkg" >> "$GITHUB_STEP_SUMMARY"
             done
           else
-            # Nothing new was published — check if this is a rerun where
-            # the version is already on npm (e.g. prior run published but
-            # failed during tag/release creation). Allow reruns to continue
-            # into the release step so they can repair missing tags/releases.
+            # Nothing new was published — check per-package if this is a
+            # rerun where some or all packages already exist on npm (e.g.
+            # prior run published but failed during tag/release creation).
             VERSION=$(node -p "require('./packages/cli/package.json').version")
-            if npm view "@prontiq/ariscan-cli@$VERSION" version >/dev/null 2>&1; then
-              echo "Version $VERSION already on npm — continuing to release step (likely a rerun)"
+            NPM_COUNT=0
+            echo "### Rerun — checking npm for existing packages" >> "$GITHUB_STEP_SUMMARY"
+            for PKG in schema engine cli; do
+              FULL="@prontiq/ariscan-${PKG}"
+              if npm view "${FULL}@${VERSION}" version >/dev/null 2>&1; then
+                NPM_COUNT=$((NPM_COUNT + 1))
+                echo "- ${FULL}@${VERSION} ✓ on npm" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "- ${FULL}@${VERSION} ✗ NOT on npm" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            done
+
+            if [ "$NPM_COUNT" -gt 0 ]; then
+              echo "$NPM_COUNT/3 packages already on npm — continuing to release step"
               echo "published_any=true" >> "$GITHUB_OUTPUT"
-              echo "### Rerun — packages already published" >> "$GITHUB_STEP_SUMMARY"
-              echo "- @prontiq/ariscan-schema@$VERSION" >> "$GITHUB_STEP_SUMMARY"
-              echo "- @prontiq/ariscan-engine@$VERSION" >> "$GITHUB_STEP_SUMMARY"
-              echo "- @prontiq/ariscan-cli@$VERSION" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "::error::Version bump commit detected but no packages were published and $VERSION is not on npm."
+              echo "::error::Version bump commit detected but no packages were published and none found on npm for $VERSION."
               exit 1
             fi
           fi
@@ -91,7 +98,15 @@ jobs:
           VERSION=$(node -p "require('./packages/cli/package.json').version")
 
           for PKG in schema engine cli; do
-            TAG="@prontiq/ariscan-${PKG}@${VERSION}"
+            FULL="@prontiq/ariscan-${PKG}"
+            TAG="${FULL}@${VERSION}"
+
+            # Only create tags/releases for packages confirmed on npm
+            if ! npm view "${FULL}@${VERSION}" version >/dev/null 2>&1; then
+              echo "Skipping $TAG — not found on npm"
+              continue
+            fi
+
             echo "Creating release for $TAG"
 
             # Create a git tag (may already exist)
