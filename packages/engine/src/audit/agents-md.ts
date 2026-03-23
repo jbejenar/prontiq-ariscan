@@ -125,7 +125,7 @@ const NEGATIVE_INSTRUCTION_PATTERNS = [
   /\bDO\s+NOT\b/,
   /\bnever\b/i,
   /\bavoid\b/i,
-  /\bdon['']t\b/i,
+  /\bdon['\u2018\u2019]t\b/i,
   /\bmust\s+not\b/i,
   /\bshould\s+not\b/i,
   /\bprohibited\b/i,
