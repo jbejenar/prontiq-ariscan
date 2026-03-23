@@ -525,10 +525,18 @@ async function scoreStaleness(
       // which are real filenames that should be checked for staleness.
       if (BARE_EXTENSIONS.has(refPath.toLowerCase())) continue;
 
-      // Try relative to context file directory first, then repo root
+      // Try relative to context file directory first, then repo root.
+      // For nested context files, standalone filenames (no slash) are treated
+      // as package-relative only — no root fallback. This prevents false
+      // negatives where e.g. packages/web/AGENTS.md references "package.json"
+      // and the root package.json suppresses the warning.
+      const isStandalone = !refPath.includes("/");
       const relativePath = contextDir ? `${contextDir}/${refPath}` : refPath;
       const existsRelative = await ctx.fileExists(relativePath);
-      const existsRoot = existsRelative || (await ctx.fileExists(refPath));
+      // Only fall back to repo root for paths with slashes, or when there is
+      // no contextDir (file is already at repo root).
+      const skipRootFallback = isStandalone && contextDir !== "";
+      const existsRoot = existsRelative || (!skipRootFallback && (await ctx.fileExists(refPath)));
       if (!existsRelative && !existsRoot) {
         issues.push({
           severity: "warning",

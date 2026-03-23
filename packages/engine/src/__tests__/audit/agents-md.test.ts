@@ -164,6 +164,45 @@ describe("staleness scoring", () => {
     expect(pkgIssue?.fix).toBe("Use pnpm to install dependencies.");
   });
 
+  it("does not suppress staleness for standalone filenames via root fallback in nested files", async () => {
+    // packages/web/AGENTS.md references "package.json" which exists only at
+    // repo root, NOT at packages/web/package.json. This should produce a
+    // staleness warning because the reference is package-local.
+    const ctx = createMockContext({
+      "packages/web/AGENTS.md":
+        "# Web Package\n\nSee `package.json` for scripts.\nCheck `README.md` for docs.",
+      "package.json": JSON.stringify({ name: "root" }),
+      "README.md": "# Root README",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    const pathIssues = stalenessIssues.filter((i) => i.message.includes("does not exist"));
+    // Both package.json and README.md should be flagged as missing (package-relative)
+    expect(pathIssues.length).toBeGreaterThanOrEqual(2);
+    expect(pathIssues.some((i) => i.message.includes("package.json"))).toBe(true);
+    expect(pathIssues.some((i) => i.message.includes("README.md"))).toBe(true);
+  });
+
+  it("still uses root fallback for slash-containing paths in nested files", async () => {
+    // packages/web/AGENTS.md references "docs/guide.md" which exists at repo
+    // root as docs/guide.md but NOT at packages/web/docs/guide.md.
+    // Slash-containing paths still get root fallback.
+    const ctx = createMockContext({
+      "packages/web/AGENTS.md": "# Web Package\n\nSee `docs/guide.md` for architecture.",
+      "docs/guide.md": "# Architecture Guide",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    const pathIssues = stalenessIssues.filter(
+      (i) => i.message.includes("docs/guide.md") && i.message.includes("does not exist"),
+    );
+    expect(pathIssues).toHaveLength(0);
+  });
+
   it("flags truly missing path references in nested context files", async () => {
     const ctx = createMockContext({
       "packages/web/AGENTS.md": "# Web Package\n\nSee `src/missing-file.ts` for details.",
