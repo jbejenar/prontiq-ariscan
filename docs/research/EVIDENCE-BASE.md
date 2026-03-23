@@ -185,11 +185,11 @@ AI-assisted code introduces concentrated security risk that compounds over itera
 | # | Paper | Year | Finding | Confidence | Product Implication |
 |---|---|---|---|---|---|
 | C.1 | SWE-bench (Jimenez et al.) | 2024 | Gold standard for agent evaluation; establishes baseline difficulty | High | Calibration benchmark for ARI scoring validation |
-| C.2 | SWE-bench Pro (Scale AI) | 2025 | <25% success on enterprise-grade issues vs 75%+ on Verified set | High | Enterprise codebases are fundamentally harder; readiness matters more at scale |
+| C.2 | SWE-bench Pro (Scale AI) | 2025 | <25% success on production-grade issues vs 75%+ on Verified set | High | Complex codebases are fundamentally harder; readiness matters more at scale |
 | C.3 | SWE-EVO | 2026 | 21% success on evolving codebases vs 65% on static snapshots | High | Codebase evolution degrades agent performance; continuous monitoring justified |
 | C.4 | CooperBench | 2026 | 30% decreased success in multi-agent coordination; 36.9% failure rate | Medium | Multi-agent readiness is an emerging dimension (Phase 4 scope) |
 | C.5 | Vibe Coding Survey (various) | 2025 | System-level optimization framework for AI coding effectiveness | Medium | Holistic readiness approach validated by practitioner research |
-| C.6 | Multi-SWE-bench | 2026 | Cross-repository tasks have significantly lower success rates | Medium | Cross-repo readiness is an enterprise-relevant dimension |
+| C.6 | Multi-SWE-bench | 2026 | Cross-repository tasks have significantly lower success rates | Medium | Cross-repo readiness is a relevant dimension for multi-repo setups |
 
 ---
 

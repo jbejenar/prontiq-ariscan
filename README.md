@@ -12,13 +12,12 @@
 
 ## What Is This?
 
-Prontiq is an open-core platform that measures and improves repository readiness for AI coding agents.
+Prontiq is a platform that measures and improves repository readiness for AI coding agents.
 
 ### Product Layers
 
 1. **Scoring engine** — 8-pillar readiness scoring with maturity tiers.
 2. **Remediation engine** — practical fixes for context quality, testability, environment parity, and governance controls.
-3. **Data platform** — longitudinal insights linking repository structure to agent outcomes.
 
 ---
 
@@ -191,7 +190,7 @@ The schema URI uses major-only versioning (`v1`, `v2`, …) as a structural stab
 ## Product Principles
 
 1. **Evidence over opinion** — scoring must remain research-traceable.
-2. **Open-core integrity** — free CLI remains genuinely useful.
+2. **Useful by default** — the CLI remains genuinely useful out of the box.
 3. **Agent agnosticism** — ARI is independent of any single model vendor.
 4. **Operational outcomes first** — readiness scores must drive concrete improvements.
 5. **Transparent evolution** — rubric and roadmap updates are explicit and versioned.
@@ -206,7 +205,7 @@ The schema URI uses major-only versioning (`v1`, `v2`, …) as a structural stab
 | `@prontiq/ariscan-schema` | Built | Zod schemas for scan results, config, findings |
 | `@prontiq/ariscan-engine` | Built | 8-pillar analyzers, composite scoring, security gate |
 | `@prontiq/sdk` | Planned | Programmatic integration for reporting/workflow automation |
-| `@prontiq/agentignore` | Built (in engine) | `.agentignore` parser — gitignore-compatible patterns, negation, default patterns. Currently in `@prontiq/ariscan-engine`; standalone MIT package planned. |
+| `@prontiq/agentignore` | Built (in engine) | `.agentignore` parser — gitignore-compatible patterns, negation, default patterns. Currently in `@prontiq/ariscan-engine`. |
 
 ---
 
@@ -221,4 +220,3 @@ See [roadmap/ROADMAP.md](./roadmap/ROADMAP.md) for the full feature plan. RFCs a
 Elastic License 2.0 (ELv2) — see [LICENSE](./LICENSE).
 
 Free to use, modify, and redistribute. Cannot be offered as a managed/hosted service or resold.
-The planned `@prontiq/agentignore` parser will be MIT-licensed for ecosystem reuse.
