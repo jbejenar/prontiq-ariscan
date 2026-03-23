@@ -133,6 +133,88 @@ Do NOT commit without running lint first.`,
     expect(result.coverage).toBeGreaterThan(50);
   });
 
+  it("recognizes standalone test runners (pytest, vitest, dotnet test)", async () => {
+    const ctx = createMockContext({
+      "README.md": `# My Project
+
+## Testing
+
+Run the test suite:
+
+\`\`\`bash
+pytest
+\`\`\`
+
+## Build
+
+\`\`\`bash
+dotnet build
+\`\`\`
+
+## Constraints
+
+Do NOT push without running tests.`,
+      "package.json": JSON.stringify({ name: "test-runner-project" }),
+    });
+
+    const detection = makeDetectionResult();
+    const result = await analyzeGaps(ctx, detection);
+
+    const testGap = result.gaps.find((g) => g.category.id === "test-commands");
+    // Standalone pytest should be recognized — no gap for test-commands
+    expect(testGap).toBeUndefined();
+  });
+
+  it("recognizes vitest as a standalone test command", async () => {
+    const ctx = createMockContext({
+      "README.md": `# My Project
+
+## Development
+
+Build and test:
+
+\`\`\`bash
+pnpm build
+vitest
+\`\`\`
+
+## Constraints
+
+Never skip linting.`,
+      "package.json": JSON.stringify({ name: "vitest-project" }),
+    });
+
+    const detection = makeDetectionResult();
+    const result = await analyzeGaps(ctx, detection);
+
+    const testGap = result.gaps.find((g) => g.category.id === "test-commands");
+    expect(testGap).toBeUndefined();
+  });
+
+  it("recognizes dotnet test as a test command", async () => {
+    const ctx = createMockContext({
+      "README.md": `# My Project
+
+## Getting Started
+
+\`\`\`bash
+dotnet build
+dotnet test
+\`\`\`
+
+## Constraints
+
+Do not merge without passing tests.`,
+      "package.json": JSON.stringify({ name: "dotnet-project" }),
+    });
+
+    const detection = makeDetectionResult();
+    const result = await analyzeGaps(ctx, detection);
+
+    const testGap = result.gaps.find((g) => g.category.id === "test-commands");
+    expect(testGap).toBeUndefined();
+  });
+
   it("does not report monorepo gap for non-monorepo", async () => {
     const ctx = createMockContext({
       "README.md": "# Project",

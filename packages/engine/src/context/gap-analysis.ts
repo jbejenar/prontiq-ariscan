@@ -77,8 +77,9 @@ const INFO_CATEGORIES: InfoCategory[] = [
     label: "Test commands",
     importance: 10,
     patterns: [
-      /\b(pnpm|npm(?:\s+run)?|yarn|make|cargo|go|pytest|jest|vitest|gradle|mvn)\s+test/i,
+      /\b(pnpm|npm(?:\s+run)?|yarn|make|cargo|go|gradle|mvn|dotnet)\s+test/i,
       /\btest\b.*\b(command|script|step|instructions)\b/i,
+      /\b(pytest|vitest|jest)\b/i,
     ],
   },
   {
