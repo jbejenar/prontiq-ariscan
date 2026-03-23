@@ -127,6 +127,43 @@ describe("staleness scoring", () => {
     expect(pathIssues).toHaveLength(0);
   });
 
+  it("does not flag bare extensions like .js or .ts as missing file references", async () => {
+    // Prose like "Never import without .js extension" should not trigger a
+    // staleness warning for a missing file named ".js".
+    const ctx = createMockContext({
+      "AGENTS.md":
+        "# Guide\n\nNever import without the .js extension for ESM compatibility.\nAlways use .ts files.\nPrefer .md for docs.",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    const bareExtIssues = stalenessIssues.filter(
+      (i) =>
+        (i.message.includes("'.js'") ||
+          i.message.includes("'.ts'") ||
+          i.message.includes("'.md'")) &&
+        i.message.includes("does not exist"),
+    );
+    expect(bareExtIssues).toHaveLength(0);
+  });
+
+  it("generates correct fix text for package manager contradiction", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "# Guide\n\nUse yarn to install dependencies.",
+      "pnpm-lock.yaml": "lockfileVersion: '9.0'",
+      "package.json": JSON.stringify({ name: "test" }),
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    const pkgIssue = stalenessIssues.find((i) => i.message.includes("package manager"));
+    expect(pkgIssue).toBeDefined();
+    // The fix should preserve "Use" and replace only "yarn" with "pnpm"
+    expect(pkgIssue?.fix).toBe("Use pnpm to install dependencies.");
+  });
+
   it("flags truly missing path references in nested context files", async () => {
     const ctx = createMockContext({
       "packages/web/AGENTS.md": "# Web Package\n\nSee `src/missing-file.ts` for details.",

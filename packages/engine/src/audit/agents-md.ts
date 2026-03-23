@@ -400,12 +400,28 @@ async function scoreStaleness(
             !repoLower.includes(mentionedLower) &&
             !mentionedLower.includes(repoLower)
           ) {
+            // Build fix by replacing only the captured token within the
+            // full match, preserving surrounding verb text (e.g. "Use").
+            const fullMatch = match[0];
+            const groupStart =
+              match.index !== undefined && match[1] !== undefined
+                ? line.indexOf(match[1], match.index)
+                : -1;
+            let fixLine: string;
+            if (groupStart >= 0) {
+              // Surgically replace only the capture-group span in the line
+              fixLine =
+                line.slice(0, groupStart) + repoValue + line.slice(groupStart + mentioned.length);
+            } else {
+              // Fallback: replace the captured token inside the full match
+              fixLine = line.replace(fullMatch, fullMatch.replace(mentioned, repoValue));
+            }
             issues.push({
               severity: "critical",
               dimension: "staleness",
               message: `Line ${i + 1} says '${mentioned}' but repo uses '${repoValue}' (${check.description})`,
               line: i + 1,
-              fix: line.replace(match[0], match[0].replace(mentioned, repoValue)),
+              fix: fixLine,
             });
           }
         }
@@ -451,6 +467,10 @@ async function scoreStaleness(
       if (refPath.includes("*") || refPath.includes("{")) continue;
       // Skip common non-file-reference patterns (version-like, pure extensions)
       if (/^\d+\.\d+/.test(refPath)) continue;
+      // Skip bare extensions like .js, .ts, .md — these are prose mentions
+      // (e.g. "imports must include .js extension"), not file references.
+      // Dotfiles with a second segment like .eslintrc.js are kept.
+      if (/^\.[a-zA-Z0-9]+$/.test(refPath)) continue;
 
       // Try relative to context file directory first, then repo root
       const relativePath = contextDir ? `${contextDir}/${refPath}` : refPath;
