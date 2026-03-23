@@ -1,5 +1,6 @@
 import { defineCommand, runMain } from "citty";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { access, writeFile } from "node:fs/promises";
 import {
   scan,
@@ -82,7 +83,7 @@ async function handleRepoCommands(
   return false;
 }
 
-async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
+export async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
   if (await handleFlagCommands(args)) return;
 
   // Detect subcommands from raw argv to avoid conflating directory names with commands.
@@ -534,4 +535,8 @@ async function applyProposals(
   }
 }
 
-runMain(main);
+// Only run CLI when executed directly, not when imported for testing
+const __filename = fileURLToPath(import.meta.url);
+if (resolve(process.argv[1] ?? "") === __filename) {
+  runMain(main);
+}

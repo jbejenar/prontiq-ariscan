@@ -157,6 +157,73 @@ describe("audit command", () => {
     }
   }, 30_000);
 
+  it("dispatchCommand routes 'audit agents-md' through the cli.ts entrypoint", async () => {
+    // Regression test for Bug 24: exercises the real dispatchCommand() routing
+    // in cli.ts — the code that reads process.argv[2] to detect "audit" as a
+    // bare-word subcommand. Previous tests called runCommand(auditCommand, ...)
+    // directly, bypassing this dispatch layer entirely.
+    const { dispatchCommand } = await import("../cli.js");
+    const { resolve } = await import("node:path");
+
+    const repoRoot = resolve(
+      import.meta.dirname ?? new URL(".", import.meta.url).pathname,
+      "../../../../",
+    );
+
+    const origArgv = process.argv;
+    const origCwd = process.cwd();
+    process.chdir(repoRoot);
+    // Simulate: ariscan audit agents-md --json --quiet
+    process.argv = ["node", "ariscan", "audit", "agents-md", "--json", "--quiet"];
+
+    const stdoutChunks: string[] = [];
+    const origStdoutWrite = process.stdout.write.bind(process.stdout);
+    const origStderrWrite = process.stderr.write.bind(process.stderr);
+    const origExit = process.exit;
+
+    let exitCode: number | undefined;
+    process.exit = ((code?: number) => {
+      exitCode = code;
+    }) as never;
+
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      stdoutChunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    process.stderr.write = ((_chunk: string | Uint8Array) => {
+      return true;
+    }) as typeof process.stderr.write;
+
+    try {
+      await dispatchCommand({});
+    } finally {
+      process.argv = origArgv;
+      process.chdir(origCwd);
+      process.stdout.write = origStdoutWrite;
+      process.stderr.write = origStderrWrite;
+      process.exit = origExit;
+    }
+
+    const stdout = stdoutChunks.join("");
+
+    // dispatchCommand should have routed to the audit subcommand and produced JSON
+    const parsed = JSON.parse(stdout) as unknown[];
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBeGreaterThan(0);
+
+    for (const item of parsed) {
+      const result = item as Record<string, unknown>;
+      expect(result["filePath"]).toBeDefined();
+      expect(typeof result["overallScore"]).toBe("number");
+      expect(Array.isArray(result["dimensions"])).toBe(true);
+      expect(Array.isArray(result["issues"])).toBe(true);
+    }
+
+    if (exitCode !== undefined) {
+      expect([0, 1]).toContain(exitCode);
+    }
+  }, 30_000);
+
   it("runCommand(auditCommand) with 'agents-md' target keyword exercises documented command shape", async () => {
     // Regression test for the documented `ariscan audit agents-md --json --quiet`
     // command shape. The positional arg is the target keyword "agents-md", NOT a
