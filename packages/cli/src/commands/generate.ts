@@ -7,9 +7,8 @@
  */
 
 import { defineCommand } from "citty";
-import { resolve } from "node:path";
+import { resolve, relative, isAbsolute, sep, dirname } from "node:path";
 import { access, writeFile, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
 import {
   createRepoContext,
   detect,
@@ -185,9 +184,9 @@ export const generateCommand = defineCommand({
         for (const file of result.files) {
           const filePath = resolve(repoPath, file.path);
 
-          // Security: reject paths that escape the target repository
-          const normalizedRepo = repoPath.endsWith("/") ? repoPath : repoPath + "/";
-          if (!filePath.startsWith(normalizedRepo) && filePath !== repoPath) {
+          // Security: reject paths that escape the target repository (cross-platform)
+          const rel = relative(repoPath, filePath);
+          if (rel.startsWith(`..${sep}`) || rel === ".." || isAbsolute(rel)) {
             process.stderr.write(`   Refused ${file.path} (path escapes repository root)\n`);
             skipped++;
             continue;
