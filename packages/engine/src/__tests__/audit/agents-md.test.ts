@@ -108,6 +108,38 @@ describe("staleness scoring", () => {
     );
     expect(pkgMgrIssue).toBeUndefined();
   });
+
+  it("resolves path references relative to nested context file directory", async () => {
+    // packages/web/AGENTS.md references `src/index.ts` which exists at
+    // packages/web/src/index.ts — should NOT produce a staleness warning
+    const ctx = createMockContext({
+      "packages/web/AGENTS.md":
+        "# Web Package\n\nThe entry point is `src/index.ts` and tests are in `tests/setup.ts`.",
+      "packages/web/src/index.ts": "export default {};",
+      "packages/web/tests/setup.ts": "// setup",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    // Should not flag src/index.ts or tests/setup.ts as missing
+    const pathIssues = stalenessIssues.filter((i) => i.message.includes("does not exist"));
+    expect(pathIssues).toHaveLength(0);
+  });
+
+  it("flags truly missing path references in nested context files", async () => {
+    const ctx = createMockContext({
+      "packages/web/AGENTS.md": "# Web Package\n\nSee `src/missing-file.ts` for details.",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    const pathIssues = stalenessIssues.filter(
+      (i) => i.message.includes("src/missing-file.ts") && i.message.includes("does not exist"),
+    );
+    expect(pathIssues.length).toBeGreaterThan(0);
+  });
 });
 
 describe("instruction clarity scoring", () => {

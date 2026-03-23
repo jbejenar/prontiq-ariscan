@@ -408,7 +408,10 @@ async function scoreStaleness(
     }
   }
 
-  // Also check for stale file path references
+  // Also check for stale file path references.
+  // Resolve relative to the context file's directory first (for monorepo
+  // package-level files), then fall back to repo-root lookup.
+  const contextDir = filePath.includes("/") ? filePath.slice(0, filePath.lastIndexOf("/")) : "";
   const pathPattern = /(?:^|\s|`)([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_./-]+)(?:`|\s|$)/g;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? "";
@@ -416,8 +419,12 @@ async function scoreStaleness(
     while ((pathMatch = pathPattern.exec(line)) !== null) {
       const refPath = pathMatch[1]?.trim();
       if (refPath && !refPath.startsWith("http") && !refPath.startsWith("//")) {
-        const exists = await ctx.fileExists(refPath);
-        if (!exists && !refPath.includes("*") && !refPath.includes("{")) {
+        if (refPath.includes("*") || refPath.includes("{")) continue;
+        // Try relative to context file directory first, then repo root
+        const relativePath = contextDir ? `${contextDir}/${refPath}` : refPath;
+        const existsRelative = await ctx.fileExists(relativePath);
+        const existsRoot = existsRelative || (await ctx.fileExists(refPath));
+        if (!existsRelative && !existsRoot) {
           issues.push({
             severity: "warning",
             dimension: "staleness",
