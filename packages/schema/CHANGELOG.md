@@ -1,5 +1,11 @@
 # @prontiq/ariscan-schema
 
+## 0.11.0
+
+### Minor Changes
+
+- Version bump for fixed package group (no schema-specific changes in this release)
+
 ## 0.10.0
 
 ### Minor Changes

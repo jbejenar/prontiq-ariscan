@@ -1,5 +1,18 @@
 # @prontiq/ariscan-engine
 
+## 0.11.0
+
+### Minor Changes
+
+- feat(engine): extract context module — gap analysis, additionality, and generator as standalone exports (#68)
+- refactor(engine): move context-quality gap/additionality logic into `src/context/` subpackage (#68)
+- feat(engine): add context generator with template-based CLAUDE.md/AGENTS.md scaffolding (#68)
+
+### Patch Changes
+
+- Updated dependencies
+  - @prontiq/ariscan-schema@0.11.0
+
 ## 0.10.0
 
 ### Minor Changes

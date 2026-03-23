@@ -1,5 +1,19 @@
 # @prontiq/ariscan-cli
 
+## 0.11.0
+
+### Minor Changes
+
+- feat(cli): add `generate` command for AI-assisted context file generation (#68)
+- feat(engine): extract context module with gap analysis, additionality, and generator (#68)
+- fix(ci): improve CI reliability and package versioning (#69)
+
+### Patch Changes
+
+- Updated dependencies
+  - @prontiq/ariscan-schema@0.11.0
+  - @prontiq/ariscan-engine@0.11.0
+
 ## 0.10.0
 
 ### Minor Changes
