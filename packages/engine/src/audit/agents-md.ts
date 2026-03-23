@@ -120,9 +120,7 @@ const VAGUE_PATTERNS: Array<{ pattern: RegExp; suggestion: string }> = [
 
 /** Patterns indicating negative instructions (do NOT / never / avoid) */
 const NEGATIVE_INSTRUCTION_PATTERNS = [
-  /\bdo\s+NOT\b/,
-  /\bDo\s+NOT\b/,
-  /\bDO\s+NOT\b/,
+  /\bdo\s+not\b/i,
   /\bnever\b/i,
   /\bavoid\b/i,
   /\bdon['\u2018\u2019]t\b/i,
@@ -764,7 +762,7 @@ export async function auditAgentsMd(
   const results: AuditResult[] = [];
   for (const filePath of contextFiles) {
     const content = await ctx.readFile(filePath);
-    if (content) {
+    if (content != null) {
       const result = await auditContextFile(filePath, content, ctx, detection, contextFiles);
       results.push(result);
     }
