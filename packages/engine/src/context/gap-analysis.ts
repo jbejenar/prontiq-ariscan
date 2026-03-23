@@ -79,7 +79,7 @@ const INFO_CATEGORIES: InfoCategory[] = [
     patterns: [
       /\b(pnpm|npm(?:\s+run)?|yarn|make|cargo|go|gradle|mvn|dotnet)\s+test/i,
       /\btest\b.*\b(command|script|step|instructions)\b/i,
-      /\b(pytest|vitest|jest)\b/i,
+      /(?:^|[`$>])\s*(pytest|vitest|jest)\b/im,
     ],
   },
   {
@@ -325,13 +325,19 @@ export async function analyzeGaps(
 
   // Also check for info that exists but only in hard-to-find places
   // (not in README or context files)
-  const easyAccessDocs = referenceDocs.filter(
-    (d) =>
-      d.path === "README.md" ||
-      d.path === "AGENTS.md" ||
-      d.path === "CLAUDE.md" ||
-      d.path === "CONTRIBUTING.md",
+  // Easy-access docs: standard documentation files plus all agent-facing
+  // context/instruction files (but not ignore lists or non-instructional config)
+  const NON_INSTRUCTIONAL_CONTEXT_FILES = new Set([".aiderignore", ".agentignore"]);
+  const easyAccessPaths = new Set(
+    indexed
+      .filter(
+        (d) =>
+          d.type === "text-doc" ||
+          (d.type === "context-file" && !NON_INSTRUCTIONAL_CONTEXT_FILES.has(d.path)),
+      )
+      .map((d) => d.path),
   );
+  const easyAccessDocs = referenceDocs.filter((d) => easyAccessPaths.has(d.path));
   const easyContent = easyAccessDocs.map((d) => d.content).join("\n\n");
 
   for (const category of INFO_CATEGORIES) {
