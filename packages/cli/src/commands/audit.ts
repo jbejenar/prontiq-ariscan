@@ -106,6 +106,9 @@ function formatJsonReport(results: AuditResult[]): string {
   );
 }
 
+/** Recognized audit targets — bare words that are NOT filesystem paths */
+const AUDIT_TARGETS = new Set(["agents-md"]);
+
 export const auditCommand = defineCommand({
   meta: {
     name: "audit",
@@ -114,7 +117,8 @@ export const auditCommand = defineCommand({
   args: {
     path: {
       type: "positional",
-      description: "Path to the repository (default: current directory)",
+      description:
+        "Audit target or repository path. Use 'agents-md' to audit context files, or provide a repo path (default: 'agents-md' target in current directory)",
       required: false,
       default: ".",
     },
@@ -130,7 +134,16 @@ export const auditCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const repoPath = resolve(args.path as string);
+    let repoPath: string;
+
+    // If the positional arg is a recognized audit target (e.g. "agents-md"),
+    // treat it as a target keyword and default the repo path to "."
+    if (AUDIT_TARGETS.has(args.path as string)) {
+      repoPath = resolve(".");
+    } else {
+      repoPath = resolve(args.path as string);
+    }
+
     try {
       await access(repoPath);
     } catch {

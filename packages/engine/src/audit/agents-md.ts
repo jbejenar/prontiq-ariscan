@@ -143,27 +143,97 @@ interface StalenessCheck {
   description: string;
 }
 
-/** Build staleness checks from repo state */
-function buildStalenessChecks(): StalenessCheck[] {
+/**
+ * Try to read a file starting from the nearest ancestor directory of `contextFilePath`,
+ * walking upward to the repo root. Returns the first match found.
+ */
+async function readNearestFile(
+  ctx: RepoContext,
+  contextFilePath: string,
+  target: string,
+): Promise<string | null> {
+  const segments = contextFilePath.split("/");
+  // Walk from parent directory of context file up to root
+  for (let i = segments.length - 1; i >= 1; i--) {
+    const dir = segments.slice(0, i).join("/");
+    const candidate = `${dir}/${target}`;
+    const content = await ctx.readFile(candidate);
+    if (content !== null && content !== undefined) return content;
+  }
+  // Root-level fallback
+  return ctx.readFile(target);
+}
+
+/**
+ * Try to read a JSON file starting from the nearest ancestor directory,
+ * walking upward to the repo root.
+ */
+async function readNearestJson<T>(
+  ctx: RepoContext,
+  contextFilePath: string,
+  target: string,
+): Promise<T | null> {
+  const segments = contextFilePath.split("/");
+  for (let i = segments.length - 1; i >= 1; i--) {
+    const dir = segments.slice(0, i).join("/");
+    const candidate = `${dir}/${target}`;
+    if (await ctx.fileExists(candidate)) {
+      return ctx.readJson<T>(candidate);
+    }
+  }
+  return ctx.readJson<T>(target);
+}
+
+/**
+ * Check if a file exists starting from the nearest ancestor directory,
+ * walking upward to the repo root. Returns the value associated with the
+ * first match found.
+ */
+async function findNearestFile(
+  ctx: RepoContext,
+  contextFilePath: string,
+  candidates: Array<{ file: string; value: string }>,
+): Promise<string | null> {
+  const segments = contextFilePath.split("/");
+  for (let i = segments.length - 1; i >= 1; i--) {
+    const dir = segments.slice(0, i).join("/");
+    for (const { file, value } of candidates) {
+      if (await ctx.fileExists(`${dir}/${file}`)) return value;
+    }
+  }
+  // Root-level fallback
+  for (const { file, value } of candidates) {
+    if (await ctx.fileExists(file)) return value;
+  }
+  return null;
+}
+
+/** Build staleness checks from repo state, resolving relative to a context file path */
+function buildStalenessChecks(contextFilePath: string): StalenessCheck[] {
   return [
     {
       pattern: /\buse\s+(npm|yarn|pnpm|bun)\b/i,
       description: "package manager reference",
       getRepoValue: async (ctx) => {
-        if (await ctx.fileExists("pnpm-lock.yaml")) return "pnpm";
-        if (await ctx.fileExists("yarn.lock")) return "yarn";
-        if (await ctx.fileExists("bun.lockb")) return "bun";
-        if (await ctx.fileExists("package-lock.json")) return "npm";
-        return null;
+        return findNearestFile(ctx, contextFilePath, [
+          { file: "pnpm-lock.yaml", value: "pnpm" },
+          { file: "yarn.lock", value: "yarn" },
+          { file: "bun.lockb", value: "bun" },
+          { file: "package-lock.json", value: "npm" },
+        ]);
       },
     },
     {
       pattern: /\bnode\s*(?:\.?js)?\s*(\d+)/i,
       description: "Node.js version reference",
       getRepoValue: async (ctx) => {
-        const nvmrc = await ctx.readFile(".nvmrc");
+        const nvmrc = await readNearestFile(ctx, contextFilePath, ".nvmrc");
         if (nvmrc) return nvmrc.trim();
-        const pkgJson = await ctx.readJson<{ engines?: { node?: string } }>("package.json");
+        const pkgJson = await readNearestJson<{ engines?: { node?: string } }>(
+          ctx,
+          contextFilePath,
+          "package.json",
+        );
         if (pkgJson?.engines?.node) return pkgJson.engines.node;
         return null;
       },
@@ -172,7 +242,9 @@ function buildStalenessChecks(): StalenessCheck[] {
       pattern: /\b(jest|vitest|mocha|jasmine)\b/i,
       description: "test framework reference",
       getRepoValue: async (ctx) => {
-        const pkg = await ctx.readJson<{ devDependencies?: Record<string, string> }>(
+        const pkg = await readNearestJson<{ devDependencies?: Record<string, string> }>(
+          ctx,
+          contextFilePath,
           "package.json",
         );
         const deps = pkg?.devDependencies ?? {};
@@ -189,21 +261,33 @@ function buildStalenessChecks(): StalenessCheck[] {
 
 /**
  * Discover context files in the repo that can be audited.
+ * Searches all nesting depths for every supported context-file name so that
+ * package-level vendor-specific files (e.g. `packages/foo/CLAUDE.md`) are
+ * included alongside root-level files.
  */
 export async function discoverContextFiles(ctx: RepoContext): Promise<string[]> {
-  const found: string[] = [];
+  const found = new Set<string>();
+
+  // Build a set of bare filenames / suffix patterns to match against.
+  // CONTEXT_FILE_NAMES entries may contain a directory prefix
+  // (e.g. ".github/copilot-instructions.md", ".claude/settings.json").
+  // We match both the exact root-level path and any nested occurrence whose
+  // path ends with "/<name>".
   for (const name of CONTEXT_FILE_NAMES) {
+    // Root-level exact match
     if (await ctx.fileExists(name)) {
-      found.push(name);
+      found.add(name);
+    }
+    // Nested matches — look for any file whose path ends with "/<name>"
+    const suffix = `/${name}`;
+    for (const file of ctx.files) {
+      if (file.endsWith(suffix) && !found.has(file)) {
+        found.add(file);
+      }
     }
   }
-  // Also check for nested AGENTS.md in monorepo packages
-  for (const file of ctx.files) {
-    if (file.endsWith("/AGENTS.md") && !found.includes(file) && file !== "AGENTS.md") {
-      found.push(file);
-    }
-  }
-  return found.sort();
+
+  return [...found].sort();
 }
 
 /**
@@ -284,14 +368,17 @@ function scoreRedundancy(additionality: AdditionalityResult): DimensionScore {
 
 /**
  * Score staleness dimension (0-100, higher = less stale = better).
+ * Resolves repo facts relative to the audited file's package directory so that
+ * nested context files are compared against their nearest config, not the root.
  */
 async function scoreStaleness(
   content: string,
+  filePath: string,
   ctx: RepoContext,
   detection: DetectionResult,
 ): Promise<{ dimension: DimensionScore; issues: AuditIssue[] }> {
   const issues: AuditIssue[] = [];
-  const checks = buildStalenessChecks();
+  const checks = buildStalenessChecks(filePath);
   const lines = content.split("\n");
 
   for (const check of checks) {
@@ -568,12 +655,26 @@ export async function auditContextFile(
 ): Promise<AuditResult> {
   // Build reference docs for additionality
   const referenceDocs = await buildReferenceDocs(ctx);
+
+  // Include all other discovered context files in the reference corpus so that
+  // duplication across agent-context files (e.g. AGENTS.md vs CLAUDE.md) is
+  // measured and reported (Bug 3 fix).
+  for (const otherFile of contextFiles) {
+    if (otherFile === filePath) continue; // exclude self
+    if (referenceDocs.some((d) => d.path === otherFile)) continue; // already present
+    const otherContent = await ctx.readFile(otherFile);
+    if (otherContent) {
+      referenceDocs.push({ path: otherFile, content: otherContent });
+    }
+  }
+
   const redundancyResult = computeAdditionality(content, filePath, referenceDocs);
 
   // Score all 7 dimensions
   const redundancyDim = scoreRedundancy(redundancyResult);
   const { dimension: stalenessDim, issues: stalenessIssues } = await scoreStaleness(
     content,
+    filePath,
     ctx,
     detection,
   );
