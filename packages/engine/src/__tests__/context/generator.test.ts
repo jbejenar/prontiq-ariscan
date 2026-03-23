@@ -206,21 +206,20 @@ Run pnpm test to run tests.`;
     const detection = makeDetectionResult();
     const result = await generateContextFiles(ctx, detection);
 
-    if (result.files.length > 0) {
-      const generated = result.files[0];
-      // Generated should have reasonable additionality
-      // (may be 100% if it's all TODO comments/new content)
-      expect(generated?.additionality).toBeGreaterThanOrEqual(0);
+    expect(result.files.length).toBeGreaterThan(0);
+    const generated = result.files[0];
+    // Generated should have reasonable additionality
+    // (may be 100% if it's all TODO comments/new content)
+    expect(generated?.additionality).toBeGreaterThanOrEqual(0);
 
-      // Compare with a naive dump (just copying README)
-      const naiveResult = computeAdditionality(readme, "AGENTS.md (naive)", [
-        { path: "README.md", content: readme },
-      ]);
+    // Compare with a naive dump (just copying README)
+    const naiveResult = computeAdditionality(readme, "AGENTS.md (naive)", [
+      { path: "README.md", content: readme },
+    ]);
 
-      // Generated additionality should be >= naive additionality
-      if (generated && naiveResult.additionalityPct >= 0) {
-        expect(generated.additionality).toBeGreaterThanOrEqual(naiveResult.additionalityPct);
-      }
+    // Generated additionality should be >= naive additionality
+    if (generated && naiveResult.additionalityPct >= 0) {
+      expect(generated.additionality).toBeGreaterThanOrEqual(naiveResult.additionalityPct);
     }
   });
 
@@ -236,23 +235,22 @@ Run pnpm test to run tests.`;
     const detection = makeDetectionResult();
     const result = await generateContextFiles(ctx, detection);
 
-    if (result.files.length > 0) {
-      const generated = result.files[0];
-      // Front-load score should be positive
-      expect(generated?.frontLoadScore).toBeGreaterThanOrEqual(0);
+    expect(result.files.length).toBeGreaterThan(0);
+    const generated = result.files[0];
+    // Front-load score should be positive
+    expect(generated?.frontLoadScore).toBeGreaterThanOrEqual(0);
 
-      // Build/test commands should be in first 20% of lines
-      if (generated) {
-        const lines = generated.content.split("\n");
-        const cutoff = Math.max(1, Math.ceil(lines.length * 0.2));
-        const topSection = lines.slice(0, cutoff).join("\n");
-        // Should contain build-related content near the top
-        expect(
-          topSection.includes("Build") ||
-            topSection.includes("build") ||
-            topSection.includes("AGENTS"),
-        ).toBe(true);
-      }
+    // Build/test commands should be in first 20% of lines
+    if (generated) {
+      const lines = generated.content.split("\n");
+      const cutoff = Math.max(1, Math.ceil(lines.length * 0.2));
+      const topSection = lines.slice(0, cutoff).join("\n");
+      // Should contain build-related content near the top
+      expect(
+        topSection.includes("Build") ||
+          topSection.includes("build") ||
+          topSection.includes("AGENTS"),
+      ).toBe(true);
     }
   });
 
@@ -268,14 +266,13 @@ Run pnpm test to run tests.`;
     const detection = makeDetectionResult();
     const result = await generateContextFiles(ctx, detection);
 
-    if (result.files.length > 0) {
-      const generated = result.files[0];
-      expect(generated?.rationale).toBeDefined();
-      expect(Object.keys(generated?.rationale ?? {}).length).toBeGreaterThan(0);
+    expect(result.files.length).toBeGreaterThan(0);
+    const generated = result.files[0];
+    expect(generated?.rationale).toBeDefined();
+    expect(Object.keys(generated?.rationale ?? {}).length).toBeGreaterThan(0);
 
-      // Content should have rationale comments
-      expect(generated?.content).toContain("Rationale:");
-    }
+    // Content should have rationale comments
+    expect(generated?.content).toContain("Rationale:");
   });
 
   it("generates subdirectory files for monorepo", async () => {

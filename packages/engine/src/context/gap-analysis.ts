@@ -357,11 +357,23 @@ export async function analyzeGaps(
     }
   }
 
+  // Recompute categoriesMet: exclude categories that ended up as gaps (inadequate)
+  // This ensures coverage is consistent with the gaps array
+  const gapCategoryIds = new Set(gaps.map((g) => g.category.id));
+  const adjustedCategoriesMet =
+    categoriesMet -
+    [...gapCategoryIds].filter((id) => {
+      // Only subtract categories that were initially counted as met
+      // (i.e., found in reference docs but only in deep locations)
+      const gap = gaps.find((g) => g.category.id === id);
+      return gap && gap.foundIn !== null; // foundIn !== null means it was found somewhere (deep)
+    }).length;
+
   const activeCategoryCount = INFO_CATEGORIES.filter(
     (c) => c.id !== "monorepo-paths" || detection?.monorepo,
   ).length;
   const coverage =
-    activeCategoryCount > 0 ? Math.round((categoriesMet / activeCategoryCount) * 100) : 100;
+    activeCategoryCount > 0 ? Math.round((adjustedCategoriesMet / activeCategoryCount) * 100) : 100;
 
   // Sort gaps by importance (highest first)
   gaps.sort((a, b) => b.category.importance - a.category.importance);

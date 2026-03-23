@@ -203,30 +203,29 @@ export const generateCommand = defineCommand({
         return;
       }
 
-      // Write files
+      // Write files — use exclusive create (wx) to avoid TOCTOU race
       let written = 0;
       let skipped = 0;
       for (const file of result.files) {
         const filePath = resolve(repoPath, file.path);
-        try {
-          await access(filePath);
-          // File exists — skip
-          if (!args.quiet) {
-            process.stderr.write(`   Skipped ${file.path} (already exists)\n`);
-          }
-          skipped++;
-          continue;
-        } catch {
-          // File doesn't exist — write it
-        }
-
         const dir = dirname(filePath);
         await mkdir(dir, { recursive: true });
-        await writeFile(filePath, file.content, "utf-8");
-        if (!args.quiet) {
-          process.stderr.write(`   Created ${file.path}\n`);
+        try {
+          await writeFile(filePath, file.content, { encoding: "utf-8", flag: "wx" });
+          if (!args.quiet) {
+            process.stderr.write(`   Created ${file.path}\n`);
+          }
+          written++;
+        } catch (err: unknown) {
+          if (err instanceof Error && "code" in err && err.code === "EEXIST") {
+            if (!args.quiet) {
+              process.stderr.write(`   Skipped ${file.path} (already exists)\n`);
+            }
+            skipped++;
+          } else {
+            throw err;
+          }
         }
-        written++;
       }
 
       process.stderr.write(`\nDone: ${written} created, ${skipped} skipped.\n`);

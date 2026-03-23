@@ -286,9 +286,9 @@ async function generateSubdirectoryFiles(
     lines.push("## Package Commands");
     lines.push("");
     lines.push("```bash");
-    if (scripts.build) lines.push(`# build: pnpm --filter ${pkgName} build`);
-    if (scripts.test) lines.push(`# test: pnpm --filter ${pkgName} test`);
-    if (scripts.lint) lines.push(`# lint: pnpm --filter ${pkgName} lint`);
+    if (scripts.build) lines.push(`pnpm --filter ${pkgName} build`);
+    if (scripts.test) lines.push(`pnpm --filter ${pkgName} test`);
+    if (scripts.lint) lines.push(`pnpm --filter ${pkgName} lint`);
     lines.push("```");
     lines.push("");
 
