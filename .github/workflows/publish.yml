@@ -59,13 +59,37 @@ jobs:
             exit 0
           fi
 
-          # Find the last publish commit (version bump commit from changesets)
-          LAST_TAG=$(git tag --sort=-v:refname | head -1)
-          if [ -z "$LAST_TAG" ]; then
-            # No tags yet — compare against first commit
+          # Determine the compare baseline from the last *successfully published*
+          # version. Using npm as source of truth avoids replaying commits when
+          # a version-bump commit exists but the actual npm publish failed.
+          COMPARE_REF=""
+          PUBLISHED_VERSION=$(npm view @prontiq/ariscan-cli version 2>/dev/null || echo "")
+
+          if [ -n "$PUBLISHED_VERSION" ]; then
+            echo "Last published version on npm: $PUBLISHED_VERSION"
+            # Try to find the corresponding git tag
+            TAG_REF=$(git tag -l "@prontiq/ariscan-cli@${PUBLISHED_VERSION}" 2>/dev/null || echo "")
+            if [ -n "$TAG_REF" ]; then
+              COMPARE_REF="$TAG_REF"
+            else
+              # Tag missing — walk version-bump commits to find the one that
+              # set the published version. Using -1 would grab the most recent
+              # version-bump commit which may be a later *failed* publish.
+              while IFS= read -r CANDIDATE; do
+                COMMIT_VERSION=$(git show "$CANDIDATE:packages/cli/package.json" 2>/dev/null \
+                  | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).version)}catch{}})" 2>/dev/null || echo "")
+                if [ "$COMMIT_VERSION" = "$PUBLISHED_VERSION" ]; then
+                  COMPARE_REF="$CANDIDATE"
+                  echo "Found version-bump commit for $PUBLISHED_VERSION: $CANDIDATE"
+                  break
+                fi
+              done < <(git log --format='%H' --grep="^chore: version packages")
+            fi
+          fi
+
+          if [ -z "$COMPARE_REF" ]; then
+            # Nothing published yet or no matching commit — compare against repo root
             COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
-          else
-            COMPARE_REF="$LAST_TAG"
           fi
 
           echo "Comparing commits since: $COMPARE_REF"
@@ -103,10 +127,18 @@ jobs:
           done < <(git log "$COMPARE_REF"..HEAD --format='%s' --no-merges)
 
           if [ "$BUMP" = "none" ]; then
-            echo "No version-bumping commits found since $COMPARE_REF"
-            echo "has_changeset=false" >> "$GITHUB_OUTPUT"
-            rm -f "$SUMMARY_FILE"
-            exit 0
+            # Check if there are any commits at all since last tag
+            COMMIT_COUNT=$(git rev-list "$COMPARE_REF"..HEAD --no-merges --count)
+            if [ "$COMMIT_COUNT" -gt 0 ]; then
+              echo "No conventional-commit bumps found, defaulting to patch ($COMMIT_COUNT commits)"
+              BUMP="patch"
+              git log "$COMPARE_REF"..HEAD --format='- %s' --no-merges > "$SUMMARY_FILE"
+            else
+              echo "No new commits since $COMPARE_REF"
+              echo "has_changeset=false" >> "$GITHUB_OUTPUT"
+              rm -f "$SUMMARY_FILE"
+              exit 0
+            fi
           fi
 
           echo "Detected bump type: $BUMP"

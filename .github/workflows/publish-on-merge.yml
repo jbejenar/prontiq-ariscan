@@ -46,16 +46,43 @@ jobs:
       - name: Publish to npm
         id: npm-publish
         run: |
+          set -euo pipefail
+
           pnpm changeset publish --provenance 2>&1 | tee publish-output.txt
 
           # Extract published packages for the release step
           PUBLISHED=$(grep -oE '@prontiq/ariscan-[a-z]+@[0-9]+\.[0-9]+\.[0-9]+' publish-output.txt || true)
-          echo "published=$PUBLISHED" >> "$GITHUB_OUTPUT"
 
           if [ -n "$PUBLISHED" ]; then
             echo "published_any=true" >> "$GITHUB_OUTPUT"
+            echo "### Published packages" >> "$GITHUB_STEP_SUMMARY"
+            echo "$PUBLISHED" | while read -r pkg; do
+              echo "- $pkg" >> "$GITHUB_STEP_SUMMARY"
+            done
           else
-            echo "published_any=false" >> "$GITHUB_OUTPUT"
+            # Nothing new was published — check per-package if this is a
+            # rerun where some or all packages already exist on npm (e.g.
+            # prior run published but failed during tag/release creation).
+            VERSION=$(node -p "require('./packages/cli/package.json').version")
+            NPM_COUNT=0
+            echo "### Rerun — checking npm for existing packages" >> "$GITHUB_STEP_SUMMARY"
+            for PKG in schema engine cli; do
+              FULL="@prontiq/ariscan-${PKG}"
+              if npm view "${FULL}@${VERSION}" version >/dev/null 2>&1; then
+                NPM_COUNT=$((NPM_COUNT + 1))
+                echo "- ${FULL}@${VERSION} ✓ on npm" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "- ${FULL}@${VERSION} ✗ NOT on npm" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            done
+
+            if [ "$NPM_COUNT" -gt 0 ]; then
+              echo "$NPM_COUNT/3 packages already on npm — continuing to release step"
+              echo "published_any=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::Version bump commit detected but no packages were published and none found on npm for $VERSION."
+              exit 1
+            fi
           fi
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -71,18 +98,30 @@ jobs:
           VERSION=$(node -p "require('./packages/cli/package.json').version")
 
           for PKG in schema engine cli; do
-            TAG="@prontiq/ariscan-${PKG}@${VERSION}"
+            FULL="@prontiq/ariscan-${PKG}"
+            TAG="${FULL}@${VERSION}"
+
+            # Only create tags/releases for packages confirmed on npm
+            if ! npm view "${FULL}@${VERSION}" version >/dev/null 2>&1; then
+              echo "Skipping $TAG — not found on npm"
+              continue
+            fi
+
             echo "Creating release for $TAG"
 
-            # Create a git tag
-            git tag "$TAG" 2>/dev/null || true
-            git push origin "$TAG" 2>/dev/null || true
+            # Create a git tag (may already exist)
+            git tag "$TAG" 2>/dev/null || echo "Tag $TAG already exists"
+            git push origin "$TAG" 2>/dev/null || echo "Tag $TAG already pushed"
 
-            gh release create "$TAG" \
-              scan-result.json \
-              --title "$TAG" \
-              --notes "Published from $(git rev-parse --short HEAD). ARI scan result attached." \
-              2>/dev/null || \
-            gh release upload "$TAG" scan-result.json --clobber 2>/dev/null || \
-              echo "Warning: could not attach artifact to $TAG"
+            # Create or update the GitHub release
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "Release $TAG exists, uploading artifact"
+              gh release upload "$TAG" scan-result.json --clobber || echo "Warning: could not upload artifact to $TAG"
+            else
+              gh release create "$TAG" \
+                scan-result.json \
+                --title "$TAG" \
+                --notes "Published from $(git rev-parse --short HEAD). ARI scan result attached." || \
+                echo "Warning: could not create release for $TAG"
+            fi
           done
