@@ -185,10 +185,11 @@ describe("staleness scoring", () => {
     expect(pathIssues.some((i) => i.message.includes("README.md"))).toBe(true);
   });
 
-  it("still uses root fallback for slash-containing paths in nested files", async () => {
+  it("flags slash-containing paths in nested files when only root has them", async () => {
     // packages/web/AGENTS.md references "docs/guide.md" which exists at repo
     // root as docs/guide.md but NOT at packages/web/docs/guide.md.
-    // Slash-containing paths still get root fallback.
+    // Nested context files should NOT fall back to repo root — this is a
+    // package-local reference that should be flagged as stale.
     const ctx = createMockContext({
       "packages/web/AGENTS.md": "# Web Package\n\nSee `docs/guide.md` for architecture.",
       "docs/guide.md": "# Architecture Guide",
@@ -200,7 +201,7 @@ describe("staleness scoring", () => {
     const pathIssues = stalenessIssues.filter(
       (i) => i.message.includes("docs/guide.md") && i.message.includes("does not exist"),
     );
-    expect(pathIssues).toHaveLength(0);
+    expect(pathIssues.length).toBeGreaterThanOrEqual(1);
   });
 
   it("flags truly missing path references in nested context files", async () => {
