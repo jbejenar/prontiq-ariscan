@@ -318,7 +318,7 @@ describe("overall audit", () => {
     expect(results).toEqual([]);
   });
 
-  it("includes empty context files in results with low scores", async () => {
+  it("includes empty context files in results with score 0 and critical issue", async () => {
     const ctx = createMockContext({
       "AGENTS.md": "",
     });
@@ -328,9 +328,15 @@ describe("overall audit", () => {
     // Empty files must NOT be silently skipped — regression test for content != null fix
     expect(results.length).toBe(1);
     expect(results[0]?.filePath).toBe("AGENTS.md");
-    // An empty file should still produce a result (not be silently skipped)
-    // and should have actionable issues flagged
+    // Empty files must score 0 — they are completely unusable
+    expect(results[0]?.overallScore).toBe(0);
+    // All dimension scores must be 0
+    for (const dim of results[0]?.dimensions ?? []) {
+      expect(dim.score).toBe(0);
+    }
+    // Must have a critical issue
     expect(results[0]?.issues.length).toBeGreaterThan(0);
+    expect(results[0]?.issues[0]?.severity).toBe("critical");
   });
 
   it("audits multiple context files independently", async () => {

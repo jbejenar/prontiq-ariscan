@@ -59,7 +59,13 @@ export interface AuditResult {
 
 // ─── Constants ────────────────────────────────────────────────────────────
 
-/** Context file names recognized for auditing */
+/** Context file names recognized for auditing.
+ *  Only natural-language / markdown-like files belong here — the scoring
+ *  dimensions (clarity, front-loading, negative instructions, etc.) assume
+ *  prose content.  Structured config files such as `.claude/settings.json`
+ *  are intentionally excluded because they would produce misleading scores
+ *  when evaluated with text-quality heuristics.
+ */
 const CONTEXT_FILE_NAMES = [
   "AGENTS.md",
   "CLAUDE.md",
@@ -68,7 +74,6 @@ const CONTEXT_FILE_NAMES = [
   "COPILOT.md",
   ".windsurfrules",
   "codex.md",
-  ".claude/settings.json",
 ] as const;
 
 /** Agent tool indicators for cross-agent compatibility */
@@ -413,11 +418,13 @@ async function scoreStaleness(
   // package-level files), then fall back to repo-root lookup.
   const contextDir = filePath.includes("/") ? filePath.slice(0, filePath.lastIndexOf("/")) : "";
 
-  // Match paths with slashes (e.g. src/index.ts) and standalone filenames
-  // with extensions (e.g. README.md, .env, tsconfig.json, package.json).
-  const slashPathPattern = /(?:^|\s|`)([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_./-]+)(?:`|\s|$)/g;
+  // Match paths with slashes (e.g. src/index.ts).
+  const slashPathPattern = /(?:^|\s|`)([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_./-]+)(?:`|[\s.,;:)\]!?]|$)/g;
+  // Match standalone filenames with extensions, including multi-dot names
+  // like vite.config.ts, tsconfig.base.json, .eslintrc.js, foo.test.ts.
+  // Terminators include common punctuation so prose like "README.md." is caught.
   const standaloneFilePattern =
-    /(?:^|\s|`)(\.[a-zA-Z][a-zA-Z0-9.-]*|[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+)(?:`|\s|$)/g;
+    /(?:^|\s|`)(\.[a-zA-Z][a-zA-Z0-9_.-]*|[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+)(?:`|[\s.,;:)\]!?]|$)/g;
 
   const checkedPaths = new Set<string>();
 
@@ -685,6 +692,47 @@ export async function auditContextFile(
   detection: DetectionResult,
   contextFiles: string[],
 ): Promise<AuditResult> {
+  // Empty / near-empty files are unusable — short-circuit with score 0 and a
+  // critical issue instead of running the normal scoring pipeline, which would
+  // produce misleadingly high dimension scores (e.g. staleness 100, token 100).
+  if (content.trim().length === 0) {
+    const zeroDimensions: DimensionScore[] = [
+      { id: "redundancy", label: "Redundancy", score: 0, details: "File is empty" },
+      { id: "staleness", label: "Staleness", score: 0, details: "File is empty" },
+      { id: "clarity", label: "Instruction Clarity", score: 0, details: "File is empty" },
+      { id: "front-loading", label: "Front-loading", score: 0, details: "File is empty" },
+      {
+        id: "negative-instructions",
+        label: "Negative Instructions",
+        score: 0,
+        details: "File is empty",
+      },
+      { id: "cross-agent", label: "Cross-agent Compatibility", score: 0, details: "File is empty" },
+      { id: "token-budget", label: "Token Budget", score: 0, details: "File is empty" },
+    ];
+    return {
+      filePath,
+      dimensions: zeroDimensions,
+      issues: [
+        {
+          severity: "critical",
+          dimension: "general",
+          message: "Context file is empty — no useful instructions for agents",
+          fix: "Add agent instructions covering project conventions, build commands, testing patterns, and constraints.",
+        },
+      ],
+      overallScore: 0,
+      tokenEstimate: 0,
+      redundancy: {
+        additionalityPct: 0,
+        redundancyPct: 0,
+        duplicateLines: [],
+        additiveLines: [],
+        methodology: "empty-file",
+      },
+    };
+  }
+
   // Build reference docs for additionality
   const referenceDocs = await buildReferenceDocs(ctx);
 
