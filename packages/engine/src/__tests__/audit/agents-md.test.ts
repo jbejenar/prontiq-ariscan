@@ -237,6 +237,65 @@ describe("staleness scoring", () => {
     );
     expect(pathIssues.length).toBeGreaterThan(0);
   });
+
+  it("normalizes dot-segment references before checking existence", async () => {
+    // packages/web/AGENTS.md references "./src/index.ts" and "../README.md"
+    // which should resolve to packages/web/src/index.ts and packages/README.md
+    const ctx = createMockContext({
+      "packages/web/AGENTS.md":
+        "# Web Package\n\nEntry point is `./src/index.ts`.\nSee `../README.md` for the parent docs.",
+      "packages/web/src/index.ts": "export default {};",
+      "packages/README.md": "# Packages README",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    const pathIssues = stalenessIssues.filter((i) => i.message.includes("does not exist"));
+    // Neither ./src/index.ts nor ../README.md should be flagged
+    expect(pathIssues.filter((i) => i.message.includes("src/index.ts"))).toHaveLength(0);
+    expect(pathIssues.filter((i) => i.message.includes("README.md"))).toHaveLength(0);
+  });
+
+  it("allows repo-global workspace files referenced from nested context files", async () => {
+    // packages/web/AGENTS.md references pnpm-workspace.yaml, turbo.json,
+    // and .github/workflows/ci.yml — all legitimate repo-global references
+    const ctx = createMockContext({
+      "packages/web/AGENTS.md":
+        "# Web Package\n\nWorkspace config is in `pnpm-workspace.yaml`.\nBuild config in `turbo.json`.\nCI defined in `.github/workflows/ci.yml`.",
+      "pnpm-workspace.yaml": "packages:\n  - packages/*",
+      "turbo.json": '{"pipeline":{}}',
+      ".github/workflows/ci.yml": "name: CI",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    const pathIssues = stalenessIssues.filter((i) => i.message.includes("does not exist"));
+    // None of these repo-global files should be flagged as missing
+    expect(pathIssues.filter((i) => i.message.includes("pnpm-workspace.yaml"))).toHaveLength(0);
+    expect(pathIssues.filter((i) => i.message.includes("turbo.json"))).toHaveLength(0);
+    expect(pathIssues.filter((i) => i.message.includes(".github/workflows/ci.yml"))).toHaveLength(
+      0,
+    );
+  });
+
+  it("still flags non-global files in nested context files without root fallback", async () => {
+    // packages/web/AGENTS.md references "src/utils.ts" which only exists at
+    // root src/utils.ts — this is NOT a repo-global file and should be flagged
+    const ctx = createMockContext({
+      "packages/web/AGENTS.md": "# Web Package\n\nShared utils in `src/utils.ts`.",
+      "src/utils.ts": "export const util = 1;",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    const pathIssues = stalenessIssues.filter(
+      (i) => i.message.includes("src/utils.ts") && i.message.includes("does not exist"),
+    );
+    expect(pathIssues.length).toBeGreaterThanOrEqual(1);
+  });
 });
 
 describe("instruction clarity scoring", () => {

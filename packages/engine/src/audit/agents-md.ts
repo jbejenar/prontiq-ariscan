@@ -12,6 +12,7 @@
  *   7. Token budget impact — estimated token cost
  */
 
+import { posix } from "node:path";
 import type { RepoContext } from "../analyzers/analyzer.interface.js";
 import type { DetectionResult } from "@prontiq/ariscan-schema";
 import {
@@ -164,6 +165,37 @@ const PROSE_TOKENS = new Set([
   "vs.code",
   "etc.etc",
 ]);
+
+/**
+ * Well-known repo-global files and path prefixes that are commonly referenced
+ * from nested package-level context files (e.g. packages/web/AGENTS.md) and
+ * should fall back to repo root when not found relative to the context file.
+ * These are workspace-level files that legitimately exist only at the root.
+ */
+const REPO_GLOBAL_FILES = new Set([
+  "pnpm-workspace.yaml",
+  "turbo.json",
+  "lerna.json",
+  "nx.json",
+  "rush.json",
+  ".github",
+  ".gitlab",
+  ".circleci",
+  "license",
+  "license.md",
+  "licence",
+  "licence.md",
+  "contributing.md",
+  "code_of_conduct.md",
+  "security.md",
+  "changelog.md",
+]);
+
+/**
+ * Path prefixes that indicate a repo-global reference from nested context files.
+ * References starting with these prefixes get repo-root fallback even in nested files.
+ */
+const REPO_GLOBAL_PREFIXES = [".github/", ".gitlab/", ".circleci/"];
 
 /** Agent tool indicators for cross-agent compatibility */
 const AGENT_INDICATORS: Record<string, RegExp[]> = {
@@ -578,16 +610,32 @@ async function scoreStaleness(
         }
       }
 
-      // Try relative to context file directory first, then repo root.
-      // For nested context files, ALL bare relative references are treated as
-      // package-relative — no root fallback. This prevents false negatives
-      // where e.g. packages/web/AGENTS.md references "src/index.ts" or
-      // "package.json" and the repo root having that path suppresses the
-      // staleness warning. Root fallback only applies when the context file
-      // is itself at the repo root (contextDir === "").
-      const relativePath = contextDir ? `${contextDir}/${refPath}` : refPath;
+      // Normalize dot segments (./foo, ../bar) before existence checks.
+      // RepoContext file lists use normalized repo-relative paths, so
+      // "packages/web/./src/index.ts" won't match but "packages/web/src/index.ts" will.
+      const normalizedRef = posix.normalize(refPath);
+
+      // Try relative to context file directory first.
+      const rawRelative = contextDir ? `${contextDir}/${normalizedRef}` : normalizedRef;
+      const relativePath = posix.normalize(rawRelative);
+      // Skip references that escape the repo root (e.g. "../../outside")
+      if (relativePath.startsWith("..")) continue;
       const existsRelative = await ctx.fileExists(relativePath);
-      const existsRoot = existsRelative || (contextDir === "" && (await ctx.fileExists(refPath)));
+
+      // Root fallback rules:
+      // - At repo root (contextDir === ""): always try root fallback.
+      // - Nested context files: only fall back to root for well-known
+      //   repo-global files (workspace config, CI dirs, etc.) to avoid
+      //   false negatives where a root file suppresses a stale package ref.
+      let existsRoot = existsRelative;
+      if (!existsRelative) {
+        const isRepoGlobal =
+          REPO_GLOBAL_FILES.has(normalizedRef.toLowerCase()) ||
+          REPO_GLOBAL_PREFIXES.some((p) => normalizedRef.toLowerCase().startsWith(p));
+        if (contextDir === "" || isRepoGlobal) {
+          existsRoot = await ctx.fileExists(normalizedRef);
+        }
+      }
       if (!existsRelative && !existsRoot) {
         issues.push({
           severity: "warning",
