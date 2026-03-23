@@ -279,13 +279,13 @@ export async function analyzeGaps(
   for (const file of context.files) {
     if (sourceCount >= MAX_SOURCE_FILES_FOR_DOCSTRINGS) break;
     if (!SOURCE_EXTENSIONS.some((ext) => file.endsWith(ext))) continue;
+    sourceCount++;
     const content = await context.readFile(file);
     if (content !== null) {
       const docstring = extractLeadingDocstring(content);
       if (docstring && docstring.length > 20) {
         indexed.push({ path: file, type: "docstring", contentLength: docstring.length });
         referenceDocs.push({ path: file, content: docstring });
-        sourceCount++;
       }
     }
   }
