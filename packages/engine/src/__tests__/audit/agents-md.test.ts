@@ -198,6 +198,29 @@ Must not modify pillar weights without calibration notes.`,
     expect(negativeDim?.score).toBeGreaterThanOrEqual(80);
   });
 
+  it("recognizes lowercase 'do not' instructions", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": `# AGENTS.md
+
+do not use the any type in TypeScript code.
+do not import without .js extension.
+Always use strict mode.`,
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const negativeDim = results[0]?.dimensions.find((d) => d.id === "negative-instructions");
+    // Lowercase "do not" must be counted — regression test for case-insensitive fix
+    expect(negativeDim?.score).toBeGreaterThanOrEqual(50);
+    const negativeIssues =
+      results[0]?.issues.filter((i) => i.dimension === "negative-instructions") ?? [];
+    // Should NOT warn about missing negative instructions since we have two
+    const missingWarning = negativeIssues.find((i) =>
+      i.message.toLowerCase().includes("no negative"),
+    );
+    expect(missingWarning).toBeUndefined();
+  });
+
   it("warns when no negative instructions present", async () => {
     const ctx = createMockContext({
       "AGENTS.md": "# AGENTS.md\n\nThis project uses TypeScript.\nRun pnpm build to compile.",
@@ -261,6 +284,21 @@ describe("overall audit", () => {
     const detection = makeDetection();
     const results = await auditAgentsMd(ctx, detection);
     expect(results).toEqual([]);
+  });
+
+  it("includes empty context files in results with low scores", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    // Empty files must NOT be silently skipped — regression test for content != null fix
+    expect(results.length).toBe(1);
+    expect(results[0]?.filePath).toBe("AGENTS.md");
+    // An empty file should still produce a result (not be silently skipped)
+    // and should have actionable issues flagged
+    expect(results[0]?.issues.length).toBeGreaterThan(0);
   });
 
   it("audits multiple context files independently", async () => {
