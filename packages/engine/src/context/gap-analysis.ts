@@ -346,13 +346,7 @@ export async function analyzeGaps(
   // (not in README or context files)
   // Easy-access docs: standard documentation files plus all agent-facing
   // context/instruction files (but not ignore lists or non-instructional config)
-  const NON_INSTRUCTIONAL_CONTEXT_FILES = new Set([
-    ".aiderignore",
-    ".agentignore",
-    ".mcp.json",
-    "mcp.config.js",
-    ".claude/settings.json",
-  ]);
+  const NON_INSTRUCTIONAL_CONTEXT_FILES = new Set([".aiderignore", ".agentignore"]);
   const easyAccessPaths = new Set(
     indexed
       .filter(
