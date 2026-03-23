@@ -52,7 +52,7 @@ Build order: `schema` → `engine` → `cli`. Turborepo handles this automatical
 | Structured Remediation | Findings include `remediation.action`, `remediation.generator` | ripple-next machine-readable runbooks |
 | Agent Config Surfaces | AGENTS.md, CLAUDE.md, `.github/agents/`, `.github/prompts/` | ripple-next multi-surface AI config |
 | Self-Check | `npx @prontiq/ariscan-cli doctor --json` | ripple-next `pnpm doctor --json` |
-| Pure Function Core | `scan(path, config) → ScanResult` for CLI/MCP/Action/SaaS | Enables MCP server (P3.10) |
+| Pure Function Core | `scan(path, config) → ScanResult` for CLI/MCP/Action | Enables MCP server (P3.10) |
 
 ---
 

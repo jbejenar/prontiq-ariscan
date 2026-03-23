@@ -31,9 +31,7 @@ This roadmap tracks the open-source `ariscan` CLI — scoring, remediation guida
 
 ### Out of Scope
 
-- Fleet governance and compliance workflows.
-- Hosted remediation orchestration and managed controls.
-- Comparative analytics and forecasting beyond local CLI output.
+- Features beyond local CLI analysis and reporting.
 
 ---
 
@@ -4013,7 +4011,7 @@ As a GitLab user, I want the same ARI scoring integration available to GitHub us
 
 ## Problem Statement
 
-GitLab has significant market share, especially in enterprise and European markets. Supporting GitLab ensures Prontiq isn't GitHub-exclusive.
+GitLab has significant market share. Supporting GitLab ensures Prontiq isn't GitHub-exclusive.
 
 ## Definition of Done
 
