@@ -41,3 +41,12 @@ export {
   buildTelemetryPayload,
   sendTelemetry,
 } from "./telemetry/index.js";
+export { analyzeGaps, generateContextFiles } from "./context/index.js";
+export type {
+  GapAnalysisResult,
+  GapItem,
+  InfoCategory,
+  IndexedDoc,
+  GenerateResult,
+  GeneratedContextFile,
+} from "./context/index.js";

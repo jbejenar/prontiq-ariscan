@@ -13,6 +13,7 @@ import {
 import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
 import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
 import { policyCommand } from "./commands/policy.js";
+import { generateCommand } from "./commands/generate.js";
 import { formatTerminal } from "./output/terminal.js";
 import {
   formatJson,
@@ -88,6 +89,13 @@ async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
     const { runCommand } = await import("citty");
     // Strip [node, script, "policy"] so policyCommand only sees subcommand args
     await runCommand(policyCommand, { rawArgs: process.argv.slice(3) });
+    return;
+  }
+
+  // Detect `ariscan generate ...` subcommand
+  if (args.path === "generate") {
+    const { runCommand } = await import("citty");
+    await runCommand(generateCommand, { rawArgs: process.argv.slice(3) });
     return;
   }
 
