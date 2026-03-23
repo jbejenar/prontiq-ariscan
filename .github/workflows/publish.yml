@@ -59,13 +59,21 @@ jobs:
             exit 0
           fi
 
-          # Find the last publish commit (version bump commit from changesets)
-          LAST_TAG=$(git tag -l '@prontiq/ariscan-cli@*' --sort=-creatordate | head -1)
-          if [ -z "$LAST_TAG" ]; then
-            # No tags yet — compare against first commit
-            COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
+          # Find the last version-bump commit as the compare baseline.
+          # This is more reliable than tags — tags can fail to push (tolerated
+          # in publish-on-merge), but the version-bump commit always exists.
+          LAST_VERSION_COMMIT=$(git log --format='%H' --grep='^chore: version packages' -1)
+          if [ -z "$LAST_VERSION_COMMIT" ]; then
+            # No version commits yet — fall back to most recent tag across
+            # all packages, then to the repo root as a last resort
+            LAST_TAG=$(git tag -l '@prontiq/ariscan-*' --sort=-creatordate | head -1)
+            if [ -n "$LAST_TAG" ]; then
+              COMPARE_REF="$LAST_TAG"
+            else
+              COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
+            fi
           else
-            COMPARE_REF="$LAST_TAG"
+            COMPARE_REF="$LAST_VERSION_COMMIT"
           fi
 
           echo "Comparing commits since: $COMPARE_REF"
