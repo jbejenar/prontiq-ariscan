@@ -19,9 +19,15 @@ ariscan .
 
 ## Usage
 
+> The examples below use `ariscan`, which is available after
+> `npm install -g @prontiq/ariscan-cli`. Replace `ariscan` with
+> `npx @prontiq/ariscan-cli` if you haven't installed globally.
+
 ```bash
 # Scan current directory
 ariscan .
+# — or, without global install —
+npx @prontiq/ariscan-cli .
 
 # Scan a specific path
 ariscan /path/to/repo
