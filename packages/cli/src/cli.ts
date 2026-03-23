@@ -13,6 +13,7 @@ import {
 import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
 import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
 import { policyCommand } from "./commands/policy.js";
+import { generateCommand } from "./commands/generate.js";
 import { formatTerminal } from "./output/terminal.js";
 import {
   formatJson,
@@ -83,11 +84,25 @@ async function handleRepoCommands(
 async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
   if (await handleFlagCommands(args)) return;
 
-  // Detect `ariscan policy ...` subcommand
-  if (args.path === "policy") {
+  // Detect subcommands from raw argv to avoid conflating directory names with commands.
+  // Only the first raw positional token (argv[2]) is treated as a subcommand, and only
+  // when it is a bare word (not a path like "./generate" or "/tmp/policy").
+  const rawFirstArg = process.argv[2];
+  const isBareWord =
+    rawFirstArg !== undefined &&
+    !rawFirstArg.startsWith("-") &&
+    !rawFirstArg.includes("/") &&
+    !rawFirstArg.includes("\\");
+
+  if (isBareWord && rawFirstArg === "policy") {
     const { runCommand } = await import("citty");
-    // Strip [node, script, "policy"] so policyCommand only sees subcommand args
     await runCommand(policyCommand, { rawArgs: process.argv.slice(3) });
+    return;
+  }
+
+  if (isBareWord && rawFirstArg === "generate") {
+    const { runCommand } = await import("citty");
+    await runCommand(generateCommand, { rawArgs: process.argv.slice(3) });
     return;
   }
 
