@@ -1,0 +1,332 @@
+import { describe, it, expect } from "vitest";
+import { createMockContext } from "../helpers.js";
+import { auditAgentsMd, discoverContextFiles } from "../../audit/agents-md.js";
+import type { DetectionResult } from "@prontiq/ariscan-schema";
+
+function makeDetection(overrides?: Partial<DetectionResult>): DetectionResult {
+  return {
+    languages: [{ language: "TypeScript", confidence: 0.9, primary: true }],
+    frameworks: [],
+    monorepo: null,
+    ...overrides,
+  };
+}
+
+describe("discoverContextFiles", () => {
+  it("finds AGENTS.md", async () => {
+    const ctx = createMockContext({ "AGENTS.md": "content" });
+    const files = await discoverContextFiles(ctx);
+    expect(files).toContain("AGENTS.md");
+  });
+
+  it("finds CLAUDE.md", async () => {
+    const ctx = createMockContext({ "CLAUDE.md": "content" });
+    const files = await discoverContextFiles(ctx);
+    expect(files).toContain("CLAUDE.md");
+  });
+
+  it("finds nested AGENTS.md in monorepo", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "root",
+      "packages/web/AGENTS.md": "web",
+    });
+    const files = await discoverContextFiles(ctx);
+    expect(files).toContain("packages/web/AGENTS.md");
+  });
+
+  it("returns empty for repos without context files", async () => {
+    const ctx = createMockContext({ "src/index.ts": "export const foo = 1;" });
+    const files = await discoverContextFiles(ctx);
+    expect(files).toEqual([]);
+  });
+});
+
+describe("redundancy scoring", () => {
+  it("reports low redundancy for unique content", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": `# AGENTS.md
+
+This project uses a completely custom build system that cannot be discovered
+from any other file in the repository. The architecture follows a novel pattern
+that is entirely unique to this codebase and not documented elsewhere.
+Never use the deprecated v1 API endpoints in any integration tests.
+Always prefer the new streaming API over polling for real-time data.`,
+      "README.md": "# My Project\nA simple project with nothing special.",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    expect(results.length).toBe(1);
+    const redundancyDim = results[0]?.dimensions.find((d) => d.id === "redundancy");
+    expect(redundancyDim?.score).toBeGreaterThan(50);
+  });
+
+  it("reports high redundancy for duplicated content", async () => {
+    const shared =
+      "Install dependencies with pnpm install then build with pnpm build and run tests with pnpm test for verification";
+    const ctx = createMockContext({
+      "AGENTS.md": `# AGENTS.md\n\n${shared}\n\n${shared}\n\n${shared}`,
+      "README.md": `# My Project\n\n${shared}`,
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const redundancyDim = results[0]?.dimensions.find((d) => d.id === "redundancy");
+    expect(redundancyDim?.score).toBeLessThan(80);
+  });
+});
+
+describe("staleness scoring", () => {
+  it("detects package manager contradiction", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "# Guide\n\nUse yarn to install dependencies.",
+      "pnpm-lock.yaml": "lockfileVersion: '9.0'",
+      "package.json": JSON.stringify({ name: "test" }),
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    expect(stalenessIssues.length).toBeGreaterThan(0);
+    expect(stalenessIssues[0]?.severity).toBe("critical");
+  });
+
+  it("no staleness when package manager matches", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "# Guide\n\nUse pnpm to install dependencies.",
+      "pnpm-lock.yaml": "lockfileVersion: '9.0'",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    // Should have no package-manager contradiction
+    const pkgMgrIssue = stalenessIssues.find(
+      (i) =>
+        i.message.includes("package manager") ||
+        (i.message.includes("npm") && i.message.includes("pnpm")),
+    );
+    expect(pkgMgrIssue).toBeUndefined();
+  });
+});
+
+describe("instruction clarity scoring", () => {
+  it("flags vague instructions", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": `# AGENTS.md
+
+Follow best practices when writing code.
+Keep it clean and readable.
+Use proper error handling.
+Write good tests.`,
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const clarityIssues = results[0]?.issues.filter((i) => i.dimension === "clarity") ?? [];
+    expect(clarityIssues.length).toBeGreaterThanOrEqual(3);
+    expect(clarityIssues[0]?.fix).toBeDefined();
+  });
+
+  it("scores high for specific instructions", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": `# AGENTS.md
+
+You must always use TypeScript strict mode with no any types.
+Never import without the .js extension for ESM compatibility.
+Always run pnpm test before committing changes to the repository.
+Use vitest for all unit tests and mock filesystem with RepoContext.
+Export types from the schema package using Zod validation always.`,
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const clarityDim = results[0]?.dimensions.find((d) => d.id === "clarity");
+    expect(clarityDim?.score).toBeGreaterThan(30);
+  });
+});
+
+describe("front-loading scoring", () => {
+  it("scores high when critical info is at top", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": `# AGENTS.md
+
+## Build Commands
+
+\`\`\`bash
+pnpm install
+pnpm build
+pnpm test
+\`\`\`
+
+## Architecture
+
+This is a monorepo with three packages.
+
+## Other stuff
+
+Additional details that are less critical.
+More content here to pad the file.
+Even more padding content.
+And more lines of content.
+Additional filler text here.
+Yet another line of text.`,
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const frontLoadDim = results[0]?.dimensions.find((d) => d.id === "front-loading");
+    expect(frontLoadDim?.score).toBeGreaterThan(30);
+  });
+});
+
+describe("negative instruction coverage", () => {
+  it("scores high with multiple do-NOT constraints", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": `# AGENTS.md
+
+Do NOT use the any type.
+Never import without .js extension.
+Avoid using console.log in production code.
+Don't bypass the RepoContext abstraction.
+Must not modify pillar weights without calibration notes.`,
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const negativeDim = results[0]?.dimensions.find((d) => d.id === "negative-instructions");
+    expect(negativeDim?.score).toBeGreaterThanOrEqual(80);
+  });
+
+  it("warns when no negative instructions present", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "# AGENTS.md\n\nThis project uses TypeScript.\nRun pnpm build to compile.",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const negativeDim = results[0]?.dimensions.find((d) => d.id === "negative-instructions");
+    expect(negativeDim?.score).toBeLessThan(50);
+    const negativeIssues =
+      results[0]?.issues.filter((i) => i.dimension === "negative-instructions") ?? [];
+    expect(negativeIssues.length).toBeGreaterThan(0);
+  });
+});
+
+describe("cross-agent compatibility", () => {
+  it("scores higher with multiple agent references", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "# For all AI coding agents — Claude, Copilot, Cursor, Codex",
+      "CLAUDE.md": "# Claude-specific instructions",
+      ".cursorrules": "cursor rules here",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const agentsMdResult = results.find((r) => r.filePath === "AGENTS.md");
+    const crossAgentDim = agentsMdResult?.dimensions.find((d) => d.id === "cross-agent");
+    expect(crossAgentDim?.score).toBeGreaterThan(40);
+  });
+});
+
+describe("token budget scoring", () => {
+  it("scores high for short files", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "# AGENTS.md\n\nShort and focused context.",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const tokenDim = results[0]?.dimensions.find((d) => d.id === "token-budget");
+    expect(tokenDim?.score).toBe(100);
+    expect(results[0]?.tokenEstimate).toBeLessThan(2000);
+  });
+
+  it("warns for very large files", async () => {
+    const longContent = "A".repeat(40000) + "\n"; // ~10k tokens
+    const ctx = createMockContext({
+      "AGENTS.md": `# AGENTS.md\n\n${longContent}`,
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const tokenDim = results[0]?.dimensions.find((d) => d.id === "token-budget");
+    expect(tokenDim?.score).toBeLessThan(80);
+  });
+});
+
+describe("overall audit", () => {
+  it("returns empty for repo without context files", async () => {
+    const ctx = createMockContext({ "src/index.ts": "export const foo = 1;" });
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    expect(results).toEqual([]);
+  });
+
+  it("audits multiple context files independently", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "# AGENTS\nGeneral instructions for all agents.",
+      "CLAUDE.md": "# Claude\nClaude-specific instructions.",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    expect(results.length).toBe(2);
+    expect(results[0]?.filePath).toBe("AGENTS.md");
+    expect(results[1]?.filePath).toBe("CLAUDE.md");
+  });
+
+  it("produces severity-ranked issues", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": `# Guide
+Use npm to install.
+Follow best practices.
+Keep it clean.`,
+      "pnpm-lock.yaml": "lockfileVersion: '9.0'",
+      "package.json": JSON.stringify({ name: "test" }),
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const issues = results[0]?.issues ?? [];
+    // Issues should be sorted by severity
+    for (let i = 1; i < issues.length; i++) {
+      const severityOrder = { critical: 0, warning: 1, info: 2 } as const;
+      const prev = issues[i - 1];
+      const curr = issues[i];
+      if (prev && curr) {
+        expect(severityOrder[prev.severity]).toBeLessThanOrEqual(severityOrder[curr.severity]);
+      }
+    }
+  });
+
+  it("includes fix examples that are actionable", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md": "# Guide\nFollow best practices.\nUse proper error handling.",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const issuesWithFixes = results[0]?.issues.filter((i) => i.fix) ?? [];
+    expect(issuesWithFixes.length).toBeGreaterThan(0);
+    for (const issue of issuesWithFixes) {
+      expect(issue.fix).toBeTruthy();
+      expect(typeof issue.fix).toBe("string");
+    }
+  });
+
+  it("reports redundancy to one decimal place", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md":
+        "# AGENTS.md\n\nUse pnpm install to set up the project. Then run pnpm build to compile and pnpm test for tests.",
+      "README.md":
+        "# Readme\n\nUse pnpm install to set up the project. Then run pnpm build to compile and pnpm test for tests.",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const redundancyDim = results[0]?.dimensions.find((d) => d.id === "redundancy");
+    // Details should contain one decimal place
+    expect(redundancyDim?.details).toMatch(/\d+\.\d%/);
+  });
+});

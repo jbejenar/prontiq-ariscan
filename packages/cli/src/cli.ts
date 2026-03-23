@@ -14,6 +14,7 @@ import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
 import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
 import { policyCommand } from "./commands/policy.js";
 import { generateCommand } from "./commands/generate.js";
+import { auditCommand } from "./commands/audit.js";
 import { formatTerminal } from "./output/terminal.js";
 import {
   formatJson,
@@ -103,6 +104,12 @@ async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
   if (isBareWord && rawFirstArg === "generate") {
     const { runCommand } = await import("citty");
     await runCommand(generateCommand, { rawArgs: process.argv.slice(3) });
+    return;
+  }
+
+  if (isBareWord && rawFirstArg === "audit") {
+    const { runCommand } = await import("citty");
+    await runCommand(auditCommand, { rawArgs: process.argv.slice(3) });
     return;
   }
 
