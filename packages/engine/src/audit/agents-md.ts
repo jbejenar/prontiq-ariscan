@@ -412,26 +412,50 @@ async function scoreStaleness(
   // Resolve relative to the context file's directory first (for monorepo
   // package-level files), then fall back to repo-root lookup.
   const contextDir = filePath.includes("/") ? filePath.slice(0, filePath.lastIndexOf("/")) : "";
-  const pathPattern = /(?:^|\s|`)([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_./-]+)(?:`|\s|$)/g;
+
+  // Match paths with slashes (e.g. src/index.ts) and standalone filenames
+  // with extensions (e.g. README.md, .env, tsconfig.json, package.json).
+  const slashPathPattern = /(?:^|\s|`)([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_./-]+)(?:`|\s|$)/g;
+  const standaloneFilePattern =
+    /(?:^|\s|`)(\.[a-zA-Z][a-zA-Z0-9.-]*|[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+)(?:`|\s|$)/g;
+
+  const checkedPaths = new Set<string>();
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? "";
+
+    // Collect all path references from both patterns
+    const refs: string[] = [];
     let pathMatch;
-    while ((pathMatch = pathPattern.exec(line)) !== null) {
-      const refPath = pathMatch[1]?.trim();
-      if (refPath && !refPath.startsWith("http") && !refPath.startsWith("//")) {
-        if (refPath.includes("*") || refPath.includes("{")) continue;
-        // Try relative to context file directory first, then repo root
-        const relativePath = contextDir ? `${contextDir}/${refPath}` : refPath;
-        const existsRelative = await ctx.fileExists(relativePath);
-        const existsRoot = existsRelative || (await ctx.fileExists(refPath));
-        if (!existsRelative && !existsRoot) {
-          issues.push({
-            severity: "warning",
-            dimension: "staleness",
-            message: `Line ${i + 1} references '${refPath}' which does not exist in repo`,
-            line: i + 1,
-          });
-        }
+    while ((pathMatch = slashPathPattern.exec(line)) !== null) {
+      const ref = pathMatch[1]?.trim();
+      if (ref) refs.push(ref);
+    }
+    while ((pathMatch = standaloneFilePattern.exec(line)) !== null) {
+      const ref = pathMatch[1]?.trim();
+      if (ref) refs.push(ref);
+    }
+
+    for (const refPath of refs) {
+      if (checkedPaths.has(`${i}:${refPath}`)) continue;
+      checkedPaths.add(`${i}:${refPath}`);
+
+      if (refPath.startsWith("http") || refPath.startsWith("//")) continue;
+      if (refPath.includes("*") || refPath.includes("{")) continue;
+      // Skip common non-file-reference patterns (version-like, pure extensions)
+      if (/^\d+\.\d+/.test(refPath)) continue;
+
+      // Try relative to context file directory first, then repo root
+      const relativePath = contextDir ? `${contextDir}/${refPath}` : refPath;
+      const existsRelative = await ctx.fileExists(relativePath);
+      const existsRoot = existsRelative || (await ctx.fileExists(refPath));
+      if (!existsRelative && !existsRoot) {
+        issues.push({
+          severity: "warning",
+          dimension: "staleness",
+          message: `Line ${i + 1} references '${refPath}' which does not exist in repo`,
+          line: i + 1,
+        });
       }
     }
   }
@@ -470,13 +494,15 @@ function scoreClarity(content: string): { dimension: DimensionScore; issues: Aud
     }
   }
 
-  // Count specific vs vague instructions
+  // Count specific vs vague instructions.
+  // Exclude any sentence that matches a VAGUE_PATTERN so that lines like
+  // "use proper error handling" are not counted as "specific".
   const normalized = normalizeForComparison(content);
   const sentences = normalized.split(/[.!?\n]+/).filter((s) => s.trim().length > 10);
   const specificCount = sentences.filter(
     (s) =>
       /\b(must|shall|always|never|exactly|require|use|import|export)\b/i.test(s) &&
-      !/\b(best\s+practices|as\s+needed|when\s+possible)\b/i.test(s),
+      !VAGUE_PATTERNS.some((v) => v.pattern.test(s)),
   ).length;
   const ratio = sentences.length > 0 ? specificCount / sentences.length : 0;
 
@@ -562,7 +588,7 @@ function scoreNegativeInstructions(content: string): {
  */
 function scoreCrossAgent(
   content: string,
-  contextFiles: string[],
+  filePath: string,
 ): { dimension: DimensionScore; issues: AuditIssue[] } {
   const issues: AuditIssue[] = [];
   const covered: string[] = [];
@@ -574,15 +600,16 @@ function scoreCrossAgent(
     }
   }
 
-  // Check for multiple context file formats
+  // Determine format coverage based on the audited file's own name and content only.
+  // A vendor-specific file like CLAUDE.md should not receive a cross-agent boost
+  // merely because other context files (AGENTS.md, .cursorrules) exist elsewhere.
   const fileFormats = new Set<string>();
-  for (const f of contextFiles) {
-    if (f.includes("AGENTS")) fileFormats.add("agents-md");
-    if (f.includes("CLAUDE")) fileFormats.add("claude-md");
-    if (f.includes("cursorrules")) fileFormats.add("cursorrules");
-    if (f.includes("copilot")) fileFormats.add("copilot");
-    if (f.includes("codex")) fileFormats.add("codex");
-  }
+  const fileName = filePath.split("/").pop() ?? "";
+  if (fileName.includes("AGENTS") || /\bagent/i.test(content)) fileFormats.add("agents-md");
+  if (fileName.includes("CLAUDE") || /\bclaude/i.test(content)) fileFormats.add("claude-md");
+  if (fileName.includes("cursorrules") || /\bcursor/i.test(content)) fileFormats.add("cursorrules");
+  if (fileName.includes("copilot") || /\bcopilot/i.test(content)) fileFormats.add("copilot");
+  if (fileName.includes("codex") || /\bcodex/i.test(content)) fileFormats.add("codex");
 
   const agentCoverage = Math.min(5, covered.length);
   const formatCoverage = Math.min(3, fileFormats.size);
@@ -686,10 +713,7 @@ export async function auditContextFile(
   const { dimension: clarityDim, issues: clarityIssues } = scoreClarity(content);
   const frontLoadDim = scoreFrontLoading(content);
   const { dimension: negativeDim, issues: negativeIssues } = scoreNegativeInstructions(content);
-  const { dimension: crossAgentDim, issues: crossAgentIssues } = scoreCrossAgent(
-    content,
-    contextFiles,
-  );
+  const { dimension: crossAgentDim, issues: crossAgentIssues } = scoreCrossAgent(content, filePath);
   const { dimension: tokenDim, issues: tokenIssues, tokenEstimate } = scoreTokenBudget(content);
 
   const dimensions = [
