@@ -353,7 +353,7 @@ async function generateBuildTestSection(
     const pm = detectPackageManager(context);
 
     lines.push("```bash");
-    if (scripts.install || scripts.prepare) lines.push(`${pm} install          # install deps`);
+    lines.push(`${pm} install          # install deps`);
     if (scripts.build)
       lines.push(`${formatRunCommand(pm, "build")}            # build all packages`);
     if (scripts.test) lines.push(`${formatRunCommand(pm, "test")}             # run all tests`);
