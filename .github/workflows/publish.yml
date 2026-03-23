@@ -29,11 +29,18 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' &&
        !startsWith(github.event.workflow_run.head_commit.message, 'chore: version packages'))
     steps:
+      - name: Generate App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
 
@@ -165,10 +172,11 @@ jobs:
         run: pnpm version-packages
 
       # Create a PR for the version bump (respects branch protection rules)
+      # Uses App token so the merge push triggers publish-on-merge.yml
       - name: Create version bump PR
         if: steps.auto-changeset.outputs.has_changeset == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
