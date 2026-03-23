@@ -66,15 +66,26 @@ jobs:
             exit 0
           fi
 
-          # Determine the compare baseline from the most recent version-bump
-          # commit on main. This is the last time changelogs were updated, so
-          # we only want commits since then.
+          # Determine the compare baseline. Priority:
+          # 1. Latest @prontiq/ariscan-cli@* tag (created only on successful publish)
+          # 2. Most recent version-bump commit (fallback if publish never succeeded)
+          # 3. Repo root (first-ever release)
           COMPARE_REF=""
-          COMPARE_REF=$(git log --format='%H' --grep="^chore: version packages" -1 2>/dev/null || echo "")
 
-          if [ -z "$COMPARE_REF" ]; then
-            # No version-bump commit found — compare against repo root
-            COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
+          # Try publish-success tags first (sorted by version, descending)
+          LATEST_TAG=$(git tag -l '@prontiq/ariscan-cli@*' --sort=-version:refname | head -1)
+          if [ -n "$LATEST_TAG" ]; then
+            COMPARE_REF="$LATEST_TAG"
+            echo "Using publish tag as baseline: $LATEST_TAG"
+          else
+            # No publish tags — fall back to most recent version-bump commit
+            COMPARE_REF=$(git log --format='%H' --grep="^chore: version packages" -1 2>/dev/null || echo "")
+            if [ -n "$COMPARE_REF" ]; then
+              echo "No publish tags found, using version-bump commit as baseline: ${COMPARE_REF:0:7}"
+            else
+              COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
+              echo "No publish tags or version-bump commits, using repo root as baseline"
+            fi
           fi
 
           echo "Comparing commits since: $COMPARE_REF"
