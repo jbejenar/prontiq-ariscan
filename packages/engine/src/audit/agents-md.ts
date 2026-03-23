@@ -129,6 +129,42 @@ const BARE_EXTENSIONS = new Set([
   ".txt",
 ]);
 
+/**
+ * Common dotted prose tokens that look like filenames but are runtime/framework
+ * names or other non-file references (e.g. "Node.js", "Next.js"). These are
+ * excluded from standalone-file detection to prevent false staleness warnings.
+ */
+const PROSE_TOKENS = new Set([
+  "node.js",
+  "next.js",
+  "nuxt.js",
+  "vue.js",
+  "react.js",
+  "express.js",
+  "nest.js",
+  "remix.js",
+  "svelte.js",
+  "ember.js",
+  "angular.js",
+  "backbone.js",
+  "electron.js",
+  "gatsby.js",
+  "deno.js",
+  "bun.js",
+  "three.js",
+  "d3.js",
+  "p5.js",
+  "chart.js",
+  "anime.js",
+  "paper.js",
+  "socket.io",
+  "openai.mdx",
+  "e.g",
+  "i.e",
+  "vs.code",
+  "etc.etc",
+]);
+
 /** Agent tool indicators for cross-agent compatibility */
 const AGENT_INDICATORS: Record<string, RegExp[]> = {
   claude: [/claude/i, /anthropic/i, /CLAUDE\.md/i],
@@ -524,6 +560,23 @@ async function scoreStaleness(
       // include .js extension"), but NOT dotfiles like .env, .gitignore, .npmrc
       // which are real filenames that should be checked for staleness.
       if (BARE_EXTENSIONS.has(refPath.toLowerCase())) continue;
+      // Skip well-known dotted prose tokens (e.g. "Node.js", "Express.js")
+      // that are runtime/framework names, not file references.
+      if (PROSE_TOKENS.has(refPath.toLowerCase())) continue;
+      // Skip tokens that look like "Name.ext" where the part before the last
+      // dot is a single capitalized word (PascalCase or UPPER) and the suffix
+      // is a known extension — these are almost always prose references to
+      // runtimes/tools (e.g. "Deno.js", "Bun.ts"), not actual filenames.
+      if (!refPath.includes("/") && !refPath.startsWith(".")) {
+        const lastDot = refPath.lastIndexOf(".");
+        if (lastDot > 0) {
+          const stem = refPath.slice(0, lastDot);
+          const ext = refPath.slice(lastDot).toLowerCase();
+          if (BARE_EXTENSIONS.has(ext) && /^[A-Z][a-z][a-zA-Z]*$/.test(stem)) {
+            continue;
+          }
+        }
+      }
 
       // Try relative to context file directory first, then repo root.
       // For nested context files, ALL bare relative references are treated as

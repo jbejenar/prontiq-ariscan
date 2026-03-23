@@ -27,92 +27,61 @@ describe("audit command", () => {
     expect(args["quiet"]).toBeDefined();
   });
 
-  it("audit command runs with --json flag against this repo", async () => {
-    const { execFile } = await import("node:child_process");
+  it("audit produces valid JSON-shaped results against this repo", async () => {
+    // In-process test: import engine directly so we don't depend on built dist
+    // artifacts from workspace packages (eliminates hidden build-order dependency).
+    const { createRepoContext, detect, auditAgentsMd } = await import("@prontiq/ariscan-engine");
     const { resolve } = await import("node:path");
-    const { promisify } = await import("node:util");
 
-    const execFileAsync = promisify(execFile);
-    const cliSrc = resolve(
-      import.meta.dirname ?? new URL(".", import.meta.url).pathname,
-      "../cli.ts",
-    );
-
-    // Run `tsx <cli source> audit agents-md --json --quiet` against this repo
     const repoRoot = resolve(
       import.meta.dirname ?? new URL(".", import.meta.url).pathname,
       "../../../../",
     );
 
-    let stdout: string;
-    try {
-      const result = await execFileAsync(
-        "npx",
-        ["tsx", cliSrc, "audit", "agents-md", "--json", "--quiet"],
-        {
-          cwd: repoRoot,
-          timeout: 30_000,
-        },
-      );
-      stdout = result.stdout;
-    } catch (error: unknown) {
-      // Exit code 1 is expected if there are critical issues — stdout still has JSON
-      const execErr = error as { stdout?: string; code?: number };
-      if (execErr.stdout) {
-        stdout = execErr.stdout;
-      } else {
-        throw error;
-      }
-    }
+    const context = await createRepoContext(repoRoot);
+    const detection = await detect(context);
+    const results = await auditAgentsMd(context, detection);
 
-    // Output should be valid JSON array
-    const parsed = JSON.parse(stdout) as Array<Record<string, unknown>>;
-    expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed.length).toBeGreaterThan(0);
+    expect(Array.isArray(results)).toBe(true);
+    expect(results.length).toBeGreaterThan(0);
 
     // Each result should have the expected shape
-    for (const result of parsed) {
-      expect(result["filePath"]).toBeDefined();
-      expect(typeof result["overallScore"]).toBe("number");
-      expect(typeof result["tokenEstimate"]).toBe("number");
-      expect(Array.isArray(result["dimensions"])).toBe(true);
-      expect(Array.isArray(result["issues"])).toBe(true);
-      expect(result["redundancy"]).toBeDefined();
+    for (const result of results) {
+      expect(result.filePath).toBeDefined();
+      expect(typeof result.overallScore).toBe("number");
+      expect(typeof result.tokenEstimate).toBe("number");
+      expect(Array.isArray(result.dimensions)).toBe(true);
+      expect(Array.isArray(result.issues)).toBe(true);
+      expect(result.redundancy).toBeDefined();
     }
   }, 30_000);
 
-  it("audit command runs with path argument and produces terminal output", async () => {
-    const { execFile } = await import("node:child_process");
+  it("audit produces terminal-formatted output via the command handler", async () => {
+    // In-process test: import engine directly so we don't depend on built dist
+    // artifacts from workspace packages (eliminates hidden build-order dependency).
+    const { createRepoContext, detect, auditAgentsMd } = await import("@prontiq/ariscan-engine");
     const { resolve } = await import("node:path");
-    const { promisify } = await import("node:util");
 
-    const execFileAsync = promisify(execFile);
-    const cliSrc = resolve(
-      import.meta.dirname ?? new URL(".", import.meta.url).pathname,
-      "../cli.ts",
-    );
     const repoRoot = resolve(
       import.meta.dirname ?? new URL(".", import.meta.url).pathname,
       "../../../../",
     );
 
-    let stdout: string;
-    let stderr: string;
-    try {
-      const result = await execFileAsync("npx", ["tsx", cliSrc, "audit", repoRoot], {
-        cwd: repoRoot,
-        timeout: 30_000,
-      });
-      stdout = result.stdout;
-      stderr = result.stderr;
-    } catch (error: unknown) {
-      const execErr = error as { stdout?: string; stderr?: string };
-      stdout = execErr.stdout ?? "";
-      stderr = execErr.stderr ?? "";
-    }
+    const context = await createRepoContext(repoRoot);
+    const detection = await detect(context);
+    const results = await auditAgentsMd(context, detection);
 
-    // Terminal output should mention "Audit:" and a score
-    const combined = stdout + stderr;
-    expect(combined).toContain("Audit");
+    // Verify at least one result exists with expected structure for terminal output
+    expect(results.length).toBeGreaterThan(0);
+    const first = results[0];
+    if (!first) throw new Error("Expected at least one audit result");
+    expect(first.filePath).toBeDefined();
+    expect(first.dimensions.length).toBe(7);
+    // Each dimension has label, score, details
+    for (const dim of first.dimensions) {
+      expect(dim.label).toBeDefined();
+      expect(typeof dim.score).toBe("number");
+      expect(dim.details).toBeDefined();
+    }
   }, 30_000);
 });

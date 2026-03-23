@@ -148,6 +148,26 @@ describe("staleness scoring", () => {
     expect(bareExtIssues).toHaveLength(0);
   });
 
+  it("does not flag dotted prose tokens like Node.js or Express.js as missing files", async () => {
+    const ctx = createMockContext({
+      "AGENTS.md":
+        "# Guide\n\nThis project uses Node.js and Express.js for the backend.\nWe also use Next.js for the frontend and Deno.js for scripts.",
+    });
+
+    const detection = makeDetection();
+    const results = await auditAgentsMd(ctx, detection);
+    const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
+    const proseTokenIssues = stalenessIssues.filter(
+      (i) =>
+        (i.message.includes("'Node.js'") ||
+          i.message.includes("'Express.js'") ||
+          i.message.includes("'Next.js'") ||
+          i.message.includes("'Deno.js'")) &&
+        i.message.includes("does not exist"),
+    );
+    expect(proseTokenIssues).toHaveLength(0);
+  });
+
   it("generates correct fix text for package manager contradiction", async () => {
     const ctx = createMockContext({
       "AGENTS.md": "# Guide\n\nUse yarn to install dependencies.",
