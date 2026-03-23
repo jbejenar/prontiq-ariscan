@@ -78,27 +78,25 @@ jobs:
             COMPARE_REF="$LATEST_TAG"
             echo "Using publish tag as baseline: $LATEST_TAG"
           else
-            # No publish tags newer than what we have — fall back to most recent
-            # version-bump commit, but skip it if its version matches HEAD
-            # (meaning that bump was never successfully published).
-            CURRENT_VERSION=$(node -p "require('./packages/cli/package.json').version")
+            # No publish tags newer than what we have — fall back to version-bump
+            # commits, but only use one whose version has a matching publish tag
+            # (proving it was successfully published). This is safe even with
+            # multiple consecutive failed publishes.
             while IFS= read -r CANDIDATE; do
               CANDIDATE_VERSION=$(git show "$CANDIDATE:packages/cli/package.json" 2>/dev/null \
                 | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version" 2>/dev/null || echo "")
-              if [ "$CANDIDATE_VERSION" != "$CURRENT_VERSION" ]; then
-                # This version-bump commit is for a different (older) version —
-                # it predates the current unpublished bump, so use it as baseline
+              if git tag -l "@prontiq/ariscan-cli@${CANDIDATE_VERSION}" | grep -q .; then
                 COMPARE_REF="$CANDIDATE"
-                echo "Using version-bump commit for v${CANDIDATE_VERSION} as baseline: ${CANDIDATE:0:7}"
+                echo "Using published version-bump commit for v${CANDIDATE_VERSION} as baseline: ${CANDIDATE:0:7}"
                 break
               else
-                echo "Skipping version-bump ${CANDIDATE:0:7} (v${CANDIDATE_VERSION} matches HEAD — not yet published)"
+                echo "Skipping version-bump ${CANDIDATE:0:7} (v${CANDIDATE_VERSION} — no publish tag, not confirmed published)"
               fi
             done < <(git log --format='%H' --grep="^chore: version packages")
 
             if [ -z "$COMPARE_REF" ]; then
               COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
-              echo "No suitable baseline found, using repo root"
+              echo "No published version-bump commits found, using repo root"
             fi
           fi
 
