@@ -60,8 +60,22 @@ jobs:
               echo "- $pkg" >> "$GITHUB_STEP_SUMMARY"
             done
           else
-            echo "::error::Version bump commit detected but no packages were published. Check if versions already exist on npm."
-            exit 1
+            # Nothing new was published — check if this is a rerun where
+            # the version is already on npm (e.g. prior run published but
+            # failed during tag/release creation). Allow reruns to continue
+            # into the release step so they can repair missing tags/releases.
+            VERSION=$(node -p "require('./packages/cli/package.json').version")
+            if npm view "@prontiq/ariscan-cli@$VERSION" version >/dev/null 2>&1; then
+              echo "Version $VERSION already on npm — continuing to release step (likely a rerun)"
+              echo "published_any=true" >> "$GITHUB_OUTPUT"
+              echo "### Rerun — packages already published" >> "$GITHUB_STEP_SUMMARY"
+              echo "- @prontiq/ariscan-schema@$VERSION" >> "$GITHUB_STEP_SUMMARY"
+              echo "- @prontiq/ariscan-engine@$VERSION" >> "$GITHUB_STEP_SUMMARY"
+              echo "- @prontiq/ariscan-cli@$VERSION" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::Version bump commit detected but no packages were published and $VERSION is not on npm."
+              exit 1
+            fi
           fi
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

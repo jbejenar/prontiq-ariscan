@@ -59,21 +59,27 @@ jobs:
             exit 0
           fi
 
-          # Find the last version-bump commit as the compare baseline.
-          # This is more reliable than tags — tags can fail to push (tolerated
-          # in publish-on-merge), but the version-bump commit always exists.
-          LAST_VERSION_COMMIT=$(git log --format='%H' --grep='^chore: version packages' -1)
-          if [ -z "$LAST_VERSION_COMMIT" ]; then
-            # No version commits yet — fall back to most recent tag across
-            # all packages, then to the repo root as a last resort
-            LAST_TAG=$(git tag -l '@prontiq/ariscan-*' --sort=-creatordate | head -1)
-            if [ -n "$LAST_TAG" ]; then
-              COMPARE_REF="$LAST_TAG"
+          # Determine the compare baseline from the last *successfully published*
+          # version. Using npm as source of truth avoids replaying commits when
+          # a version-bump commit exists but the actual npm publish failed.
+          COMPARE_REF=""
+          PUBLISHED_VERSION=$(npm view @prontiq/ariscan-cli version 2>/dev/null || echo "")
+
+          if [ -n "$PUBLISHED_VERSION" ]; then
+            echo "Last published version on npm: $PUBLISHED_VERSION"
+            # Try to find the corresponding git tag
+            TAG_REF=$(git tag -l "@prontiq/ariscan-cli@${PUBLISHED_VERSION}" 2>/dev/null || echo "")
+            if [ -n "$TAG_REF" ]; then
+              COMPARE_REF="$TAG_REF"
             else
-              COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
+              # Tag missing — find the version-bump commit that set this version
+              COMPARE_REF=$(git log --format='%H' --grep="^chore: version packages" -1 || echo "")
             fi
-          else
-            COMPARE_REF="$LAST_VERSION_COMMIT"
+          fi
+
+          if [ -z "$COMPARE_REF" ]; then
+            # Nothing published yet — compare against the repo root
+            COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
           fi
 
           echo "Comparing commits since: $COMPARE_REF"
