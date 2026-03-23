@@ -52,7 +52,6 @@ jobs:
 
           # Extract published packages for the release step
           PUBLISHED=$(grep -oE '@prontiq/ariscan-[a-z]+@[0-9]+\.[0-9]+\.[0-9]+' publish-output.txt || true)
-          echo "published=$PUBLISHED" >> "$GITHUB_OUTPUT"
 
           if [ -n "$PUBLISHED" ]; then
             echo "published_any=true" >> "$GITHUB_OUTPUT"
