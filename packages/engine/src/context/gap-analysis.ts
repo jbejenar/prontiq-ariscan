@@ -256,6 +256,7 @@ export async function analyzeGaps(
   }
 
   // --- Index existing context files ---
+  // Must match the discovery surface in context-quality analyzer
   const CONTEXT_FILES = [
     "AGENTS.md",
     "CLAUDE.md",
@@ -265,6 +266,9 @@ export async function analyzeGaps(
     ".aider.conf.yml",
     ".aiderignore",
     ".agentignore",
+    ".mcp.json",
+    "mcp.config.js",
+    ".claude/settings.json",
   ];
   for (const cf of CONTEXT_FILES) {
     const content = await context.readFile(cf);
@@ -272,6 +276,21 @@ export async function analyzeGaps(
       indexed.push({ path: cf, type: "context-file", contentLength: content.length });
       // Context files are also reference docs (for cross-context-file deduplication)
       referenceDocs.push({ path: cf, content });
+    }
+  }
+
+  // --- Index directory-based context files ---
+  const CONTEXT_DIRS = [".claude/commands", ".cursor/rules"];
+  for (const dir of CONTEXT_DIRS) {
+    for (const file of context.files) {
+      if (file.startsWith(dir + "/")) {
+        if (referenceDocs.some((d) => d.path === file)) continue;
+        const content = await context.readFile(file);
+        if (content !== null) {
+          indexed.push({ path: file, type: "context-file", contentLength: content.length });
+          referenceDocs.push({ path: file, content });
+        }
+      }
     }
   }
 
@@ -327,7 +346,13 @@ export async function analyzeGaps(
   // (not in README or context files)
   // Easy-access docs: standard documentation files plus all agent-facing
   // context/instruction files (but not ignore lists or non-instructional config)
-  const NON_INSTRUCTIONAL_CONTEXT_FILES = new Set([".aiderignore", ".agentignore"]);
+  const NON_INSTRUCTIONAL_CONTEXT_FILES = new Set([
+    ".aiderignore",
+    ".agentignore",
+    ".mcp.json",
+    "mcp.config.js",
+    ".claude/settings.json",
+  ]);
   const easyAccessPaths = new Set(
     indexed
       .filter(
