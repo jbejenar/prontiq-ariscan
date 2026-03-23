@@ -76,6 +76,59 @@ const CONTEXT_FILE_NAMES = [
   "codex.md",
 ] as const;
 
+/** Bare file extensions commonly mentioned in prose (e.g. "use .js extension").
+ *  These are NOT real filenames and should be excluded from stale-path scanning.
+ *  Dotfiles like .env, .gitignore, .npmrc are real files and are NOT in this set.
+ */
+const BARE_EXTENSIONS = new Set([
+  ".js",
+  ".ts",
+  ".tsx",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".mts",
+  ".cts",
+  ".md",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".xml",
+  ".csv",
+  ".css",
+  ".scss",
+  ".less",
+  ".html",
+  ".htm",
+  ".svg",
+  ".py",
+  ".go",
+  ".rs",
+  ".rb",
+  ".java",
+  ".kt",
+  ".swift",
+  ".c",
+  ".cpp",
+  ".h",
+  ".sh",
+  ".bash",
+  ".zsh",
+  ".fish",
+  ".bat",
+  ".ps1",
+  ".sql",
+  ".graphql",
+  ".gql",
+  ".proto",
+  ".wasm",
+  ".lock",
+  ".map",
+  ".log",
+  ".txt",
+]);
+
 /** Agent tool indicators for cross-agent compatibility */
 const AGENT_INDICATORS: Record<string, RegExp[]> = {
   claude: [/claude/i, /anthropic/i, /CLAUDE\.md/i],
@@ -467,10 +520,10 @@ async function scoreStaleness(
       if (refPath.includes("*") || refPath.includes("{")) continue;
       // Skip common non-file-reference patterns (version-like, pure extensions)
       if (/^\d+\.\d+/.test(refPath)) continue;
-      // Skip bare extensions like .js, .ts, .md — these are prose mentions
-      // (e.g. "imports must include .js extension"), not file references.
-      // Dotfiles with a second segment like .eslintrc.js are kept.
-      if (/^\.[a-zA-Z0-9]+$/.test(refPath)) continue;
+      // Skip bare extensions commonly mentioned in prose (e.g. "imports must
+      // include .js extension"), but NOT dotfiles like .env, .gitignore, .npmrc
+      // which are real filenames that should be checked for staleness.
+      if (BARE_EXTENSIONS.has(refPath.toLowerCase())) continue;
 
       // Try relative to context file directory first, then repo root
       const relativePath = contextDir ? `${contextDir}/${refPath}` : refPath;
@@ -631,12 +684,15 @@ function scoreCrossAgent(
   // A vendor-specific file like CLAUDE.md should not receive a cross-agent boost
   // merely because other context files (AGENTS.md, .cursorrules) exist elsewhere.
   const fileFormats = new Set<string>();
-  const fileName = filePath.split("/").pop() ?? "";
-  if (fileName.includes("AGENTS") || /\bagent/i.test(content)) fileFormats.add("agents-md");
-  if (fileName.includes("CLAUDE") || /\bclaude/i.test(content)) fileFormats.add("claude-md");
-  if (fileName.includes("cursorrules") || /\bcursor/i.test(content)) fileFormats.add("cursorrules");
-  if (fileName.includes("copilot") || /\bcopilot/i.test(content)) fileFormats.add("copilot");
-  if (fileName.includes("codex") || /\bcodex/i.test(content)) fileFormats.add("codex");
+  const fileNameLower = (filePath.split("/").pop() ?? "").toLowerCase();
+  if (fileNameLower.includes("agents") || /\bagent/i.test(content)) fileFormats.add("agents-md");
+  if (fileNameLower.includes("claude") || /\bclaude/i.test(content)) fileFormats.add("claude-md");
+  if (fileNameLower.includes("cursorrules") || /\bcursor/i.test(content))
+    fileFormats.add("cursorrules");
+  if (fileNameLower.includes("copilot") || /\bcopilot/i.test(content)) fileFormats.add("copilot");
+  if (fileNameLower.includes("codex") || /\bcodex/i.test(content)) fileFormats.add("codex");
+  if (fileNameLower.includes("windsurfrules") || /\bwindsurf/i.test(content))
+    fileFormats.add("windsurfrules");
 
   const agentCoverage = Math.min(5, covered.length);
   const formatCoverage = Math.min(3, fileFormats.size);
