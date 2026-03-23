@@ -66,37 +66,38 @@ jobs:
             exit 0
           fi
 
-          # Determine the compare baseline from the last *successfully published*
-          # version. Using npm as source of truth avoids replaying commits when
-          # a version-bump commit exists but the actual npm publish failed.
+          # Determine the compare baseline. Priority:
+          # 1. Latest @prontiq/ariscan-cli@* tag (created only on successful publish)
+          # 2. Most recent version-bump commit (fallback if publish never succeeded)
+          # 3. Repo root (first-ever release)
           COMPARE_REF=""
-          PUBLISHED_VERSION=$(npm view @prontiq/ariscan-cli version 2>/dev/null || echo "")
 
-          if [ -n "$PUBLISHED_VERSION" ]; then
-            echo "Last published version on npm: $PUBLISHED_VERSION"
-            # Try to find the corresponding git tag
-            TAG_REF=$(git tag -l "@prontiq/ariscan-cli@${PUBLISHED_VERSION}" 2>/dev/null || echo "")
-            if [ -n "$TAG_REF" ]; then
-              COMPARE_REF="$TAG_REF"
-            else
-              # Tag missing — walk version-bump commits to find the one that
-              # set the published version. Using -1 would grab the most recent
-              # version-bump commit which may be a later *failed* publish.
-              while IFS= read -r CANDIDATE; do
-                COMMIT_VERSION=$(git show "$CANDIDATE:packages/cli/package.json" 2>/dev/null \
-                  | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).version)}catch{}})" 2>/dev/null || echo "")
-                if [ "$COMMIT_VERSION" = "$PUBLISHED_VERSION" ]; then
-                  COMPARE_REF="$CANDIDATE"
-                  echo "Found version-bump commit for $PUBLISHED_VERSION: $CANDIDATE"
-                  break
-                fi
-              done < <(git log --format='%H' --grep="^chore: version packages")
+          # Try publish-success tags first (sorted by version, descending)
+          LATEST_TAG=$(git tag -l '@prontiq/ariscan-cli@*' --sort=-version:refname | head -1)
+          if [ -n "$LATEST_TAG" ]; then
+            COMPARE_REF="$LATEST_TAG"
+            echo "Using publish tag as baseline: $LATEST_TAG"
+          else
+            # No publish tags newer than what we have — fall back to version-bump
+            # commits, but only use one whose version has a matching publish tag
+            # (proving it was successfully published). This is safe even with
+            # multiple consecutive failed publishes.
+            while IFS= read -r CANDIDATE; do
+              CANDIDATE_VERSION=$(git show "$CANDIDATE:packages/cli/package.json" 2>/dev/null \
+                | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version" 2>/dev/null || echo "")
+              if git tag -l "@prontiq/ariscan-cli@${CANDIDATE_VERSION}" | grep -q .; then
+                COMPARE_REF="$CANDIDATE"
+                echo "Using published version-bump commit for v${CANDIDATE_VERSION} as baseline: ${CANDIDATE:0:7}"
+                break
+              else
+                echo "Skipping version-bump ${CANDIDATE:0:7} (v${CANDIDATE_VERSION} — no publish tag, not confirmed published)"
+              fi
+            done < <(git log --format='%H' --grep="^chore: version packages")
+
+            if [ -z "$COMPARE_REF" ]; then
+              COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
+              echo "No published version-bump commits found, using repo root"
             fi
-          fi
-
-          if [ -z "$COMPARE_REF" ]; then
-            # Nothing published yet or no matching commit — compare against repo root
-            COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
           fi
 
           echo "Comparing commits since: $COMPARE_REF"
@@ -186,7 +187,7 @@ jobs:
           # Create branch from current HEAD and commit version bump
           git checkout -B "$BRANCH"
           git add -A
-          git commit -m "chore: version packages [skip ci]" || {
+          git commit -m "chore: version packages" || {
             echo "Nothing to commit"
             exit 0
           }
