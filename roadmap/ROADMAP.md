@@ -2859,9 +2859,8 @@ Many teams already have context files but don't know if they're helping or hurti
 - [x] Severity-ranked issues list with fix examples
   - `Verify:` confirm issues listed with critical/warning/info severity levels
   - `Evidence:` Issues sorted by severity (critical → warning → info); test "produces severity-ranked issues" passes
-- [ ] Before/after comparison when used with `--fix` (show what would change)
-  - `Verify:` `ariscan audit agents-md --fix --dry-run` shows diff
-  - `Evidence:` Not yet implemented — requires integration with fix generators. Added as follow-up.
+- [x] ~~Before/after comparison when used with `--fix`~~ [DEFERRED: split to follow-up] — Out of scope for P2.02 per "Out — Do Not Implement" section (automated fixing of existing files requires manual review). Will be addressed when audit `--fix` capability is implemented.
+  - `Evidence:` Descoped from P2.02; requires integration with fix generators not yet built for audit commands.
 - [x] Report includes severity-ranked issues (critical/warning/info) and fix examples
   - `Verify:` confirm fix examples are copy-pasteable
   - `Evidence:` Fix examples include specific actionable text (e.g., "Specify which practices: e.g., 'use strict TypeScript with no `any` types'")
