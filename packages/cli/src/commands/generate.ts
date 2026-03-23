@@ -178,6 +178,47 @@ export const generateCommand = defineCommand({
       // Full generate mode
       const result = await generateContextFiles(context, detection);
 
+      // Write files unless --dry-run (--json does NOT suppress writes)
+      if (!args.dryRun && result.files.length > 0) {
+        let written = 0;
+        let skipped = 0;
+        for (const file of result.files) {
+          const filePath = resolve(repoPath, file.path);
+
+          // Security: reject paths that escape the target repository
+          const normalizedRepo = repoPath.endsWith("/") ? repoPath : repoPath + "/";
+          if (!filePath.startsWith(normalizedRepo) && filePath !== repoPath) {
+            process.stderr.write(`   Refused ${file.path} (path escapes repository root)\n`);
+            skipped++;
+            continue;
+          }
+
+          const dir = dirname(filePath);
+          await mkdir(dir, { recursive: true });
+          try {
+            await writeFile(filePath, file.content, { encoding: "utf-8", flag: "wx" });
+            if (!args.quiet) {
+              process.stderr.write(`   Created ${file.path}\n`);
+            }
+            written++;
+          } catch (err: unknown) {
+            if (err instanceof Error && "code" in err && err.code === "EEXIST") {
+              if (!args.quiet) {
+                process.stderr.write(`   Skipped ${file.path} (already exists)\n`);
+              }
+              skipped++;
+            } else {
+              throw err;
+            }
+          }
+        }
+
+        if (!args.quiet) {
+          process.stderr.write(`\nDone: ${written} created, ${skipped} skipped.\n`);
+        }
+      }
+
+      // Output
       if (args.json) {
         process.stdout.write(formatJsonResult(result));
         process.stdout.write("\n");
@@ -200,35 +241,7 @@ export const generateCommand = defineCommand({
           process.stdout.write(file.content);
           process.stdout.write("\n");
         }
-        return;
       }
-
-      // Write files — use exclusive create (wx) to avoid TOCTOU race
-      let written = 0;
-      let skipped = 0;
-      for (const file of result.files) {
-        const filePath = resolve(repoPath, file.path);
-        const dir = dirname(filePath);
-        await mkdir(dir, { recursive: true });
-        try {
-          await writeFile(filePath, file.content, { encoding: "utf-8", flag: "wx" });
-          if (!args.quiet) {
-            process.stderr.write(`   Created ${file.path}\n`);
-          }
-          written++;
-        } catch (err: unknown) {
-          if (err instanceof Error && "code" in err && err.code === "EEXIST") {
-            if (!args.quiet) {
-              process.stderr.write(`   Skipped ${file.path} (already exists)\n`);
-            }
-            skipped++;
-          } else {
-            throw err;
-          }
-        }
-      }
-
-      process.stderr.write(`\nDone: ${written} created, ${skipped} skipped.\n`);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       process.stderr.write(`Error: Generation failed: ${message}\n`);

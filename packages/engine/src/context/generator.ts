@@ -259,6 +259,8 @@ async function generateSubdirectoryFiles(
   const mono = detection.monorepo;
   if (!mono) return files;
 
+  const pm = detectPackageManager(context);
+
   for (const pkgPath of mono.packages) {
     // Check if package has its own package.json with unique scripts
     const pkgJsonPath = `${pkgPath}/package.json`;
@@ -286,9 +288,9 @@ async function generateSubdirectoryFiles(
     lines.push("## Package Commands");
     lines.push("");
     lines.push("```bash");
-    if (scripts.build) lines.push(`pnpm --filter ${pkgName} build`);
-    if (scripts.test) lines.push(`pnpm --filter ${pkgName} test`);
-    if (scripts.lint) lines.push(`pnpm --filter ${pkgName} lint`);
+    if (scripts.build) lines.push(formatWorkspaceCommand(pm, pkgName, "build"));
+    if (scripts.test) lines.push(formatWorkspaceCommand(pm, pkgName, "test"));
+    if (scripts.lint) lines.push(formatWorkspaceCommand(pm, pkgName, "lint"));
     lines.push("```");
     lines.push("");
 
@@ -352,11 +354,12 @@ async function generateBuildTestSection(
 
     lines.push("```bash");
     if (scripts.install || scripts.prepare) lines.push(`${pm} install          # install deps`);
-    if (scripts.build) lines.push(`${pm} build            # build all packages`);
-    if (scripts.test) lines.push(`${pm} test             # run all tests`);
-    if (scripts.lint) lines.push(`${pm} lint             # lint`);
-    if (scripts.typecheck) lines.push(`${pm} typecheck        # type-check`);
-    if (scripts.format) lines.push(`${pm} format           # format code`);
+    if (scripts.build)
+      lines.push(`${formatRunCommand(pm, "build")}            # build all packages`);
+    if (scripts.test) lines.push(`${formatRunCommand(pm, "test")}             # run all tests`);
+    if (scripts.lint) lines.push(`${formatRunCommand(pm, "lint")}             # lint`);
+    if (scripts.typecheck) lines.push(`${formatRunCommand(pm, "typecheck")}        # type-check`);
+    if (scripts.format) lines.push(`${formatRunCommand(pm, "format")}           # format code`);
     lines.push("```");
   } else {
     const hasMakefile = await context.fileExists("Makefile");
@@ -576,4 +579,37 @@ function detectPackageManager(context: RepoContext): string {
   if (context.files.some((f) => f === "pnpm-lock.yaml")) return "pnpm";
   if (context.files.some((f) => f === "yarn.lock")) return "yarn";
   return "npm";
+}
+
+/**
+ * Format a top-level script invocation for the detected package manager.
+ * npm requires `run` for non-lifecycle scripts; pnpm and yarn do not.
+ */
+function formatRunCommand(pm: string, script: string): string {
+  // npm lifecycle scripts (test, start, stop, restart) don't need `run`
+  const npmLifecycle = new Set(["test", "start", "stop", "restart"]);
+  if (pm === "npm" && !npmLifecycle.has(script)) {
+    return `npm run ${script}`;
+  }
+  return `${pm} ${script}`;
+}
+
+/**
+ * Format a workspace-scoped command for the detected package manager.
+ */
+function formatWorkspaceCommand(pm: string, pkgName: string, script: string): string {
+  switch (pm) {
+    case "pnpm":
+      return `pnpm --filter ${pkgName} ${script}`;
+    case "yarn":
+      return `yarn workspace ${pkgName} ${script}`;
+    default: {
+      // npm workspaces use --workspace flag and require `run` for non-lifecycle scripts
+      const npmLifecycle = new Set(["test", "start", "stop", "restart"]);
+      if (npmLifecycle.has(script)) {
+        return `npm ${script} --workspace ${pkgName}`;
+      }
+      return `npm run ${script} --workspace ${pkgName}`;
+    }
+  }
 }
