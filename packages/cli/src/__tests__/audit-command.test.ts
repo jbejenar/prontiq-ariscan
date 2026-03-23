@@ -33,12 +33,12 @@ describe("audit command", () => {
     const { promisify } = await import("node:util");
 
     const execFileAsync = promisify(execFile);
-    const cliBin = resolve(
+    const cliSrc = resolve(
       import.meta.dirname ?? new URL(".", import.meta.url).pathname,
-      "../../dist/cli.js",
+      "../cli.ts",
     );
 
-    // Run `node <cli> audit agents-md --json --quiet` against this repo
+    // Run `tsx <cli source> audit agents-md --json --quiet` against this repo
     const repoRoot = resolve(
       import.meta.dirname ?? new URL(".", import.meta.url).pathname,
       "../../../../",
@@ -47,8 +47,8 @@ describe("audit command", () => {
     let stdout: string;
     try {
       const result = await execFileAsync(
-        "node",
-        ["--no-warnings", cliBin, "audit", "agents-md", "--json", "--quiet"],
+        "npx",
+        ["tsx", cliSrc, "audit", "agents-md", "--json", "--quiet"],
         {
           cwd: repoRoot,
           timeout: 30_000,
@@ -87,9 +87,9 @@ describe("audit command", () => {
     const { promisify } = await import("node:util");
 
     const execFileAsync = promisify(execFile);
-    const cliBin = resolve(
+    const cliSrc = resolve(
       import.meta.dirname ?? new URL(".", import.meta.url).pathname,
-      "../../dist/cli.js",
+      "../cli.ts",
     );
     const repoRoot = resolve(
       import.meta.dirname ?? new URL(".", import.meta.url).pathname,
@@ -99,7 +99,7 @@ describe("audit command", () => {
     let stdout: string;
     let stderr: string;
     try {
-      const result = await execFileAsync("node", ["--no-warnings", cliBin, "audit", repoRoot], {
+      const result = await execFileAsync("npx", ["tsx", cliSrc, "audit", repoRoot], {
         cwd: repoRoot,
         timeout: 30_000,
       });
