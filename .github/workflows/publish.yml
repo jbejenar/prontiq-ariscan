@@ -66,36 +66,14 @@ jobs:
             exit 0
           fi
 
-          # Determine the compare baseline from the last *successfully published*
-          # version. Using npm as source of truth avoids replaying commits when
-          # a version-bump commit exists but the actual npm publish failed.
+          # Determine the compare baseline from the most recent version-bump
+          # commit on main. This is the last time changelogs were updated, so
+          # we only want commits since then.
           COMPARE_REF=""
-          PUBLISHED_VERSION=$(npm view @prontiq/ariscan-cli version 2>/dev/null || echo "")
-
-          if [ -n "$PUBLISHED_VERSION" ]; then
-            echo "Last published version on npm: $PUBLISHED_VERSION"
-            # Try to find the corresponding git tag
-            TAG_REF=$(git tag -l "@prontiq/ariscan-cli@${PUBLISHED_VERSION}" 2>/dev/null || echo "")
-            if [ -n "$TAG_REF" ]; then
-              COMPARE_REF="$TAG_REF"
-            else
-              # Tag missing — walk version-bump commits to find the one that
-              # set the published version. Using -1 would grab the most recent
-              # version-bump commit which may be a later *failed* publish.
-              while IFS= read -r CANDIDATE; do
-                COMMIT_VERSION=$(git show "$CANDIDATE:packages/cli/package.json" 2>/dev/null \
-                  | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).version)}catch{}})" 2>/dev/null || echo "")
-                if [ "$COMMIT_VERSION" = "$PUBLISHED_VERSION" ]; then
-                  COMPARE_REF="$CANDIDATE"
-                  echo "Found version-bump commit for $PUBLISHED_VERSION: $CANDIDATE"
-                  break
-                fi
-              done < <(git log --format='%H' --grep="^chore: version packages")
-            fi
-          fi
+          COMPARE_REF=$(git log --format='%H' --grep="^chore: version packages" -1 2>/dev/null || echo "")
 
           if [ -z "$COMPARE_REF" ]; then
-            # Nothing published yet or no matching commit — compare against repo root
+            # No version-bump commit found — compare against repo root
             COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
           fi
 
@@ -186,7 +164,7 @@ jobs:
           # Create branch from current HEAD and commit version bump
           git checkout -B "$BRANCH"
           git add -A
-          git commit -m "chore: version packages [skip ci]" || {
+          git commit -m "chore: version packages" || {
             echo "Nothing to commit"
             exit 0
           }
