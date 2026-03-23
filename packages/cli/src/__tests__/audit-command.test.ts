@@ -156,4 +156,74 @@ describe("audit command", () => {
       expect([0, 1]).toContain(exitCode);
     }
   }, 30_000);
+
+  it("runCommand(auditCommand) with 'agents-md' target keyword exercises documented command shape", async () => {
+    // Regression test for the documented `ariscan audit agents-md --json --quiet`
+    // command shape. The positional arg is the target keyword "agents-md", NOT a
+    // filesystem path. This exercises the AUDIT_TARGETS branch in audit.ts that
+    // resolves the repo path to "." when a known target is provided.
+    const { runCommand } = await import("citty");
+    const { auditCommand } = await import("../commands/audit.js");
+    const { resolve } = await import("node:path");
+
+    // The agents-md target resolves CWD via resolve("."), so we must be at the
+    // repo root for discovery to find context files.
+    const repoRoot = resolve(
+      import.meta.dirname ?? new URL(".", import.meta.url).pathname,
+      "../../../../",
+    );
+    const origCwd = process.cwd();
+    process.chdir(repoRoot);
+
+    const stdoutChunks: string[] = [];
+    const stderrChunks: string[] = [];
+    const origStdoutWrite = process.stdout.write.bind(process.stdout);
+    const origStderrWrite = process.stderr.write.bind(process.stderr);
+    const origExit = process.exit;
+
+    let exitCode: number | undefined;
+    process.exit = ((code?: number) => {
+      exitCode = code;
+    }) as never;
+
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      stdoutChunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      stderrChunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
+      return true;
+    }) as typeof process.stderr.write;
+
+    try {
+      await runCommand(auditCommand, { rawArgs: ["agents-md", "--json", "--quiet"] });
+    } finally {
+      process.chdir(origCwd);
+      process.stdout.write = origStdoutWrite;
+      process.stderr.write = origStderrWrite;
+      process.exit = origExit;
+    }
+
+    const stdout = stdoutChunks.join("");
+    const stderr = stderrChunks.join("");
+
+    // --quiet suppresses progress output
+    expect(stderr).not.toContain("Auditing context files");
+
+    // Should NOT have treated "agents-md" as a path and errored
+    expect(exitCode).not.toBe(2);
+
+    // --json produces valid JSON array output
+    const parsed = JSON.parse(stdout) as unknown[];
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBeGreaterThan(0);
+
+    for (const item of parsed) {
+      const result = item as Record<string, unknown>;
+      expect(result["filePath"]).toBeDefined();
+      expect(typeof result["overallScore"]).toBe("number");
+      expect(Array.isArray(result["dimensions"])).toBe(true);
+      expect(Array.isArray(result["issues"])).toBe(true);
+    }
+  }, 30_000);
 });
