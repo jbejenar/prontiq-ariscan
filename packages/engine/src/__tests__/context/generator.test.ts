@@ -92,6 +92,47 @@ Use vitest for unit tests. Mock filesystem via RepoContext.`,
     expect(constraintGap).toBeDefined();
   });
 
+  it("recognizes npm run <script> syntax as documented commands", async () => {
+    const ctx = createMockContext({
+      "README.md": `# My Project
+
+## Getting Started
+
+\`\`\`bash
+npm install
+npm run build
+npm run test
+npm run lint
+npm run format
+\`\`\`
+
+## Architecture
+
+A simple Node.js project.
+
+## Constraints
+
+Do NOT commit without running lint first.`,
+      "package.json": JSON.stringify({
+        name: "npm-project",
+        scripts: { build: "tsc", test: "vitest", lint: "eslint .", format: "prettier --write ." },
+      }),
+    });
+
+    const detection = makeDetectionResult();
+    const result = await analyzeGaps(ctx, detection);
+
+    const buildGap = result.gaps.find((g) => g.category.id === "build-commands");
+    const testGap = result.gaps.find((g) => g.category.id === "test-commands");
+    const lintGap = result.gaps.find((g) => g.category.id === "lint-format");
+
+    // npm run build/test/lint should be recognized — no gaps for these categories
+    expect(buildGap).toBeUndefined();
+    expect(testGap).toBeUndefined();
+    expect(lintGap).toBeUndefined();
+    expect(result.coverage).toBeGreaterThan(50);
+  });
+
   it("does not report monorepo gap for non-monorepo", async () => {
     const ctx = createMockContext({
       "README.md": "# Project",

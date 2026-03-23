@@ -68,7 +68,7 @@ const INFO_CATEGORIES: InfoCategory[] = [
     label: "Build commands",
     importance: 10,
     patterns: [
-      /\b(pnpm|npm|yarn|make|cargo|go|gradle|mvn|dotnet)\s+(install|build|compile)/i,
+      /\b(pnpm|npm(?:\s+run)?|yarn|make|cargo|go|gradle|mvn|dotnet)\s+(install|build|compile)/i,
       /\bbuild\b.*\b(command|script|step|instructions)\b/i,
     ],
   },
@@ -77,7 +77,7 @@ const INFO_CATEGORIES: InfoCategory[] = [
     label: "Test commands",
     importance: 10,
     patterns: [
-      /\b(pnpm|npm|yarn|make|cargo|go|pytest|jest|vitest|gradle|mvn)\s+test/i,
+      /\b(pnpm|npm(?:\s+run)?|yarn|make|cargo|go|pytest|jest|vitest|gradle|mvn)\s+test/i,
       /\btest\b.*\b(command|script|step|instructions)\b/i,
     ],
   },
@@ -157,7 +157,7 @@ const INFO_CATEGORIES: InfoCategory[] = [
     label: "Lint / format commands",
     importance: 5,
     patterns: [
-      /\b(pnpm|npm|yarn)\s+(lint|format)/i,
+      /\b(pnpm|npm(?:\s+run)?|yarn)\s+(lint|format)/i,
       /\beslint\b/i,
       /\bprettier\b/i,
       /\bformatting\b/i,
