@@ -72,13 +72,23 @@ jobs:
             if [ -n "$TAG_REF" ]; then
               COMPARE_REF="$TAG_REF"
             else
-              # Tag missing — find the version-bump commit that set this version
-              COMPARE_REF=$(git log --format='%H' --grep="^chore: version packages" -1 || echo "")
+              # Tag missing — walk version-bump commits to find the one that
+              # set the published version. Using -1 would grab the most recent
+              # version-bump commit which may be a later *failed* publish.
+              while IFS= read -r CANDIDATE; do
+                COMMIT_VERSION=$(git show "$CANDIDATE:packages/cli/package.json" 2>/dev/null \
+                  | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).version)}catch{}})" 2>/dev/null || echo "")
+                if [ "$COMMIT_VERSION" = "$PUBLISHED_VERSION" ]; then
+                  COMPARE_REF="$CANDIDATE"
+                  echo "Found version-bump commit for $PUBLISHED_VERSION: $CANDIDATE"
+                  break
+                fi
+              done < <(git log --format='%H' --grep="^chore: version packages")
             fi
           fi
 
           if [ -z "$COMPARE_REF" ]; then
-            # Nothing published yet — compare against the repo root
+            # Nothing published yet or no matching commit — compare against repo root
             COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
           fi
 
