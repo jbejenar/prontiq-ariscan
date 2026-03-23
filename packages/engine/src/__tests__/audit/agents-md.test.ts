@@ -185,24 +185,25 @@ describe("staleness scoring", () => {
   });
 
   it("does not suppress staleness for standalone filenames via root fallback in nested files", async () => {
-    // packages/web/AGENTS.md references "package.json" which exists only at
-    // repo root, NOT at packages/web/package.json. This should produce a
-    // staleness warning because the reference is package-local.
+    // packages/web/AGENTS.md references "package.json" and "setup.cfg" which
+    // exist only at repo root, NOT at packages/web/. These are non-global
+    // standalone filenames, so they should produce staleness warnings.
+    // Note: README.md IS repo-global and should NOT be flagged (tested separately).
     const ctx = createMockContext({
       "packages/web/AGENTS.md":
-        "# Web Package\n\nSee `package.json` for scripts.\nCheck `README.md` for docs.",
+        "# Web Package\n\nSee `package.json` for scripts.\nCheck `setup.cfg` for config.",
       "package.json": JSON.stringify({ name: "root" }),
-      "README.md": "# Root README",
+      "setup.cfg": "[metadata]",
     });
 
     const detection = makeDetection();
     const results = await auditAgentsMd(ctx, detection);
     const stalenessIssues = results[0]?.issues.filter((i) => i.dimension === "staleness") ?? [];
     const pathIssues = stalenessIssues.filter((i) => i.message.includes("does not exist"));
-    // Both package.json and README.md should be flagged as missing (package-relative)
+    // Both package.json and setup.cfg should be flagged as missing (package-relative)
     expect(pathIssues.length).toBeGreaterThanOrEqual(2);
     expect(pathIssues.some((i) => i.message.includes("package.json"))).toBe(true);
-    expect(pathIssues.some((i) => i.message.includes("README.md"))).toBe(true);
+    expect(pathIssues.some((i) => i.message.includes("setup.cfg"))).toBe(true);
   });
 
   it("flags slash-containing paths in nested files when only root has them", async () => {
@@ -259,13 +260,14 @@ describe("staleness scoring", () => {
 
   it("allows repo-global workspace files referenced from nested context files", async () => {
     // packages/web/AGENTS.md references pnpm-workspace.yaml, turbo.json,
-    // and .github/workflows/ci.yml — all legitimate repo-global references
+    // .github/workflows/ci.yml, and README.md — all legitimate repo-global references
     const ctx = createMockContext({
       "packages/web/AGENTS.md":
-        "# Web Package\n\nWorkspace config is in `pnpm-workspace.yaml`.\nBuild config in `turbo.json`.\nCI defined in `.github/workflows/ci.yml`.",
+        "# Web Package\n\nWorkspace config is in `pnpm-workspace.yaml`.\nBuild config in `turbo.json`.\nCI defined in `.github/workflows/ci.yml`.\nSee `README.md` for project overview.",
       "pnpm-workspace.yaml": "packages:\n  - packages/*",
       "turbo.json": '{"pipeline":{}}',
       ".github/workflows/ci.yml": "name: CI",
+      "README.md": "# Project",
     });
 
     const detection = makeDetection();
@@ -278,6 +280,7 @@ describe("staleness scoring", () => {
     expect(pathIssues.filter((i) => i.message.includes(".github/workflows/ci.yml"))).toHaveLength(
       0,
     );
+    expect(pathIssues.filter((i) => i.message.includes("README.md"))).toHaveLength(0);
   });
 
   it("still flags non-global files in nested context files without root fallback", async () => {

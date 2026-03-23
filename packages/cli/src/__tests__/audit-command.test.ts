@@ -84,4 +84,76 @@ describe("audit command", () => {
       expect(dim.details).toBeDefined();
     }
   }, 30_000);
+
+  it("runCommand(auditCommand) exercises CLI dispatch with --json --quiet", async () => {
+    // CLI-level regression test: runs the audit command through citty's
+    // runCommand, exercising argument parsing, the dispatch path, and output
+    // formatting — the documented `ariscan audit <path> --json --quiet` shape.
+    const { runCommand } = await import("citty");
+    const { auditCommand } = await import("../commands/audit.js");
+    const { resolve } = await import("node:path");
+
+    const repoRoot = resolve(
+      import.meta.dirname ?? new URL(".", import.meta.url).pathname,
+      "../../../../",
+    );
+
+    // Capture stdout/stderr writes
+    const stdoutChunks: string[] = [];
+    const stderrChunks: string[] = [];
+    const origStdoutWrite = process.stdout.write.bind(process.stdout);
+    const origStderrWrite = process.stderr.write.bind(process.stderr);
+    const origExit = process.exit;
+
+    // Mock process.exit to prevent Vitest from dying
+    let exitCode: number | undefined;
+    process.exit = ((code?: number) => {
+      exitCode = code;
+    }) as never;
+
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      stdoutChunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      stderrChunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
+      return true;
+    }) as typeof process.stderr.write;
+
+    try {
+      await runCommand(auditCommand, { rawArgs: [repoRoot, "--json", "--quiet"] });
+    } finally {
+      process.stdout.write = origStdoutWrite;
+      process.stderr.write = origStderrWrite;
+      process.exit = origExit;
+    }
+
+    const stdout = stdoutChunks.join("");
+
+    // --quiet suppresses progress output on stderr
+    const stderr = stderrChunks.join("");
+    expect(stderr).not.toContain("Auditing context files");
+
+    // --json produces valid JSON array output
+    const parsed = JSON.parse(stdout) as unknown[];
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBeGreaterThan(0);
+
+    // Each result has the documented shape
+    for (const item of parsed) {
+      const result = item as Record<string, unknown>;
+      expect(result["filePath"]).toBeDefined();
+      expect(typeof result["overallScore"]).toBe("number");
+      expect(typeof result["tokenEstimate"]).toBe("number");
+      expect(Array.isArray(result["dimensions"])).toBe(true);
+      expect(Array.isArray(result["issues"])).toBe(true);
+      expect(result["redundancy"]).toBeDefined();
+    }
+
+    // Exit code: 0 (no critical issues) or 1 (critical issues found)
+    // Either is acceptable — just verify the command completed
+    if (exitCode !== undefined) {
+      expect([0, 1]).toContain(exitCode);
+    }
+  }, 30_000);
 });
