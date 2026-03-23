@@ -60,7 +60,7 @@ jobs:
           fi
 
           # Find the last publish commit (version bump commit from changesets)
-          LAST_TAG=$(git tag --sort=-v:refname | head -1)
+          LAST_TAG=$(git tag -l '@prontiq/ariscan-cli@*' --sort=-creatordate | head -1)
           if [ -z "$LAST_TAG" ]; then
             # No tags yet — compare against first commit
             COMPARE_REF=$(git rev-list --max-parents=0 HEAD)
@@ -103,10 +103,18 @@ jobs:
           done < <(git log "$COMPARE_REF"..HEAD --format='%s' --no-merges)
 
           if [ "$BUMP" = "none" ]; then
-            echo "No version-bumping commits found since $COMPARE_REF"
-            echo "has_changeset=false" >> "$GITHUB_OUTPUT"
-            rm -f "$SUMMARY_FILE"
-            exit 0
+            # Check if there are any commits at all since last tag
+            COMMIT_COUNT=$(git rev-list "$COMPARE_REF"..HEAD --no-merges --count)
+            if [ "$COMMIT_COUNT" -gt 0 ]; then
+              echo "No conventional-commit bumps found, defaulting to patch ($COMMIT_COUNT commits)"
+              BUMP="patch"
+              git log "$COMPARE_REF"..HEAD --format='- %s' --no-merges > "$SUMMARY_FILE"
+            else
+              echo "No new commits since $COMPARE_REF"
+              echo "has_changeset=false" >> "$GITHUB_OUTPUT"
+              rm -f "$SUMMARY_FILE"
+              exit 0
+            fi
           fi
 
           echo "Detected bump type: $BUMP"

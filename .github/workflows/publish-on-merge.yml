@@ -46,6 +46,8 @@ jobs:
       - name: Publish to npm
         id: npm-publish
         run: |
+          set -euo pipefail
+
           pnpm changeset publish --provenance 2>&1 | tee publish-output.txt
 
           # Extract published packages for the release step
@@ -54,8 +56,13 @@ jobs:
 
           if [ -n "$PUBLISHED" ]; then
             echo "published_any=true" >> "$GITHUB_OUTPUT"
+            echo "### Published packages" >> "$GITHUB_STEP_SUMMARY"
+            echo "$PUBLISHED" | while read -r pkg; do
+              echo "- $pkg" >> "$GITHUB_STEP_SUMMARY"
+            done
           else
-            echo "published_any=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Version bump commit detected but no packages were published. Check if versions already exist on npm."
+            exit 1
           fi
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -74,15 +81,19 @@ jobs:
             TAG="@prontiq/ariscan-${PKG}@${VERSION}"
             echo "Creating release for $TAG"
 
-            # Create a git tag
-            git tag "$TAG" 2>/dev/null || true
-            git push origin "$TAG" 2>/dev/null || true
+            # Create a git tag (may already exist)
+            git tag "$TAG" 2>/dev/null || echo "Tag $TAG already exists"
+            git push origin "$TAG" 2>/dev/null || echo "Tag $TAG already pushed"
 
-            gh release create "$TAG" \
-              scan-result.json \
-              --title "$TAG" \
-              --notes "Published from $(git rev-parse --short HEAD). ARI scan result attached." \
-              2>/dev/null || \
-            gh release upload "$TAG" scan-result.json --clobber 2>/dev/null || \
-              echo "Warning: could not attach artifact to $TAG"
+            # Create or update the GitHub release
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "Release $TAG exists, uploading artifact"
+              gh release upload "$TAG" scan-result.json --clobber || echo "Warning: could not upload artifact to $TAG"
+            else
+              gh release create "$TAG" \
+                scan-result.json \
+                --title "$TAG" \
+                --notes "Published from $(git rev-parse --short HEAD). ARI scan result attached." || \
+                echo "Warning: could not create release for $TAG"
+            fi
           done
