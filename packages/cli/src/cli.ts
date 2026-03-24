@@ -1,5 +1,6 @@
 import { defineCommand, runMain } from "citty";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { access, writeFile } from "node:fs/promises";
 import {
   scan,
@@ -14,6 +15,7 @@ import type { FixProposal, OnProgress } from "@prontiq/ariscan-engine";
 import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
 import { policyCommand } from "./commands/policy.js";
 import { generateCommand } from "./commands/generate.js";
+import { auditCommand } from "./commands/audit.js";
 import { formatTerminal } from "./output/terminal.js";
 import {
   formatJson,
@@ -81,7 +83,7 @@ async function handleRepoCommands(
   return false;
 }
 
-async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
+export async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
   if (await handleFlagCommands(args)) return;
 
   // Detect subcommands from raw argv to avoid conflating directory names with commands.
@@ -103,6 +105,12 @@ async function dispatchCommand(args: Record<string, unknown>): Promise<void> {
   if (isBareWord && rawFirstArg === "generate") {
     const { runCommand } = await import("citty");
     await runCommand(generateCommand, { rawArgs: process.argv.slice(3) });
+    return;
+  }
+
+  if (isBareWord && rawFirstArg === "audit") {
+    const { runCommand } = await import("citty");
+    await runCommand(auditCommand, { rawArgs: process.argv.slice(3) });
     return;
   }
 
@@ -527,4 +535,8 @@ async function applyProposals(
   }
 }
 
-runMain(main);
+// Only run CLI when executed directly, not when imported for testing
+const __filename = fileURLToPath(import.meta.url);
+if (resolve(process.argv[1] ?? "") === __filename) {
+  runMain(main);
+}

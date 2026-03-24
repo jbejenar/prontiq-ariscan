@@ -50,3 +50,5 @@ export type {
   GenerateResult,
   GeneratedContextFile,
 } from "./context/index.js";
+export { auditAgentsMd, auditContextFile, discoverContextFiles } from "./audit/index.js";
+export type { AuditResult, AuditIssue, DimensionScore, IssueSeverity } from "./audit/index.js";
