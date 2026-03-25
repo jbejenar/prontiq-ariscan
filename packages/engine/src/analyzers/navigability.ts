@@ -1,6 +1,8 @@
 import { type PillarId, PILLAR_NAMES, type Finding } from "@prontiq/ariscan-schema";
 import type { PillarAnalyzer, RepoContext } from "./analyzer.interface.js";
 import { buildPillarResult } from "./shared.js";
+import { buildDependencyGraph } from "../graph/graph-builder.js";
+import { analyzeGraph } from "../graph/graph-analyzer.js";
 
 const PILLAR: PillarId = "P7";
 
@@ -385,42 +387,36 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       }
     }
 
-    // Import analysis — count imports per file, flag files with >20 imports
+    // === Graph-based dependency analysis (P3.07) ===
+    // Build dependency graph and compute metrics using Tarjan's SCC algorithm,
+    // fan-in/fan-out, cohesion, and boundary violation detection.
+    const graph = await buildDependencyGraph(context, { maxFiles: 200 });
+    const graphMetrics = analyzeGraph(graph);
+
+    // --- Import analysis: use graph fan-out for heavy import detection ---
     const importableFiles = sourceFiles.filter((f) => /\.[jt]sx?$|\.py$/.test(f));
-    const sampledForImports = importableFiles.slice(0, 30);
-    let heavyImportCount = 0;
+    const highFanOutModules = graphMetrics.fanMetrics.filter((m) => m.fanOut > 20);
+    const heavyImportCount = highFanOutModules.length;
 
-    for (const file of sampledForImports) {
-      const content = await context.readFile(file);
-      if (!content) continue;
-
-      const importLines = content
-        .split("\n")
-        .filter((line) => /^\s*(import\s|from\s|require\s*\()/.test(line));
-
-      if (importLines.length > 20) {
-        heavyImportCount++;
-        if (heavyImportCount <= 3) {
-          findings.push({
-            code: "ARI-NAV-004",
-            severity: "medium",
-            pillar: PILLAR,
-            file,
-            message: `File has ${importLines.length} imports — high coupling, consider splitting`,
-            confidence: "medium",
-            scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
-            remediation: {
-              action: "refactor",
-              description:
-                "Reduce imports by splitting the file into smaller focused modules or using barrel imports",
-              confidence: "medium",
-            },
-          });
-        }
-      }
+    for (const mod of highFanOutModules.slice(0, 3)) {
+      findings.push({
+        code: "ARI-NAV-004",
+        severity: "medium",
+        pillar: PILLAR,
+        file: mod.path,
+        message: `Module "${mod.path}" has ${mod.fanOut} dependencies — high coupling, consider splitting`,
+        confidence: "medium",
+        scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
+        remediation: {
+          action: "refactor",
+          description:
+            "Reduce imports by splitting the file into smaller focused modules or using barrel imports",
+          confidence: "medium",
+        },
+      });
     }
 
-    if (heavyImportCount === 0 && sampledForImports.length > 0) {
+    if (heavyImportCount === 0 && importableFiles.length > 0) {
       score += 5;
     } else if (heavyImportCount > 3) {
       score -= 10;
@@ -428,173 +424,141 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       score -= 5;
     }
 
-    // Basic circular dependency heuristic (files that import each other)
-    const importMap = new Map<string, Set<string>>();
-    const tsJsFiles = sourceFiles.filter((f) => /\.[jt]sx?$/.test(f));
-    const sampledForCircular = tsJsFiles.slice(0, 30);
-
-    for (const file of sampledForCircular) {
-      const content = await context.readFile(file);
-      if (!content) continue;
-
-      const imports = new Set<string>();
-      const importRegex = /(?:import\s.*?from\s+['"](.+?)['"]|require\s*\(\s*['"](.+?)['"]\s*\))/g;
-      let match: RegExpExecArray | null;
-      while ((match = importRegex.exec(content)) !== null) {
-        const importPath = match[1] ?? match[2];
-        if (importPath && importPath.startsWith(".")) {
-          // Resolve relative import to approximate file path
-          const fileDir = file.split("/").slice(0, -1).join("/");
-          const segments = importPath.replace(/\.[jt]sx?$/, "").split("/");
-          const resolved: string[] = fileDir ? fileDir.split("/") : [];
-          for (const seg of segments) {
-            if (seg === "..") {
-              resolved.pop();
-            } else if (seg !== ".") {
-              resolved.push(seg);
-            }
-          }
-          imports.add(resolved.join("/"));
-        }
-      }
-      importMap.set(file, imports);
+    // --- ARI-NAV-010: Circular dependency chains (Tarjan's SCC) ---
+    // Also emits deprecated ARI-NAV-005 alias for backward compatibility
+    const circularCount = graphMetrics.cycles.length;
+    for (const cycle of graphMetrics.cycles.slice(0, 3)) {
+      const chainStr = [...cycle.chain, cycle.chain[0]].join(" → ");
+      findings.push({
+        code: "ARI-NAV-010",
+        severity: "high",
+        pillar: PILLAR,
+        message: `Circular dependency chain: ${chainStr}`,
+        confidence: "high",
+        scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
+        remediation: {
+          action: "refactor",
+          description:
+            "Break the circular dependency by extracting shared types/interfaces into a separate module, or use dependency inversion",
+          confidence: "high",
+        },
+        evidence: {
+          paper: "arXiv 2601.08773, 2025",
+          finding:
+            "AST-derived dependency graphs achieve highest accuracy for multi-hop code reasoning; circular dependencies reduce graph navigability",
+          confidence: "high",
+        },
+      });
+      // Emit deprecated ARI-NAV-005 alias so existing suppression configs still work
+      findings.push({
+        code: "ARI-NAV-005",
+        severity: "high",
+        pillar: PILLAR,
+        message: `[Deprecated → ARI-NAV-010] Circular dependency: ${chainStr}`,
+        confidence: "high",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
+        remediation: {
+          action: "refactor",
+          description:
+            "ARI-NAV-005 is deprecated — use ARI-NAV-010 in suppression configs. Break the circular dependency by extracting shared types/interfaces.",
+          confidence: "high",
+        },
+      });
     }
 
-    // Detect mutual imports
-    let circularCount = 0;
-    for (const [fileA, importsA] of importMap) {
-      const fileABase = fileA.replace(/\.[jt]sx?$/, "");
-      for (const [fileB, importsB] of importMap) {
-        if (fileA >= fileB) continue; // avoid double-counting
-        const fileBBase = fileB.replace(/\.[jt]sx?$/, "");
-        const aImportsB = [...importsA].some((imp) => imp === fileBBase || imp === fileB);
-        const bImportsA = [...importsB].some((imp) => imp === fileABase || imp === fileA);
-        if (aImportsB && bImportsA) {
-          circularCount++;
-          if (circularCount <= 2) {
-            findings.push({
-              code: "ARI-NAV-005",
-              severity: "high",
-              pillar: PILLAR,
-              message: `Potential circular dependency between "${fileA}" and "${fileB}"`,
-              confidence: "low",
-              scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
-              remediation: {
-                action: "refactor",
-                description:
-                  "Break the circular dependency by extracting shared code into a separate module",
-                confidence: "low",
-              },
-              evidence: {
-                paper: "Barr et al., 2015",
-                finding:
-                  "Predictable project structure reduces code search time and improves retrieval accuracy for automated tools",
-                confidence: "high",
-              },
-            });
-          }
-        }
-      }
-    }
-
-    if (circularCount === 0 && sampledForCircular.length > 5) {
+    if (circularCount === 0 && graph.nodes.size > 5) {
       score += 5;
     } else if (circularCount > 0) {
       score -= Math.min(15, circularCount * 5);
     }
 
-    // --- ARI-NAV-006: Dead code detection heuristic ---
-    // Collect all import references from sampled files
-    const allImportTargets = new Set<string>();
-    for (const [, imports] of importMap) {
-      for (const imp of imports) {
-        allImportTargets.add(imp);
-      }
+    // --- ARI-NAV-011: Module cohesion ---
+    const lowCohesionDirs = graphMetrics.cohesion.filter(
+      (c) => c.ratio < 0.3 && c.internalDeps + c.externalDeps >= 3,
+    );
+    if (lowCohesionDirs.length > 0) {
+      score -= 5;
+      const examples = lowCohesionDirs
+        .slice(0, 3)
+        .map((c) => `${c.directory} (${Math.round(c.ratio * 100)}%)`)
+        .join(", ");
+      findings.push({
+        code: "ARI-NAV-011",
+        severity: "medium",
+        pillar: PILLAR,
+        message: `Low module cohesion in: ${examples} — files mostly depend on external modules`,
+        confidence: "medium",
+        scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
+        remediation: {
+          action: "refactor",
+          description:
+            "Reorganize modules so files within a directory primarily depend on each other, moving cross-cutting concerns to shared utility modules",
+          confidence: "medium",
+        },
+        evidence: {
+          paper: "Fluree, 2025",
+          finding:
+            "GraphRAG achieves 3.4x accuracy improvement over vector RAG; high cohesion modules improve graph-based code retrieval",
+          confidence: "medium",
+        },
+      });
     }
 
-    // Also scan additional files not yet in importMap for import targets
-    const additionalFiles = tsJsFiles.filter((f) => !importMap.has(f)).slice(0, 20);
-    for (const file of additionalFiles) {
-      const content = await context.readFile(file);
-      if (!content) continue;
-      const importRegex = /(?:import\s.*?from\s+['"](.+?)['"]|require\s*\(\s*['"](.+?)['"]\s*\))/g;
-      let match: RegExpExecArray | null;
-      while ((match = importRegex.exec(content)) !== null) {
-        const importPath = match[1] ?? match[2];
-        if (importPath && importPath.startsWith(".")) {
-          const fileDir = file.split("/").slice(0, -1).join("/");
-          const segments = importPath.replace(/\.[jt]sx?$/, "").split("/");
-          const resolved: string[] = fileDir ? fileDir.split("/") : [];
-          for (const seg of segments) {
-            if (seg === "..") {
-              resolved.pop();
-            } else if (seg !== ".") {
-              resolved.push(seg);
-            }
-          }
-          allImportTargets.add(resolved.join("/"));
-        }
-      }
+    // --- ARI-NAV-012: Elevated fan-out modules (15 < fanOut <= 20) ---
+    // Only emit for the 15-20 range; modules with fanOut > 20 are covered by ARI-NAV-004 above.
+    const elevatedFanOut = graphMetrics.fanMetrics.filter((m) => m.fanOut > 15 && m.fanOut <= 20);
+    if (elevatedFanOut.length > 0) {
+      score -= Math.min(5, elevatedFanOut.length * 2);
+      const examples = elevatedFanOut
+        .slice(0, 3)
+        .map((m) => `${m.path} (${m.fanOut} deps)`)
+        .join(", ");
+      findings.push({
+        code: "ARI-NAV-012",
+        severity: "medium",
+        pillar: PILLAR,
+        message: `Elevated fan-out modules: ${examples} — approaching high coupling threshold`,
+        confidence: "medium",
+        scoreImpact: { pillarDelta: -2, compositeDelta: 0 },
+        remediation: {
+          action: "refactor",
+          description:
+            "Reduce fan-out by introducing intermediate abstraction layers or splitting responsibilities",
+          confidence: "medium",
+        },
+        evidence: {
+          paper: "SWE-agent (Yang et al., NeurIPS 2024)",
+          finding:
+            "Modules with high fan-out require more context for agents to reason about safely",
+          confidence: "medium",
+        },
+      });
     }
 
-    // Also scan barrel files for re-exports to reduce dead code false positives
-    const reExportTargets = new Set<string>();
-    const barrelFiles = tsJsFiles.filter((f) => /index\.[jt]sx?$/.test(f));
-    for (const barrel of barrelFiles.slice(0, 20)) {
-      const content = await context.readFile(barrel);
-      if (!content) continue;
-      const reExportRegex = /export\s+(?:\*|\{[^}]*\})\s+from\s+['"](.+?)['"]/g;
-      let reMatch: RegExpExecArray | null;
-      while ((reMatch = reExportRegex.exec(content)) !== null) {
-        const reExportPath = reMatch[1];
-        if (reExportPath && reExportPath.startsWith(".")) {
-          const barrelDir = barrel.split("/").slice(0, -1).join("/");
-          const segments = reExportPath.replace(/\.[jt]sx?$/, "").split("/");
-          const resolved: string[] = barrelDir ? barrelDir.split("/") : [];
-          for (const seg of segments) {
-            if (seg === "..") {
-              resolved.pop();
-            } else if (seg !== ".") {
-              resolved.push(seg);
-            }
-          }
-          reExportTargets.add(resolved.join("/"));
-        }
-      }
-    }
-
-    const deadCodeCandidates: string[] = [];
+    // --- ARI-NAV-006: Dead code detection using graph (modules with 0 fan-in) ---
     const entryPatterns =
       /index\.[jt]sx?$|main\.[jt]sx?$|app\.[jt]sx?$|mod\.rs$|__init__\.py$|server\.[jt]sx?$/;
-    // Additional exclusion patterns for files that are typically not imported but are not dead code
     const configPatterns =
       /\.config\.[jt]sx?$|\.d\.[jt]s$|setup\.[jt]sx?$|cli\.[jt]sx?$|bin\.[jt]sx?$/;
     const conventionDirPatterns =
       /commands\/|scripts\/|migrations\/|seeds\/|fixtures\/|\.storybook\//;
 
-    const sampledForDead = tsJsFiles.slice(0, 30);
-    for (const file of sampledForDead) {
-      const fileName = file.split("/").pop() ?? "";
-      // Skip entry points and index files
-      if (entryPatterns.test(fileName)) continue;
+    const deadCodeCandidates: string[] = [];
+    for (const [path, node] of graph.nodes) {
+      // Skip if anything imports this module
+      if (node.importedBy.size > 0) continue;
+      // Skip entry points
+      const fileName = path.split("/").pop() ?? "";
+      if (entryPatterns.test(fileName + ".ts")) continue;
+      if (entryPatterns.test(fileName + ".js")) continue;
       // Skip test files
-      if (/\.test\.|\.spec\.|__tests__/.test(file)) continue;
-      // Skip config, declaration, CLI entry, and setup files
-      if (configPatterns.test(fileName)) continue;
-      // Skip files in conventional directories that are loaded dynamically
-      if (conventionDirPatterns.test(file)) continue;
+      if (/\.test|\.spec|__tests__/.test(path)) continue;
+      // Skip config files
+      if (configPatterns.test(fileName + ".ts")) continue;
+      // Skip conventional dirs
+      if (conventionDirPatterns.test(path)) continue;
 
-      const fileBase = file.replace(/\.[jt]sx?$/, "");
-      const isImported = [...allImportTargets].some(
-        (imp) => imp === fileBase || imp === file || fileBase.endsWith("/" + imp.split("/").pop()),
-      );
-      // Also check barrel re-exports
-      const isReExported = [...reExportTargets].some(
-        (imp) => imp === fileBase || imp === file || fileBase.endsWith("/" + imp.split("/").pop()),
-      );
-      if (!isImported && !isReExported) {
-        deadCodeCandidates.push(file);
-      }
+      deadCodeCandidates.push(path);
     }
 
     if (deadCodeCandidates.length > 3) {
@@ -891,6 +855,8 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     const importLabel: "good" | "moderate" | "poor" =
       heavyImportCount === 0 ? "good" : heavyImportCount <= 3 ? "moderate" : "poor";
     const circularLabel: "good" | "poor" = circularCount === 0 ? "good" : "poor";
+    const cohesionLabel: "good" | "moderate" | "poor" =
+      lowCohesionDirs.length === 0 ? "good" : lowCohesionDirs.length <= 2 ? "moderate" : "poor";
     const deadCodeLabel: "good" | "moderate" | "poor" =
       deadCodeCandidates.length <= 1
         ? "good"
@@ -913,7 +879,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       problemAreas.push(`${heavyImportCount} high-coupling file(s)`);
     }
     if (circularCount > 0) {
-      problemAreas.push(`${circularCount} circular dep(s)`);
+      problemAreas.push(`${circularCount} circular dep chain(s)`);
     }
     if (deadCodeCandidates.length > 0) {
       problemAreas.push(`${deadCodeCandidates.length} potentially dead file(s)`);
@@ -932,15 +898,18 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         ? ` | Top issues: ${problemAreas.join(", ")}`
         : " | No major navigation issues";
 
-    const thresholdSummary = `depth:${depthLabel} dirs:${dirSizeLabel} naming:${namingLabel} imports:${importLabel} circular:${circularLabel} dead-code:${deadCodeLabel} duplication:${duplicationLabel} structure:${structuralClarityLabel}`;
+    const thresholdSummary = `depth:${depthLabel} dirs:${dirSizeLabel} naming:${namingLabel} imports:${importLabel} circular:${circularLabel} cohesion:${cohesionLabel} dead-code:${deadCodeLabel} duplication:${duplicationLabel} structure:${structuralClarityLabel}`;
 
     return buildPillarResult(
       PILLAR,
       score,
       sourceFiles.length > 10 ? "medium" : "low",
       findings,
-      `${sourceFiles.length} source files across ${dirs.size} directories, max depth ${maxDepth}, naming ${Math.round(consistency * 100)}% consistent | Thresholds: ${thresholdSummary}${costlyPaths}`,
+      `${sourceFiles.length} source files across ${dirs.size} directories, max depth ${maxDepth}, naming ${Math.round(consistency * 100)}% consistent | Graph: ${graph.nodes.size} modules, ${graph.edgeCount} edges, ${circularCount} cycles, clarity ${graphMetrics.structuralClarity}/100 | Thresholds: ${thresholdSummary}${costlyPaths}`,
       [
+        "arXiv 2601.08773, 2025 — AST-derived knowledge graphs achieve highest accuracy for multi-hop code reasoning",
+        "Fluree, 2025 — GraphRAG achieves 3.4x accuracy improvement over vector RAG",
+        "SWE-agent (Yang et al., NeurIPS 2024) — Agent navigation correlates with codebase structural clarity",
         "Shippey et al., 2022 — Cognitive complexity >15 correlates with 3x higher defect density",
         "Microsoft, 2023 — Consistent naming decreases defects 40%",
       ],

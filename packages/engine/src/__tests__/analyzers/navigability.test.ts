@@ -64,22 +64,34 @@ describe("navigabilityAnalyzer (P7)", () => {
   });
 
   describe("circular dependency detection", () => {
-    it("emits ARI-NAV-005 for mutual imports", async () => {
+    it("emits ARI-NAV-010 for mutual imports (graph-based cycle detection)", async () => {
       const ctx = createMockContext({
         "src/a.ts": "import { b } from './b';\nexport const a = b + 1;",
         "src/b.ts": "import { a } from './a';\nexport const b = a + 1;",
       });
       const result = await navigabilityAnalyzer.analyze(ctx);
-      expect(result.findings.some((f) => f.code === "ARI-NAV-005")).toBe(true);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-010")).toBe(true);
     });
 
-    it("does not emit ARI-NAV-005 for one-directional imports", async () => {
+    it("does not emit ARI-NAV-010 for one-directional imports", async () => {
       const ctx = createMockContext({
         "src/a.ts": "import { b } from './b';\nexport const a = b + 1;",
         "src/b.ts": "export const b = 42;",
       });
       const result = await navigabilityAnalyzer.analyze(ctx);
-      expect(result.findings.some((f) => f.code === "ARI-NAV-005")).toBe(false);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-010")).toBe(false);
+    });
+
+    it("detects multi-node cycles (A→B→C→A)", async () => {
+      const ctx = createMockContext({
+        "src/a.ts": "import { b } from './b';\nexport const a = b;",
+        "src/b.ts": "import { c } from './c';\nexport const b = c;",
+        "src/c.ts": "import { a } from './a';\nexport const c = a;",
+      });
+      const result = await navigabilityAnalyzer.analyze(ctx);
+      expect(result.findings.some((f) => f.code === "ARI-NAV-010")).toBe(true);
+      const finding = result.findings.find((f) => f.code === "ARI-NAV-010");
+      expect(finding?.message).toContain("→");
     });
   });
 
