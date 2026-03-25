@@ -71,6 +71,7 @@ runs:
   steps:
     # ── Setup ──
     - name: Setup Node.js
+      if: inputs.skip-install != 'true'
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
@@ -89,6 +90,7 @@ runs:
       env:
         INPUT_PATH: ${{ inputs.path }}
         INPUT_CONFIG: ${{ inputs.config }}
+        RUNNER_TEMP: ${{ runner.temp }}
         RESULT_PATH: ${{ runner.temp }}/ari-pr-scan.json
       run: |
         SCAN_ARGS=("$INPUT_PATH" --json --threshold 0)
@@ -121,12 +123,13 @@ runs:
         INPUT_CONFIG: ${{ inputs.config }}
         BASE_SHA: ${{ github.event.pull_request.base.sha }}
         PR_SCORE: ${{ steps.scan.outputs.score }}
+        RUNNER_TEMP: ${{ runner.temp }}
       run: |
-        BASE_PATH="${{ runner.temp }}/ari-base-scan.json"
+        BASE_PATH="$RUNNER_TEMP/ari-base-scan.json"
 
         git fetch origin "$BASE_SHA" --depth=1 2>/dev/null || true
 
-        WORKTREE_DIR="${{ runner.temp }}/ari-base-worktree"
+        WORKTREE_DIR="$RUNNER_TEMP/ari-base-worktree"
         if ! git worktree add "$WORKTREE_DIR" "$BASE_SHA" 2>/dev/null; then
           echo "delta=" >> "$GITHUB_OUTPUT"
           echo "base-path=" >> "$GITHUB_OUTPUT"
@@ -177,13 +180,14 @@ runs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
         COMMENT_BODY: ${{ steps.comment.outputs.body }}
         REPO: ${{ github.repository }}
+        RUNNER_TEMP: ${{ runner.temp }}
       run: |
         HEADER="<!-- ari-scan -->"
         BODY="${HEADER}
         ${COMMENT_BODY}"
 
         # Write body to temp file and use jq to safely encode for the API
-        BODY_FILE="${{ runner.temp }}/ari-comment-body.txt"
+        BODY_FILE="$RUNNER_TEMP/ari-comment-body.txt"
         printf '%s' "$BODY" > "$BODY_FILE"
 
         # Find existing comment by marker

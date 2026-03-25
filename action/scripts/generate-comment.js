@@ -89,7 +89,12 @@ for (const p of pillars) {
             ? "🔴"
             : "⚪";
 
-  let row = `| ${p.pillar} | ${p.name} | ${p.score} | ${(p.weight * 100).toFixed(0)}% | ${statusEmoji} ${status} |`;
+  const pillarId = p.pillar ?? "—";
+  const pillarName = p.name ?? "—";
+  const pillarScore = p.score ?? 0;
+  const pillarWeight = ((p.weight ?? 0) * 100).toFixed(0);
+
+  let row = `| ${pillarId} | ${pillarName} | ${pillarScore} | ${pillarWeight}% | ${statusEmoji} ${status} |`;
 
   if (hasDelta) {
     const bp = baseMap[p.pillar];
