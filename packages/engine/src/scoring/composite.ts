@@ -21,14 +21,20 @@ function isActivePillar(pillar: PillarResult): boolean {
  * Calculate the composite ARI score from pillar results.
  * Pillars with dataStatus "insufficient" are excluded; their weight is
  * redistributed proportionally among the remaining active pillars.
+ *
+ * @param customWeights — optional per-pillar weight overrides (e.g. from language profiles)
  */
-export function calculateCompositeScore(pillars: PillarResult[]): number {
+export function calculateCompositeScore(
+  pillars: PillarResult[],
+  customWeights?: Partial<Record<PillarId, number>>,
+): number {
+  const weights = customWeights ? { ...PILLAR_WEIGHTS, ...customWeights } : PILLAR_WEIGHTS;
   let weightedSum = 0;
   let totalWeight = 0;
 
   for (const pillar of pillars) {
     if (!isActivePillar(pillar)) continue;
-    const weight = PILLAR_WEIGHTS[pillar.pillar];
+    const weight = weights[pillar.pillar];
     weightedSum += pillar.score * weight;
     totalWeight += weight;
   }
@@ -39,11 +45,17 @@ export function calculateCompositeScore(pillars: PillarResult[]): number {
 
 /**
  * Compute the score breakdown showing active vs insufficient pillars.
+ *
+ * @param customWeights — optional per-pillar weight overrides (e.g. from language profiles)
  */
-export function computeScoreBreakdown(pillars: PillarResult[]): ScoreBreakdown {
+export function computeScoreBreakdown(
+  pillars: PillarResult[],
+  customWeights?: Partial<Record<PillarId, number>>,
+): ScoreBreakdown {
+  const weights = customWeights ? { ...PILLAR_WEIGHTS, ...customWeights } : PILLAR_WEIGHTS;
   const active = pillars.filter(isActivePillar);
   const insufficient = pillars.filter((p) => !isActivePillar(p));
-  const effectiveWeightSum = active.reduce((sum, p) => sum + PILLAR_WEIGHTS[p.pillar], 0);
+  const effectiveWeightSum = active.reduce((sum, p) => sum + weights[p.pillar], 0);
 
   return {
     activePillars: active.length,
@@ -139,13 +151,21 @@ export function applyCrossPillarTypeBonus(pillars: PillarResult[]): PillarResult
  * Annotate compositeDelta on all findings that have a scoreImpact.
  * compositeDelta = abs(pillarDelta) × pillarWeight / effectiveWeightSum
  * Rounded to 1 decimal place.
+ *
+ * @param customWeights — optional per-pillar weight overrides (e.g. from language profiles)
  */
-export function annotateCompositeDelta(findings: Finding[], effectiveWeightSum: number): Finding[] {
+export function annotateCompositeDelta(
+  findings: Finding[],
+  effectiveWeightSum: number,
+  customWeights?: Partial<Record<PillarId, number>>,
+): Finding[] {
   if (effectiveWeightSum === 0) return findings;
+
+  const weights = customWeights ? { ...PILLAR_WEIGHTS, ...customWeights } : PILLAR_WEIGHTS;
 
   return findings.map((f) => {
     if (!f.scoreImpact) return f;
-    const weight = PILLAR_WEIGHTS[f.pillar as PillarId] ?? 0;
+    const weight = weights[f.pillar as PillarId] ?? 0;
     const compositeDelta =
       Math.round((Math.abs(f.scoreImpact.pillarDelta) * weight * 10) / effectiveWeightSum) / 10;
     return {
@@ -157,18 +177,25 @@ export function annotateCompositeDelta(findings: Finding[], effectiveWeightSum: 
 
 /**
  * Aggregate all pillar results into a final ScanResult.
+ *
+ * @param customWeights — optional per-pillar weight overrides (e.g. from language profiles)
  */
 export function aggregateResults(
   pillars: PillarResult[],
   metadata: { version: string; repoPath: string; duration: number },
+  customWeights?: Partial<Record<PillarId, number>>,
 ): ScanResult {
   const adjustedPillars = applyCrossPillarTypeBonus(pillars);
-  const score = calculateCompositeScore(adjustedPillars);
+  const score = calculateCompositeScore(adjustedPillars, customWeights);
   const rawLevel = classifyMaturityLevel(score);
   const { level, gateTriggered } = applySecurityGate(adjustedPillars, rawLevel);
-  const scoreBreakdown = computeScoreBreakdown(adjustedPillars);
+  const scoreBreakdown = computeScoreBreakdown(adjustedPillars, customWeights);
   const rawFindings = adjustedPillars.flatMap((p) => p.findings);
-  const allFindings = annotateCompositeDelta(rawFindings, scoreBreakdown.effectiveWeightSum);
+  const allFindings = annotateCompositeDelta(
+    rawFindings,
+    scoreBreakdown.effectiveWeightSum,
+    customWeights,
+  );
 
   // Build a lookup so pillar-level findings also carry annotated compositeDelta
   const deltaLookup = new Map<string, number>();

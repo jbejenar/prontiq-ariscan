@@ -260,5 +260,7 @@ export const ScanResult = z.object({
   scoreBreakdown: ScoreBreakdown.optional(),
   /** Classified repository profile (archetype, confidence, signals). */
   repoProfile: RepoProfile.optional(),
+  /** Language profile applied for weight adjustment (P3.06). */
+  languageProfile: z.string().optional(),
 });
 export type ScanResult = z.infer<typeof ScanResult>;

@@ -84,3 +84,5 @@ export {
 } from "./check/index.js";
 export type { PillarDelta, DeltaResult, CheckOptions, CheckResult } from "./check/index.js";
 export type { AuditResult, AuditIssue, DimensionScore, IssueSeverity } from "./audit/index.js";
+export { LANGUAGE_PROFILES, getLanguageProfile, resolveLanguageProfile } from "./profiles/index.js";
+export type { LanguageProfileDef } from "./profiles/index.js";

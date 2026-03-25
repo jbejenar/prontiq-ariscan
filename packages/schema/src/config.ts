@@ -19,6 +19,20 @@ function pillarRecord<V extends z.ZodTypeAny>(valueSchema: V) {
   });
 }
 
+/* ─── Language profile types (P3.06) ─── */
+
+export const SupportedLanguage = z.enum([
+  "typescript",
+  "javascript",
+  "python",
+  "go",
+  "rust",
+  "java",
+  "csharp",
+  "ruby",
+]);
+export type SupportedLanguage = z.infer<typeof SupportedLanguage>;
+
 export const PillarOverride = z.object({
   weight: z.number().min(0).max(1).optional(),
   threshold: z.number().min(0).max(100).optional(),
@@ -39,6 +53,8 @@ export const ScanConfig = z.object({
   suppressions: z.array(z.lazy(() => Suppression)).optional(),
   /** Manual archetype override. When set, skips automatic classification. */
   archetype: Archetype.optional(),
+  /** Language profile override. When set, skips auto-detection for weight adjustment. */
+  language: SupportedLanguage.optional(),
 });
 export type ScanConfig = z.infer<typeof ScanConfig>;
 
@@ -108,6 +124,8 @@ export const FileConfig = z
     profiles: z.record(z.string(), PolicyProfile).optional(),
     activeProfile: z.string().optional(),
     paths: z.array(PathRule).optional(),
+    /** Language profile for weight adjustment. Auto-detected if omitted. */
+    language: SupportedLanguage.optional(),
   })
   .strict();
 export type FileConfig = z.infer<typeof FileConfig>;

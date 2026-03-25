@@ -49,6 +49,7 @@ export {
   PolicyProfile,
   PathRule,
   CheckProfile,
+  SupportedLanguage,
 } from "./config.js";
 
 export {

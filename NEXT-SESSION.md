@@ -1,54 +1,49 @@
 # Next Session Guide
 
 ## Session: 2026-03-26
-Phase: P2 (completing remaining P2 items)
-Checkboxes checked this session: 10 (P2.18 functional + testing items)
+Phase: P3 (Language Rubric Profiles)
+Checkboxes checked this session: 10 (P3.06 functional + documentation items)
 
 ### Completed
-- **P2.18 — Context-Aware Remediation:** Full implementation across schema, engine, and CLI.
-  - Added `BuildSystem` enum and `buildSystems` detection to `DetectionResult` schema
-  - New build system detector: Make, Docker Compose, Poetry, Cargo, Go, Maven, Gradle, npm/pnpm/yarn
-  - Remediation adapter post-processor rewrites finding descriptions per build tool and archetype
-  - Fix generators accept `RepoProfile` and adapt rationale/steps for archetype
-  - CLI passes classified profile to `--fix` generators
-  - 30 unit tests + 2 integration tests covering all DoD items
+- **P3.06 — Language Rubric Profiles (partial):** Core implementation across schema, engine, and CLI.
+  - Added `SupportedLanguage` enum to schema (8 languages)
+  - Added `language` field to `ScanConfig` and `FileConfig`
+  - Added `languageProfile` field to `ScanResult`
+  - 8 language profile definitions with per-pillar weight adjustments and rationale
+  - Auto-selection from P1.02 language detection with 0.3 minimum confidence
+  - Manual override via `--language` CLI flag and `ariscan.yml` `language` field
+  - Composite scoring accepts custom weights (language profile + user override merge)
+  - 36 unit tests + 15 scoring integration tests
   - Selftest: 86/100 (L5 Autonomous) — baseline maintained
 
 ### Ticket Status Changes
-- P2.18: todo → done (all functional and testing items verified, telemetry deferred)
+- P3.06: todo → in-progress (core functional items done, benchmark/changelog items deferred)
 
 ### In Progress
+- **P3.06 — Language Rubric Profiles:** Two items remain:
+  1. Profile differences documented in changelog
+  2. Cross-language score comparability (DEFERRED: needs P1.18 benchmark)
+  3. Auto-selection accuracy >95% (DEFERRED: needs P1.18 benchmark)
 - **P3.02 — GitHub Action GA:** Two items remain:
   1. Official Marketplace publication — requires creating `prontiq/ariscan-action` repo
   2. Runtime timing verification — needs actual CI run
-- **P1.18 — Benchmark execution:** Still blocked by sandbox (git clone)
-- **CI.10:** Third checkbox needs verification after merge to main
 
 ### Deferred
-- P2.18 telemetry: Remediation acceptance rate by archetype (requires --fix usage data)
-- P2.17 telemetry: Top 10 finding codes by composite delta (requires telemetry infrastructure)
-- P1.01 telemetry: install-to-first-scan time
-- P1.02 testing: false-language detection rate (BLOCKED: P1.18)
-- P1.02 telemetry: detection accuracy rate (requires P1.18)
-- P1.03 testing: zero false negatives on benchmark cohort (BLOCKED: P1.18)
-- P1.03 performance: discovery <1s for 100k files (BLOCKED: needs real filesystem benchmark)
-- P1.04 telemetry: additionality score distribution
-- P1.06 testing: false-positive rate <10% (BLOCKED: P1.18)
-- P1.07: all items deferred to P3.07 (AST-level analysis requires Tree-sitter)
-- P1.16 telemetry: fix adoption rate
-- P3.04 telemetry: pre-commit adoption rate
-- CI.08: PR comment with coverage delta
+- P3.06 score comparability: requires P1.18 benchmark cohort
+- P3.06 auto-selection accuracy: requires P1.18 benchmark cohort
+- P2.18 telemetry: Remediation acceptance rate by archetype
+- P2.12: Open Benchmark Leaderboard (blocked on P1.18)
+- P1.18: Benchmark execution (blocked by sandbox/npm publish)
 
 ### Next Session Should Start With
-1. Review deferred items and roadmap priorities
-2. **P2.12** — Open Benchmark Leaderboard (blocked on P1.18 benchmark cohort)
-3. **P3.03 (GitLab CI Template)** — next actionable P3 ticket
-4. **Publish P3.02 to Marketplace** — create `prontiq/ariscan-action` repo
-5. **Execute P1.18 benchmark** outside sandbox if possible
+1. **P3.06 changelog entry** — document profile weight differences
+2. **P3.05 (Agent Simulation Hooks)** — next actionable P3 p1-high ticket
+3. **P3.08 (Plugin Architecture)** — p2-medium, all deps met
+4. **P3.10 (MCP Read-only Server)** — p2-medium, high adoption potential
 
 ### Roadmap Progress
-- P1: ~129/132 done. Remaining: P1.18 functional items, blocked telemetry/testing items, P1.07 deferred to P3.07
-- P2: 15/15 done (P2.18 completed this session). Remaining: P2.12 blocked on P1.18
-- P3: P3.01 done, P3.02 in-progress (10/12), P3.04 done. Next: P3.03
-- CI: 9.67/10 done. CI.10 in-progress (2/3 items checked)
+- P1: ~129/132 done. Remaining: blocked/deferred items
+- P2: 15/15 done. P2.12 blocked on P1.18
+- P3: P3.01 done, P3.02 in-progress (10/12), P3.03 done, P3.04 done, P3.06 in-progress (10/13)
+- CI: 9.67/10 done
 - Selftest: 86/100 (L5 Autonomous) — baseline maintained

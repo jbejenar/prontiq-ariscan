@@ -257,6 +257,11 @@ export function fileConfigToScanConfig(fileConfig: FileConfigType): Partial<Scan
     result.suppressions = fileConfig.suppressions;
   }
 
+  // Pass through language profile override (P3.06)
+  if (fileConfig.language) {
+    result.language = fileConfig.language;
+  }
+
   return result;
 }
 
