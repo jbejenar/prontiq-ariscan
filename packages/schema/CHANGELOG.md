@@ -1,5 +1,12 @@
 # @prontiq/ariscan-schema
 
+## 0.36.0
+
+### Minor Changes
+
+- - feat: adhoc-task (#121)
+  - feat: adhoc-task (#119)
+
 ## 0.35.0
 
 ### Minor Changes
