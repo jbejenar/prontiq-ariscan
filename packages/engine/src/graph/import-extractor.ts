@@ -47,36 +47,49 @@ function extractTypeScriptImports(content: string, filePath: string): ImportInfo
   const imports: ImportInfo[] = [];
   const lines = content.split("\n");
 
-  // ES module imports: import ... from '...'
+  // Use separate, simple regexes to avoid ReDoS from overlapping quantifiers.
+  // ESM imports & re-exports: extract the module specifier after `from '...'`
+  const fromRegex = /\bfrom\s+['"]([^'"]+)['"]/;
   // CommonJS: require('...')
-  // Re-exports: export ... from '...'
-  const importRegex =
-    /(?:import\s+(?:[\s\S]*?)\s+from\s+['"]([^'"]+)['"]|require\s*\(\s*['"]([^'"]+)['"]\s*\)|export\s+(?:\*|\{[^}]*\})\s+from\s+['"]([^'"]+)['"])/g;
+  const requireRegex = /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/;
 
   for (const line of lines) {
     const trimmed = line.trim();
     // Skip comments
     if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
 
-    let match: RegExpExecArray | null;
-    importRegex.lastIndex = 0;
-    while ((match = importRegex.exec(line)) !== null) {
-      const importPath = match[1] ?? match[2] ?? match[3];
-      if (!importPath) continue;
+    let importPath: string | undefined;
 
-      if (importPath.startsWith(".")) {
-        imports.push({
-          sourceFile: filePath,
-          target: resolveRelativeImport(filePath, importPath),
-          kind: "relative",
-        });
-      } else {
-        imports.push({
-          sourceFile: filePath,
-          target: importPath,
-          kind: "package",
-        });
+    // Check for ESM import/re-export (line must start with import or export keyword)
+    if (/^(?:import|export)\b/.test(trimmed)) {
+      const fromMatch = fromRegex.exec(line);
+      if (fromMatch?.[1]) {
+        importPath = fromMatch[1];
       }
+    }
+
+    // Check for require()
+    if (!importPath) {
+      const reqMatch = requireRegex.exec(line);
+      if (reqMatch?.[1]) {
+        importPath = reqMatch[1];
+      }
+    }
+
+    if (!importPath) continue;
+
+    if (importPath.startsWith(".")) {
+      imports.push({
+        sourceFile: filePath,
+        target: resolveRelativeImport(filePath, importPath),
+        kind: "relative",
+      });
+    } else {
+      imports.push({
+        sourceFile: filePath,
+        target: importPath,
+        kind: "package",
+      });
     }
   }
 
@@ -154,7 +167,8 @@ function extractGoImports(content: string, filePath: string): ImportInfo[] {
   }
 
   // Grouped imports: import ( "path1" \n "path2" )
-  const groupRegex = /import\s*\(([\s\S]*?)\)/g;
+  // Use [^)]* instead of [\s\S]*? to avoid polynomial backtracking (ReDoS)
+  const groupRegex = /import\s*\(([^)]*)\)/g;
   while ((match = groupRegex.exec(content)) !== null) {
     const body = match[1];
     if (!body) continue;
