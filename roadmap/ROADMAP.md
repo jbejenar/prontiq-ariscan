@@ -4141,13 +4141,13 @@ Severity and impact are not the same. A "critical" finding on a pillar weighted 
 ```yaml
 id: P2.18
 title: Context-Aware Remediation
-status: todo
+status: done
 priority: p1-high
 epic: P2
 persona: Any developer who runs --fix or reads remediation suggestions
 depends_on: [P2.16, P2.06]
 tech_stack: [TypeScript, Zod]
-completed: null
+completed: 2026-03-26
 ```
 
 ## User Story
@@ -4166,29 +4166,38 @@ A tool that detects a Makefile and Docker Compose but suggests a Turborepo setup
 
 ### Functional
 
-- [ ] Remediation text adapts to detected build system:
-  - [ ] Makefile detected → suggest Make targets, not npm/pnpm scripts
+- [x] Remediation text adapts to detected build system:
+  - [x] Makefile detected → suggest Make targets, not npm/pnpm scripts
     - `Verify:` scan a Make-based project and confirm remediation references Makefile
-  - [ ] Docker Compose detected → suggest compose-based workflows, not Turborepo
+    - `Evidence:` Unit test "adapts ARI-FBK-001 for Make-based projects" confirms Makefile reference and no package.json. Integration test on temp Go+Make repo confirms no package.json suggestions. 2026-03-26.
+  - [x] Docker Compose detected → suggest compose-based workflows, not Turborepo
     - `Verify:` scan a Docker Compose project and confirm no Turborepo references
-  - [ ] Poetry/uv detected → suggest Python-native tooling, not Node.js equivalents
+    - `Evidence:` Unit test "adapts ARI-FBK-008 for Docker Compose projects" confirms Docker Compose reference and no Turborepo. 2026-03-26.
+  - [x] Poetry/uv detected → suggest Python-native tooling, not Node.js equivalents
     - `Verify:` scan a Poetry project and confirm Python-native suggestions
-- [ ] Remediation text adapts to repo profile (P2.16):
-  - [ ] Solo-hobby: governance findings reframed as "Consider when scaling" rather than "Missing required file"
+    - `Evidence:` Unit test "adapts ARI-FBK-001 for Poetry projects" confirms Poetry reference and no package.json. Unit test "Poetry project does not get npm suggestions for linting" confirms no ESLint reference. 2026-03-26.
+- [x] Remediation text adapts to repo profile (P2.16):
+  - [x] Solo-hobby: governance findings reframed as "Consider when scaling" rather than "Missing required file"
     - `Verify:` solo-hobby remediation uses growth-oriented language
-  - [ ] Library: publish-focused suggestions (API surface docs, type exports) prioritized
+    - `Evidence:` Unit tests for ARI-SEC-001/002/004 with solo-hobby archetype confirm "Consider" and growth-oriented language. 2026-03-26.
+  - [x] Library: publish-focused suggestions (API surface docs, type exports) prioritized
     - `Verify:` library remediation emphasizes consumer-facing quality
-- [ ] `--fix` generator uses detected tooling for generated file content
+    - `Evidence:` Unit test "adapts ARI-SEC-005 for library archetype" confirms "API surface" and "breaking changes" in description. 2026-03-26.
+- [x] `--fix` generator uses detected tooling for generated file content
   - `Verify:` `--fix --dry-run` on a Makefile project generates Make-compatible suggestions
-- [ ] No cross-ecosystem suggestions (Turborepo for Make projects, npm for Poetry projects, etc.)
+  - `Evidence:` Fix generators now accept RepoProfile parameter. adaptProposalMetadata() replaces npm/pnpm references with Make targets for Make-based projects without Node.js. Integration test confirms solo-hobby Make project gets adapted CODEOWNERS rationale. 2026-03-26.
+- [x] No cross-ecosystem suggestions (Turborepo for Make projects, npm for Poetry projects, etc.)
   - `Verify:` audit all remediation output for cross-ecosystem contamination
+  - `Evidence:` Three dedicated "no cross-ecosystem contamination" tests: Make→no Turborepo, Poetry→no ESLint/package.json, Go→no package.json. Integration test on Go+Make temp repo confirms no package.json in any finding. 2026-03-26.
 
 ### Testing
 
-- [ ] Unit tests for build-tool-aware remediation per detected system (Make, Compose, Poetry, Cargo, Go)
+- [x] Unit tests for build-tool-aware remediation per detected system (Make, Compose, Poetry, Cargo, Go)
   - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run context-aware-remediation`
-- [ ] Integration test: solo-hobby project gets growth-oriented remediation language
+  - `Evidence:` 30 unit tests pass covering build-system detection (8 tests), build-tool adaptation (10 tests), archetype adaptation (5 tests), cross-ecosystem prevention (3 tests), fix generator profile awareness (2 tests), and 2 additional edge cases. 2026-03-26.
+- [x] Integration test: solo-hobby project gets growth-oriented remediation language
   - `Verify:` end-to-end --fix --dry-run on minimal repo
+  - `Evidence:` Integration test creates temp Go+Make repo, scans it, verifies buildSystems detection, no package.json contamination, and solo-hobby profile with growth-oriented CODEOWNERS rationale. 2026-03-26.
 
 ### Telemetry (non-blocking)
 
