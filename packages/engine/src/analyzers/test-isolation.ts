@@ -256,6 +256,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No test files found in the repository",
         confidence: "high",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
         remediation: {
           action: "create-file",
           description:
@@ -300,6 +301,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Low test-to-source ratio: ${ratio.toFixed(2)} (${testFiles.length} tests / ${sourceFiles.length} sources)`,
         confidence: "medium",
+        scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
         remediation: {
           action: "create-file",
           description:
@@ -340,6 +342,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             file: testFile,
             message: ap.message,
             confidence: "medium",
+            scoreImpact: { pillarDelta: -3, compositeDelta: 0 },
             remediation: {
               action: "refactor",
               description: ap.remediation,
@@ -374,6 +377,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             file: testFile,
             message: "Test file accesses the real filesystem — should use mocks or in-memory FS",
             confidence: "medium",
+            scoreImpact: { pillarDelta: -3, compositeDelta: 0 },
             remediation: {
               action: "refactor",
               description:
@@ -407,6 +411,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               file: testFile,
               message: "Assertion on unordered collection without sorting — may cause flaky tests",
               confidence: "medium",
+              scoreImpact: { pillarDelta: -3, compositeDelta: 0 },
               remediation: {
                 action: "refactor",
                 description:
@@ -446,6 +451,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: `Very low test file count ratio: ${testFileRatio.toFixed(2)} (${testFiles.length} test files / ${sourceFiles.length} source files). Target at least 0.5.`,
           confidence: "medium",
+          scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
           remediation: {
             action: "create-file",
             description:
@@ -485,6 +491,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               file: testFile,
               message: `Mutable global environment detected: ${gm.description}`,
               confidence: "medium",
+              scoreImpact: { pillarDelta: -3, compositeDelta: 0 },
               remediation: {
                 action: "refactor",
                 description:
@@ -532,6 +539,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
                   file: testFile,
                   message: `Test order dependency: ${od.description} modifies shared state`,
                   confidence: "low",
+                  scoreImpact: { pillarDelta: -3, compositeDelta: 0 },
                   remediation: {
                     action: "refactor",
                     description:
@@ -557,6 +565,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
                 file: testFile,
                 message: `Test order dependency: ${od.description}`,
                 confidence: "high",
+                scoreImpact: { pillarDelta: -3, compositeDelta: 0 },
                 remediation: {
                   action: "refactor",
                   description:
@@ -593,6 +602,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
               file: testFile,
               message: `Concurrency/race condition pattern: ${cp.description}`,
               confidence: "medium",
+              scoreImpact: { pillarDelta: -3, compositeDelta: 0 },
               remediation: {
                 action: "refactor",
                 description:
@@ -623,6 +633,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             file: testFile,
             message: "Hardcoded credential detected in test file",
             confidence: "high",
+            scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
             remediation: {
               action: "refactor",
               description:
@@ -742,6 +753,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
             `High flakiness transfer risk: ${testFile} contains ${presentCategories.length} anti-pattern categories (${presentCategories.join(", ")}). ` +
             `AI agents learning from this file will propagate these patterns into generated tests.`,
           confidence: "medium",
+          scoreImpact: { pillarDelta: -2, compositeDelta: 0 },
           remediation: {
             action: "refactor",
             description:
@@ -858,6 +870,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         message:
           "Provider abstraction detected: interface/abstract class patterns found in source files",
         confidence: "medium",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
         evidence: {
           paper: "Berndt et al., 2026",
           finding:
@@ -877,6 +890,7 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Direct SDK imports found in ${directSdkInTestCount} test file(s) — tests are tightly coupled to external services`,
         confidence: "medium",
+        scoreImpact: { pillarDelta: -3, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description:

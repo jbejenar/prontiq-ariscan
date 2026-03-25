@@ -1,32 +1,5 @@
 import type { ScanResult, Finding } from "@prontiq/ariscan-schema";
 
-const SEVERITY_ORDER: Record<string, number> = {
-  critical: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-  info: 4,
-};
-
-/** Impact score: higher severity + higher confidence = higher impact. */
-function impactEaseScore(finding: Finding): number {
-  const severityWeight: Record<string, number> = {
-    critical: 10,
-    high: 8,
-    medium: 5,
-    low: 3,
-    info: 1,
-  };
-  const confidenceWeight: Record<string, number> = {
-    high: 3,
-    medium: 2,
-    low: 1,
-  };
-  const impact = severityWeight[finding.severity] ?? 1;
-  const ease = finding.remediation ? (confidenceWeight[finding.remediation.confidence] ?? 1) : 0;
-  return impact * ease;
-}
-
 function severityEmoji(severity: string): string {
   switch (severity) {
     case "critical":
@@ -178,16 +151,16 @@ export function formatMarkdown(result: ScanResult): string {
 
   lines.push(...formatPillarTable(result));
 
-  // Filter out not-applicable findings from default display
+  // Filter out not-applicable findings, sort by composite impact descending
   const applicableFindings = result.findings.filter((f) => f.applicability !== "not-applicable");
   const sortedFindings = [...applicableFindings].sort(
-    (a, b) => (SEVERITY_ORDER[a.severity] ?? 99) - (SEVERITY_ORDER[b.severity] ?? 99),
+    (a, b) => (b.scoreImpact?.compositeDelta ?? 0) - (a.scoreImpact?.compositeDelta ?? 0),
   );
   lines.push(...formatTopFindings(sortedFindings));
 
   const actionable = sortedFindings
     .filter((f) => f.remediation && f.severity !== "info")
-    .sort((a, b) => impactEaseScore(b) - impactEaseScore(a));
+    .sort((a, b) => (b.scoreImpact?.compositeDelta ?? 0) - (a.scoreImpact?.compositeDelta ?? 0));
   lines.push(...formatQuickStart(actionable));
   lines.push(...formatRemediations(actionable));
   lines.push(...formatFooter(result.metadata));
@@ -201,9 +174,13 @@ function formatFinding(finding: Finding): string {
   const location = finding.file
     ? ` in \`${finding.file}${finding.line ? `:${finding.line}` : ""}\``
     : "";
+  const impact =
+    finding.scoreImpact && finding.scoreImpact.compositeDelta > 0
+      ? ` **[+${finding.scoreImpact.compositeDelta.toFixed(1)} pts]**`
+      : "";
 
   lines.push(
-    `- ${emoji} **${finding.severity.toUpperCase()}** \`${finding.code}\` — ${finding.message}${location}`,
+    `- ${emoji} **${finding.severity.toUpperCase()}**${impact} \`${finding.code}\` — ${finding.message}${location}`,
   );
 
   return lines.join("\n");

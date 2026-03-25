@@ -11,10 +11,16 @@ const SCHEMA_ID = "https://prontiq.dev/schemas/ari-scan-result/v1.json";
  * Format scan result as JSON with $schema / $id envelope.
  */
 export function formatJson(result: ScanResult): string {
+  const sortedFindings = [...result.findings].sort((a, b) => {
+    const aDelta = a.scoreImpact?.compositeDelta ?? 0;
+    const bDelta = b.scoreImpact?.compositeDelta ?? 0;
+    return bDelta - aDelta;
+  });
   const output = {
     $schema: SCHEMA_ID,
     $id: `ari-scan-${result.metadata.timestamp}`,
     ...result,
+    findings: sortedFindings,
   };
   return JSON.stringify(output, null, 2) + "\n";
 }
@@ -305,6 +311,23 @@ export function getJsonSchemaObject(): Record<string, unknown> {
             type: "string",
             enum: ["applicable", "not-applicable"],
             description: "Whether this finding is applicable to the repo's archetype profile.",
+          },
+          scoreImpact: {
+            type: "object",
+            description:
+              "Quantified score impact: how many points fixing this finding would recover.",
+            required: ["pillarDelta", "compositeDelta"],
+            properties: {
+              pillarDelta: {
+                type: "number",
+                description: "Points this finding costs the pillar score (positive = recoverable).",
+              },
+              compositeDelta: {
+                type: "number",
+                description:
+                  "Estimated composite score improvement if fixed: pillarDelta × weight / effectiveWeightSum.",
+              },
+            },
           },
         },
       },

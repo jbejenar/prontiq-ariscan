@@ -53,6 +53,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
             pillar: PILLAR,
             message:
               "No build configuration or package manager detected — build determinism analysis requires a build system",
+            scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
           },
         ],
         "Insufficient data: no build configuration or package manager detected",
@@ -81,6 +82,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: "TypeScript strict mode is not fully enabled",
           confidence: "high",
+          scoreImpact: { pillarDelta: 20, compositeDelta: 0 },
           remediation: {
             action: "modify-config",
             path: "tsconfig.json",
@@ -101,6 +103,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: "TypeScript strict mode is not enabled",
           confidence: "high",
+          scoreImpact: { pillarDelta: 30, compositeDelta: 0 },
           remediation: {
             action: "modify-config",
             path: "tsconfig.json",
@@ -178,6 +181,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: "Lockfile is gitignored — builds are non-deterministic",
           confidence: "high",
+          scoreImpact: { pillarDelta: 20, compositeDelta: 0 },
           remediation: {
             action: "modify-config",
             path: ".gitignore",
@@ -192,6 +196,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: "No lockfile found",
           confidence: "high",
+          scoreImpact: { pillarDelta: 20, compositeDelta: 0 },
           remediation: {
             action: "add-dependency",
             description: "Run your package manager to generate a lockfile and commit it",
@@ -225,6 +230,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           message:
             "Modern build tool detected — fast, deterministic builds improve agent feedback loops",
           confidence: "high",
+          scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
           evidence: {
             paper: "esbuild benchmark, 2024",
             finding: "Modern bundlers provide 10-100x faster builds",
@@ -240,6 +246,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           message:
             "Webpack detected — consider migrating to a faster bundler (tsup, esbuild, vite, swc) for shorter agent feedback loops",
           confidence: "high",
+          scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
           remediation: {
             action: "modify-config",
             description:
@@ -299,6 +306,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Monorepo detected (${detectedMonorepoTools.join(", ")})${hasProjectRefs ? " with TypeScript project references configured" : " — consider adding TypeScript project references for faster incremental builds"}`,
         confidence: "high",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
         remediation: hasProjectRefs
           ? undefined
           : {
@@ -347,6 +355,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
                 pillar: PILLAR,
                 message: `packageManager field specifies "${pmName}" but found lockfile(s) for a different package manager: ${wrongLockfiles.join(", ")}`,
                 confidence: "high",
+                scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
                 remediation: {
                   action: "modify-config",
                   description: `Either update packageManager field to match the lockfile or regenerate the lockfile using ${pmName}`,
@@ -409,6 +418,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "Linting and formatting configured — agents produce code matching project style",
         confidence: "high",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
         evidence: {
           paper: "GitHub Octoverse, 2025",
           finding: "94% of LLM compilation errors are type-check failures",
@@ -425,6 +435,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Missing ${missing} configuration — agents may produce inconsistent code style`,
         confidence: "high",
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
         remediation: {
           action: "create-file",
           description: `Add ${missing} configuration (e.g. ESLint + Prettier) to enforce consistent code style`,
@@ -455,6 +466,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Pre-commit hooks configured (${preCommitTools[0]} + lint-staged) — agents get immediate feedback on style violations before CI`,
         confidence: "high",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
       });
     } else if (preCommitTools.length > 0) {
       score += 3;
@@ -464,6 +476,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Pre-commit hooks detected (${preCommitTools[0]}) but no lint-staged configuration — consider adding lint-staged for targeted pre-commit checks`,
         confidence: "high",
+        scoreImpact: { pillarDelta: 2, compositeDelta: 0 },
         remediation: {
           action: "add-dependency",
           description:
@@ -479,6 +492,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
         message:
           "No pre-commit hooks configured — agents may push code that fails linting or formatting checks",
         confidence: "medium",
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
         remediation: {
           action: "configure-tool",
           description:
@@ -509,6 +523,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           message:
             "Type coverage tooling detected — tracking type safety percentage helps agents produce well-typed code",
           confidence: "high",
+          scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
           evidence: {
             paper: "TyFlow, Huang et al., 2025",
             finding: "33.6% of failed LM-generated programs fail due to type errors",
@@ -523,6 +538,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           message:
             "No type coverage tracking detected — consider adding type-coverage to measure and enforce type safety percentage",
           confidence: "medium",
+          scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
           remediation: {
             action: "add-dependency",
             description:
@@ -579,6 +595,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           message:
             "Java project lacks nullability annotations — agents produce NullPointerException-prone code without null-safety constraints",
           confidence: "medium",
+          scoreImpact: { pillarDelta: 15, compositeDelta: 0 },
           remediation: {
             action: "add-dependency",
             description:
@@ -632,6 +649,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           message:
             "C# project has nullable reference types disabled — agents lack compile-time null safety guidance",
           confidence: "high",
+          scoreImpact: { pillarDelta: 20, compositeDelta: 0 },
           remediation: {
             action: "modify-config",
             description:
@@ -667,6 +685,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: `Found ${goAnyCount} uses of interface{}/any in Go files — reduces type safety`,
           confidence: "medium",
+          scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
           remediation: {
             action: "refactor",
             description: "Replace interface{}/any with concrete types or generics where possible",
@@ -697,6 +716,7 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: `Found ${unwrapCount} uses of .unwrap() in Rust files — risk of panics at runtime`,
           confidence: "medium",
+          scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
           remediation: {
             action: "refactor",
             description: "Replace .unwrap() with proper error handling (?, match, unwrap_or, etc.)",

@@ -246,6 +246,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
             pillar: PILLAR,
             message:
               "No source files matching known extensions found — navigability analysis requires source code",
+            scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
           },
         ],
         "Insufficient data: no source files to analyze for navigability",
@@ -277,6 +278,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         file: dirName,
         message: `Directory "${dirName}" has ${dirCount} source files — consider splitting into submodules`,
         confidence: "medium",
+        scoreImpact: { pillarDelta: -10, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description: "Split large directories into focused submodules with clear boundaries",
@@ -304,6 +306,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Maximum directory depth is ${maxDepth} — deep nesting hurts navigation`,
         confidence: "medium",
+        scoreImpact: { pillarDelta: -10, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description: "Flatten deeply nested directory structures. Aim for max depth of 5-6.",
@@ -357,6 +360,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
           .map((s) => `${s.name}(${s.count})`)
           .join(", ")}`,
         confidence: "low",
+        scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description: `Standardize file naming to ${dominant.name}`,
@@ -404,6 +408,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
             file,
             message: `File has ${importLines.length} imports — high coupling, consider splitting`,
             confidence: "medium",
+            scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
             remediation: {
               action: "refactor",
               description:
@@ -473,6 +478,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
               pillar: PILLAR,
               message: `Potential circular dependency between "${fileA}" and "${fileB}"`,
               confidence: "low",
+              scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
               remediation: {
                 action: "refactor",
                 description:
@@ -599,6 +605,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Found ${deadCodeCandidates.length} source file(s) that appear unused (never imported): ${deadCodeCandidates.slice(0, 3).join(", ")}${deadCodeCandidates.length > 3 ? ` and ${deadCodeCandidates.length - 3} more` : ""}`,
         confidence: "low",
+        scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description:
@@ -652,6 +659,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `${poorFunctions.length} function(s) with poor cognitive complexity (>15): ${topPoor.map((c) => `${c.file}:${c.name} (${c.complexity})`).join(", ")}`,
         confidence: "medium",
+        scoreImpact: { pillarDelta: -3, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description:
@@ -674,6 +682,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `${moderateFunctions.length} function(s) with moderate cognitive complexity (9-15): ${topMod.map((c) => `${c.file}:${c.name} (${c.complexity})`).join(", ")}`,
         confidence: "medium",
+        scoreImpact: { pillarDelta: -1, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description:
@@ -762,6 +771,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Detected code duplication across ${filesWithDuplication} file(s) (${sharedChunkCount} shared block(s)): ${examples}`,
         confidence: "low",
+        scoreImpact: { pillarDelta: -10, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description:
@@ -784,6 +794,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Minor code duplication detected in ${filesWithDuplication} file(s) (${sharedChunkCount} shared block(s))`,
         confidence: "low",
+        scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description:
@@ -834,6 +845,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Good structural clarity: ${dirsWithBarrels.size}/${dirs.size} directories have barrel/index files, ${presentLayers.length} conventional layers detected`,
         confidence: "medium",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
       });
     } else if (!structuralClarityModerate) {
       score -= 5;
@@ -843,6 +855,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Low structural clarity for retrieval: ${dirsWithBarrels.size}/${dirs.size} directories have barrel/index files${presentLayers.length < 3 ? ", few conventional layer directories" : ""}`,
         confidence: "low",
+        scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
         remediation: {
           action: "refactor",
           description:

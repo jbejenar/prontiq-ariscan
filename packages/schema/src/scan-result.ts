@@ -43,6 +43,14 @@ export type Evidence = z.infer<typeof Evidence>;
 export const FindingApplicability = z.enum(["applicable", "not-applicable"]);
 export type FindingApplicability = z.infer<typeof FindingApplicability>;
 
+export const ScoreImpact = z.object({
+  /** Points this finding costs the pillar score (positive = points recoverable by fixing). */
+  pillarDelta: z.number(),
+  /** Estimated composite score improvement if fixed: pillarDelta × pillarWeight / effectiveWeightSum. */
+  compositeDelta: z.number(),
+});
+export type ScoreImpact = z.infer<typeof ScoreImpact>;
+
 export const Finding = z.object({
   code: z.string().regex(/^ARI-[A-Z]{3}-\d{3}$/),
   severity: Severity,
@@ -63,6 +71,8 @@ export const Finding = z.object({
   suppressed: z.boolean().optional(),
   /** Whether this finding is applicable to the repo's archetype profile. */
   applicability: FindingApplicability.optional(),
+  /** Quantified score impact: how many points fixing this finding would recover. */
+  scoreImpact: ScoreImpact.optional(),
 });
 export type Finding = z.infer<typeof Finding>;
 

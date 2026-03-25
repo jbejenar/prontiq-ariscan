@@ -84,6 +84,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
                 "Add an 'image' field (e.g. 'mcr.microsoft.com/devcontainers/typescript-node:1-20') or a 'build' field with Dockerfile reference",
               confidence: "high",
             },
+            scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
           });
         } else {
           devcontainerStatus = "pass";
@@ -113,6 +114,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
           finding: "94-96% drop-off rate with manual setup",
           confidence: "high",
         },
+        scoreImpact: { pillarDelta: 25, compositeDelta: 0 },
       });
     }
 
@@ -161,6 +163,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
           finding: "94-96% drop-off rate with manual dev environment setup",
           confidence: "high",
         },
+        scoreImpact: { pillarDelta: 15, compositeDelta: 0 },
       });
     }
 
@@ -197,6 +200,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
           finding: "Standardized dev environments correlate with higher deployment frequency",
           confidence: "medium",
         },
+        scoreImpact: { pillarDelta: 10, compositeDelta: 0 },
       });
     }
 
@@ -260,6 +264,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
           finding: "Containerized dev environments reduce onboarding time 75%",
           confidence: "medium",
         },
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
       });
     }
 
@@ -304,6 +309,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         finding: "Containerized dev environments reduce onboarding time 75%",
         confidence: "high",
       },
+      scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
     });
 
     // --- NEW: ARI-ENV-006 — First-run blockers ---
@@ -367,6 +373,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
           finding: "94-96% drop-off rate with manual setup",
           confidence: "high",
         },
+        scoreImpact: { pillarDelta: 3, compositeDelta: 0 },
       });
     } else {
       findings.push({
@@ -375,6 +382,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No obvious first-run blockers detected",
         confidence: "medium",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
       });
     }
 
@@ -414,6 +422,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
             description: `Add missing variables to .env.example: ${missingVars.join(", ")}`,
             confidence: "medium",
           },
+          scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
         });
       } else {
         findings.push({
@@ -422,6 +431,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: `Environment variable completeness: all referenced vars documented in .env.example (${documentedVars.length} vars)`,
           confidence: "medium",
+          scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
         });
       }
     } else if (codeReferencesEnv) {
@@ -437,6 +447,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
           description: "Create .env.example to document required environment variables",
           confidence: "high",
         },
+        scoreImpact: { pillarDelta: 10, compositeDelta: 0 },
       });
     }
 
@@ -508,6 +519,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
             },
           }
         : {}),
+      scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
     });
 
     // --- Per-criterion status labels (info findings) ---
@@ -522,6 +534,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         finding: "94-96% drop-off rate with manual dev environment setup",
         confidence: "high",
       },
+      scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
     });
 
     findings.push({
@@ -535,6 +548,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         finding: "Standardized dev environments correlate with higher deployment frequency",
         confidence: "medium",
       },
+      scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
     });
 
     findings.push({
@@ -548,6 +562,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         finding: "Containerized dev environments reduce onboarding time 75%",
         confidence: "high",
       },
+      scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
     });
 
     findings.push({
@@ -561,6 +576,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         finding: "94-96% drop-off rate with manual dev environment setup",
         confidence: "high",
       },
+      scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
     });
 
     findings.push({
@@ -574,6 +590,7 @@ export const devEnvironmentAnalyzer: PillarAnalyzer = {
         finding: "Standardized dev environments correlate with higher deployment frequency",
         confidence: "medium",
       },
+      scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
     });
 
     return buildPillarResult(

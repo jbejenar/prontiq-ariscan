@@ -78,13 +78,30 @@ function formatPillar(pillar: PillarResult, verbose?: boolean): string {
   return lines.join("\n");
 }
 
-/** Format a single finding line with severity, code, confidence, and message. */
+/** Sort findings by compositeDelta descending (highest impact first). */
+function sortByImpact(findings: ScanResult["findings"]): ScanResult["findings"] {
+  return [...findings].sort((a, b) => {
+    const aDelta = a.scoreImpact?.compositeDelta ?? 0;
+    const bDelta = b.scoreImpact?.compositeDelta ?? 0;
+    return bDelta - aDelta;
+  });
+}
+
+/** Format impact tag for inline display. */
+function formatImpactTag(finding: ScanResult["findings"][0]): string {
+  if (!finding.scoreImpact || finding.scoreImpact.compositeDelta === 0) return "";
+  const delta = finding.scoreImpact.compositeDelta;
+  return pc.green(`[+${delta.toFixed(1)} pts] `);
+}
+
+/** Format a single finding line with severity, code, confidence, impact, and message. */
 function formatFindingLine(finding: ScanResult["findings"][0]): string[] {
   const color = severityColor(finding.severity);
   const conf = finding.confidence ? pc.dim(` [${finding.confidence}]`) : "";
+  const impact = formatImpactTag(finding);
   const lines: string[] = [];
   lines.push(
-    `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)}${conf} ${finding.message}`,
+    `  ${color(finding.severity.toUpperCase().padEnd(8))} ${impact}${pc.dim(finding.code)}${conf} ${finding.message}`,
   );
   if (finding.remediation) {
     lines.push(`           ${pc.dim("→")} ${finding.remediation.description}`);
@@ -132,27 +149,19 @@ function formatContextFiles(contextFiles: ScanResult["contextFiles"]): string[] 
 }
 
 function formatRemainingFindings(findings: ScanResult["findings"], archetype?: string): string[] {
-  const remaining = findings.filter((f) => f.severity !== "critical" && f.severity !== "high");
-  if (remaining.length === 0) return [];
+  if (findings.length === 0) return [];
   const lines: string[] = [];
   lines.push("");
   lines.push(pc.dim(`  ${"─".repeat(60)}`));
-  lines.push(pc.bold("  All Findings"));
+  lines.push(pc.bold("  All Findings (by impact)"));
   lines.push("");
 
-  // Show applicable findings first, then not-applicable dimmed
-  const applicable = remaining.filter((f) => f.applicability !== "not-applicable");
-  const notApplicable = remaining.filter((f) => f.applicability === "not-applicable");
+  // Show applicable findings sorted by impact, then not-applicable dimmed
+  const applicable = sortByImpact(findings.filter((f) => f.applicability !== "not-applicable"));
+  const notApplicable = findings.filter((f) => f.applicability === "not-applicable");
 
   for (const finding of applicable) {
-    const color = severityColor(finding.severity);
-    const conf = finding.confidence ? pc.dim(` [${finding.confidence}]`) : "";
-    lines.push(
-      `  ${color(finding.severity.toUpperCase().padEnd(8))} ${pc.dim(finding.code)}${conf} ${finding.message}`,
-    );
-    if (finding.remediation) {
-      lines.push(`           ${pc.dim("→")} ${finding.remediation.description}`);
-    }
+    lines.push(...formatFindingLine(finding));
   }
 
   if (notApplicable.length > 0) {
@@ -243,16 +252,14 @@ function formatHeader(result: ScanResult): string[] {
 }
 
 function formatTopFindingsSection(findings: ScanResult["findings"]): string[] {
-  const topFindings = findings
-    .filter((f) => f.severity === "critical" || f.severity === "high")
-    .filter((f) => f.applicability !== "not-applicable")
-    .slice(0, 5);
+  const applicable = findings.filter((f) => f.applicability !== "not-applicable");
+  const topFindings = sortByImpact(applicable).slice(0, 7);
   if (topFindings.length === 0) return [];
 
   const lines: string[] = [];
   lines.push("");
   lines.push(pc.dim(`  ${"─".repeat(60)}`));
-  lines.push(pc.bold("  Top Findings"));
+  lines.push(pc.bold("  Top Findings (by impact)"));
   lines.push("");
 
   for (const finding of topFindings) {

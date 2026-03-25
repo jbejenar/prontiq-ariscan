@@ -29,6 +29,7 @@ export {
   ScoreBreakdown,
   Archetype,
   FindingApplicability,
+  ScoreImpact,
   RepoProfile,
   ScanResult,
   DetectedLanguage,

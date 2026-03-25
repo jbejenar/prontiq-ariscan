@@ -319,7 +319,7 @@ describe("formatMarkdown", () => {
     expect(output).toContain("maturity capped at L2");
   });
 
-  it("sorts findings by severity", () => {
+  it("sorts findings by composite impact", () => {
     const multiResult: ScanResult = {
       ...mockResult,
       findings: [
@@ -328,18 +328,21 @@ describe("formatMarkdown", () => {
           severity: "low",
           pillar: "P1",
           message: "Low severity finding",
+          scoreImpact: { pillarDelta: 5, compositeDelta: 1 },
         },
         {
           code: "ARI-CTX-003",
           severity: "critical",
           pillar: "P1",
           message: "Critical severity finding",
+          scoreImpact: { pillarDelta: 30, compositeDelta: 5 },
         },
         {
           code: "ARI-CTX-001",
           severity: "high",
           pillar: "P1",
           message: "High severity finding",
+          scoreImpact: { pillarDelta: 15, compositeDelta: 3 },
         },
       ],
     };
@@ -398,7 +401,7 @@ describe("formatMarkdown", () => {
     expect(output).toContain("3.");
   });
 
-  it("orders remediations by impact × ease", () => {
+  it("orders remediations by composite impact", () => {
     const resultWithMixed: ScanResult = {
       ...mockResult,
       findings: [
@@ -407,6 +410,7 @@ describe("formatMarkdown", () => {
           severity: "low",
           pillar: "P1",
           message: "Low with low confidence",
+          scoreImpact: { pillarDelta: 5, compositeDelta: 1 },
           remediation: {
             action: "refactor",
             description: "Low impact action",
@@ -418,6 +422,7 @@ describe("formatMarkdown", () => {
           severity: "high",
           pillar: "P1",
           message: "High with high confidence",
+          scoreImpact: { pillarDelta: 30, compositeDelta: 5 },
           remediation: {
             action: "create-file",
             description: "High impact action",
