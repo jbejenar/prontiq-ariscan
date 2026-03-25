@@ -1,5 +1,17 @@
 # @prontiq/ariscan-cli
 
+## 0.35.0
+
+### Minor Changes
+
+- - feat: adhoc-task (#119)
+
+### Patch Changes
+
+- Updated dependencies
+  - @prontiq/ariscan-schema@0.35.0
+  - @prontiq/ariscan-engine@0.35.0
+
 ## 0.34.0
 
 ### Minor Changes
