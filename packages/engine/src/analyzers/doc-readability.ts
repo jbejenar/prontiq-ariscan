@@ -61,7 +61,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
             finding: "Unstructured doc parsing triples token costs",
             confidence: "medium",
           },
-          scoreImpact: { pillarDelta: 50, compositeDelta: 0 },
+          scoreImpact: { pillarDelta: 20, compositeDelta: 0 },
         });
       }
     }

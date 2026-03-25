@@ -170,6 +170,27 @@ export function aggregateResults(
   const rawFindings = adjustedPillars.flatMap((p) => p.findings);
   const allFindings = annotateCompositeDelta(rawFindings, scoreBreakdown.effectiveWeightSum);
 
+  // Build a lookup so pillar-level findings also carry annotated compositeDelta
+  const deltaLookup = new Map<string, number>();
+  for (const f of allFindings) {
+    if (f.scoreImpact && f.scoreImpact.compositeDelta !== 0) {
+      deltaLookup.set(`${f.pillar}:${f.code}`, f.scoreImpact.compositeDelta);
+    }
+  }
+
+  const annotatedPillars = adjustedPillars.map((p) => {
+    if (deltaLookup.size === 0) return p;
+    const updatedFindings = p.findings.map((f) => {
+      const key = `${f.pillar}:${f.code}`;
+      const delta = deltaLookup.get(key);
+      if (delta !== undefined && f.scoreImpact) {
+        return { ...f, scoreImpact: { ...f.scoreImpact, compositeDelta: delta } };
+      }
+      return f;
+    });
+    return { ...p, findings: updatedFindings };
+  });
+
   return {
     metadata: {
       version: metadata.version,
@@ -182,7 +203,7 @@ export function aggregateResults(
     level,
     levelMeta: buildLevelMeta(level),
     securityGateTriggered: gateTriggered,
-    pillars: adjustedPillars,
+    pillars: annotatedPillars,
     findings: allFindings,
     scoreBreakdown,
   };

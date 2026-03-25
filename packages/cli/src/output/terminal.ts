@@ -306,10 +306,10 @@ export function formatTerminal(result: ScanResult, options: TerminalOptions = {}
     );
   }
 
-  lines.push(...formatTopFindingsSection(result.findings));
-
   if (options.verbose) {
     lines.push(...formatVerboseSection(result));
+  } else {
+    lines.push(...formatTopFindingsSection(result.findings));
   }
 
   lines.push(...formatScanFooter(result.metadata));
