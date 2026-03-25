@@ -313,11 +313,13 @@ export async function diffContext(
       if (processed.has(pairKey)) continue;
       processed.add(pairKey);
 
-      const segsA = contextSegmentMap.get(fileA.path)?.raw ?? [];
-      const segsB = contextSegmentMap.get(fileB.path);
-      if (!segsB) continue;
+      const dataA = contextSegmentMap.get(fileA.path);
+      const dataB = contextSegmentMap.get(fileB.path);
+      if (!dataA || !dataB) continue;
 
-      const overlap = computePairwiseOverlap(segsA, segsB.indexed);
+      const overlapAB = computePairwiseOverlap(dataA.raw, dataB.indexed);
+      const overlapBA = computePairwiseOverlap(dataB.raw, dataA.indexed);
+      const overlap = overlapAB.overlapPct >= overlapBA.overlapPct ? overlapAB : overlapBA;
 
       if (overlap.overlapPct >= MERGE_RECOMMENDATION_THRESHOLD) {
         // Determine which file has higher additionality
