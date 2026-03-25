@@ -167,8 +167,10 @@ function extractGoImports(content: string, filePath: string): ImportInfo[] {
   }
 
   // Grouped imports: import ( "path1" \n "path2" )
-  // Use [^)]* instead of [\s\S]*? to avoid polynomial backtracking (ReDoS)
-  const groupRegex = /import\s*\(([^)]*)\)/g;
+  // Require \s+ (not \s*) so the pattern cannot match dynamic-import-like
+  // "import(" prefixes, which would cause polynomial backtracking (ReDoS).
+  // Go grouped imports always have whitespace before the parenthesis.
+  const groupRegex = /import\s+\(([^)]*)\)/g;
   while ((match = groupRegex.exec(content)) !== null) {
     const body = match[1];
     if (!body) continue;
