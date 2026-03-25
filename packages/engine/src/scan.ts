@@ -8,6 +8,7 @@ import type {
   Suppression,
   PillarResult,
   Finding,
+  RepoProfile,
 } from "@prontiq/ariscan-schema";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
@@ -15,6 +16,8 @@ import { ANALYZERS } from "./analyzers/registry.js";
 import { createRepoContext } from "./context/repo-context.js";
 import { aggregateResults } from "./scoring/composite.js";
 import { detect } from "./detection/index.js";
+import { classifyProfile } from "./detection/profile.js";
+import { adjustPillarResults } from "./scoring/applicability.js";
 import type { RepoContext } from "./analyzers/analyzer.interface.js";
 
 /** Progress event emitted during a scan. */
@@ -198,9 +201,22 @@ export async function scan(
   );
 
   // Apply suppressions: mark matching findings and recalculate pillar scores
-  const finalPillarResults = config.suppressions
+  const suppressedResults = config.suppressions
     ? applySuppressions(pillarResults, config.suppressions)
     : pillarResults;
+
+  // Classify repo profile and apply archetype-based finding applicability
+  const repoProfile: RepoProfile = config.archetype
+    ? {
+        archetype: config.archetype,
+        confidence: "high",
+        signals: ["user-override"],
+        fileCount: 0,
+        sourceFileCount: 0,
+        hasCI: false,
+      }
+    : await classifyProfile(context, detection);
+  const finalPillarResults = adjustPillarResults(suppressedResults, repoProfile.archetype);
 
   const duration = Math.round(performance.now() - startTime);
 
@@ -219,6 +235,7 @@ export async function scan(
     detection,
     contextFiles: contextFiles.length > 0 ? contextFiles : undefined,
     devcontainerDetected,
+    repoProfile,
   };
 }
 

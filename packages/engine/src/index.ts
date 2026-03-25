@@ -11,8 +11,20 @@ export {
   applySecurityGate,
   aggregateResults,
 } from "./scoring/composite.js";
+export {
+  getNotApplicableCodes,
+  annotateApplicability,
+  adjustPillarResults,
+  countNotApplicable,
+} from "./scoring/applicability.js";
 export type { PillarAnalyzer, RepoContext } from "./analyzers/analyzer.interface.js";
-export { detect, detectLanguages, detectFrameworks, detectMonorepo } from "./detection/index.js";
+export {
+  detect,
+  detectLanguages,
+  detectFrameworks,
+  detectMonorepo,
+  classifyProfile,
+} from "./detection/index.js";
 export {
   analyzeTokenBudget,
   formatTokenCount,

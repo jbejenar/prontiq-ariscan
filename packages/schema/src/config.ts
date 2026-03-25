@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PillarId, MaturityLevel } from "./pillar.js";
+import { Archetype } from "./scan-result.js";
 
 const VALID_PILLAR_IDS = new Set(PillarId.options);
 
@@ -36,6 +37,8 @@ export const ScanConfig = z.object({
   exclude: z.array(z.string()).default([]),
   include: z.array(z.string()).optional(),
   suppressions: z.array(z.lazy(() => Suppression)).optional(),
+  /** Manual archetype override. When set, skips automatic classification. */
+  archetype: Archetype.optional(),
 });
 export type ScanConfig = z.infer<typeof ScanConfig>;
 

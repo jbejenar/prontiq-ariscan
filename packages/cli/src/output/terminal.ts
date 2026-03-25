@@ -131,7 +131,7 @@ function formatContextFiles(contextFiles: ScanResult["contextFiles"]): string[] 
   return lines;
 }
 
-function formatRemainingFindings(findings: ScanResult["findings"]): string[] {
+function formatRemainingFindings(findings: ScanResult["findings"], archetype?: string): string[] {
   const remaining = findings.filter((f) => f.severity !== "critical" && f.severity !== "high");
   if (remaining.length === 0) return [];
   const lines: string[] = [];
@@ -140,7 +140,11 @@ function formatRemainingFindings(findings: ScanResult["findings"]): string[] {
   lines.push(pc.bold("  All Findings"));
   lines.push("");
 
-  for (const finding of remaining) {
+  // Show applicable findings first, then not-applicable dimmed
+  const applicable = remaining.filter((f) => f.applicability !== "not-applicable");
+  const notApplicable = remaining.filter((f) => f.applicability === "not-applicable");
+
+  for (const finding of applicable) {
     const color = severityColor(finding.severity);
     const conf = finding.confidence ? pc.dim(` [${finding.confidence}]`) : "";
     lines.push(
@@ -148,6 +152,14 @@ function formatRemainingFindings(findings: ScanResult["findings"]): string[] {
     );
     if (finding.remediation) {
       lines.push(`           ${pc.dim("→")} ${finding.remediation.description}`);
+    }
+  }
+
+  if (notApplicable.length > 0) {
+    lines.push("");
+    lines.push(pc.dim(`  Not applicable to ${archetype ?? "this archetype's"} profile:`));
+    for (const finding of notApplicable) {
+      lines.push(pc.dim(`  ${"N/A".padEnd(8)} ${finding.code} ${finding.message}`));
     }
   }
   return lines;
@@ -161,7 +173,7 @@ function formatVerboseSection(result: ScanResult): string[] {
     lines.push(...formatDetectionSection(result.detection));
   }
   lines.push(...formatContextFiles(result.contextFiles));
-  lines.push(...formatRemainingFindings(result.findings));
+  lines.push(...formatRemainingFindings(result.findings, result.repoProfile?.archetype));
   return lines;
 }
 
@@ -219,12 +231,21 @@ function formatHeader(result: ScanResult): string[] {
       `  ${pc.red(pc.bold("⚠ Security gate triggered:"))} Pillar 8 score < 40% — maturity capped at L2`,
     );
   }
+
+  if (result.repoProfile) {
+    const p = result.repoProfile;
+    const naCount = result.findings.filter((f) => f.applicability === "not-applicable").length;
+    const naLabel = naCount > 0 ? ` — ${naCount} findings not applicable` : "";
+    lines.push("");
+    lines.push(`  ${pc.bold("Profile:")}  ${p.archetype} (${p.confidence} confidence)${naLabel}`);
+  }
   return lines;
 }
 
 function formatTopFindingsSection(findings: ScanResult["findings"]): string[] {
   const topFindings = findings
     .filter((f) => f.severity === "critical" || f.severity === "high")
+    .filter((f) => f.applicability !== "not-applicable")
     .slice(0, 5);
   if (topFindings.length === 0) return [];
 

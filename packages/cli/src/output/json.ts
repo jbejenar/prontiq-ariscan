@@ -204,6 +204,38 @@ export function getJsonSchemaObject(): Record<string, unknown> {
           },
         },
       },
+      repoProfile: {
+        type: "object",
+        description: "Classified repository profile (archetype) used for adaptive scoring.",
+        required: ["archetype", "confidence", "signals", "fileCount", "sourceFileCount", "hasCI"],
+        properties: {
+          archetype: {
+            type: "string",
+            enum: [
+              "solo-hobby",
+              "small-team",
+              "library",
+              "api-service",
+              "cli-tool",
+              "monorepo-enterprise",
+            ],
+            description: "Classified archetype of the repository.",
+          },
+          confidence: {
+            type: "string",
+            enum: ["high", "medium", "low"],
+            description: "Confidence in the classification.",
+          },
+          signals: {
+            type: "array",
+            items: { type: "string" },
+            description: "Detection signals that contributed to the classification.",
+          },
+          fileCount: { type: "number", description: "Total number of files." },
+          sourceFileCount: { type: "number", description: "Number of source code files." },
+          hasCI: { type: "boolean", description: "Whether CI configuration was detected." },
+        },
+      },
     },
     $defs: {
       finding: {
@@ -268,6 +300,11 @@ export function getJsonSchemaObject(): Record<string, unknown> {
           suppressed: {
             type: "boolean",
             description: "Whether this finding is suppressed by policy.",
+          },
+          applicability: {
+            type: "string",
+            enum: ["applicable", "not-applicable"],
+            description: "Whether this finding is applicable to the repo's archetype profile.",
           },
         },
       },
