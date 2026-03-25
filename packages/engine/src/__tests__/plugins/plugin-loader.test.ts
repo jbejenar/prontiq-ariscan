@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadPlugins } from "../../plugins/loader.js";
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir, mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -8,8 +8,7 @@ describe("Plugin Loader", () => {
   let testDir: string;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `ariscan-plugin-test-${Date.now()}`);
-    await mkdir(testDir, { recursive: true });
+    testDir = await mkdtemp(join(tmpdir(), "ariscan-plugin-test-"));
   });
 
   it("returns empty when plugin directory does not exist", async () => {
