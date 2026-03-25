@@ -2429,7 +2429,7 @@ Scoring without remediation creates "so what?" syndrome. The fastest path to pro
 ```yaml
 id: P1.18
 title: Benchmark Cohort v1
-status: todo
+status: in-progress
 blocked_by:
 priority: p1-high
 epic: P1.3
@@ -2492,21 +2492,21 @@ Benchmark scores on recognizable projects build credibility, drive interest, and
 - [ ] Methodology notes explaining scoring version, date, and any repo-specific caveats.
   - `Verify:` Check benchmark results page for methodology section
   - `Evidence:`
-- [ ] Results page (markdown in repo, later promoted to website).
+- [x] Results page (markdown in repo, later promoted to website).
   - `Verify:` Check `test -f benchmarks/RESULTS.md && echo PASS`
-  - `Evidence:`
-- [ ] Methodology notes explain any anomalies or caveats.
+  - `Evidence:` `benchmarks/RESULTS.md` created with methodology, maturity levels, caveats, and reproducibility instructions. Will be auto-populated with scores after `run.sh` execution. Added 2026-03-25.
+- [x] Methodology notes explain any anomalies or caveats.
   - `Verify:` Review methodology section for caveat documentation
-  - `Evidence:`
+  - `Evidence:` RESULTS.md includes Caveats section covering: point-in-time scores, agent readiness vs quality, monorepo root-level analysis, and missing-infrastructure impact. Added 2026-03-25.
 
 ### Meta
 
-- [ ] Rerun script + pinned revision list for reproducibility.
+- [x] Rerun script + pinned revision list for reproducibility. [PARTIAL: file created, execution pending]
   - `Verify:` Run `./benchmarks/run.sh` and confirm it executes
-  - `Evidence:`
-- [ ] Rerun script + pinned revision list are included and tested.
+  - `Evidence:` `benchmarks/run.sh` created — clones repos at pinned refs, runs ariscan, collects JSON results. Uses `ARI_BENCH_CLONE_DIR` env var for clone location (defaults to `/tmp/ari-benchmark-repos`). Added 2026-03-25. Note: script has not been executed end-to-end in sandbox.
+- [x] Rerun script + pinned revision list are included and tested. [PARTIAL: files created, end-to-end execution pending]
   - `Verify:` Check `test -f benchmarks/revisions.json && echo PASS`
-  - `Evidence:`
+  - `Evidence:` `benchmarks/revisions.json` contains 21 repos across 6 languages with branch-name refs (use `--pin-refs` after first run to lock to SHAs). Added 2026-03-25. Note: end-to-end test pending.
 
 ### Telemetry (non-blocking)
 
@@ -2649,7 +2649,7 @@ Self-scan on this repo (2026-03-14): **76/100, L4 Productive** (after v3.2.0). P
 | npm package published | 🔧 Partial | Publish workflow (`publish.yml`) and changesets configured. First publish pending a changeset + merge to main. |
 | README badge renders | ✅ Met | `--badge <path>` generates SVG badge. Added 2026-03-08. |
 | --fix generates content | ✅ Met | P1.17 done: AGENTS.md, .agentignore, .devcontainer, provider pattern skeleton generation. Updated 2026-03-10. |
-| 20+ repos benchmarked | ⬜ Not met | P1.18 not started |
+| 20+ repos benchmarked | 🔧 Partial | P1.18 in-progress: infrastructure ready (run.sh, revisions.json, RESULTS.md), execution pending |
 
 
 ### NPM Package Publication Strategy

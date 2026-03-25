@@ -1,0 +1,8 @@
+# Cloned repos (stored in /tmp by default, but ignore if overridden to local)
+.repos/
+
+# Per-repo JSON results (generated, not committed)
+results/*.json
+
+# Keep RESULTS.md (the human-readable summary)
+!RESULTS.md
