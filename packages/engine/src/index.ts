@@ -10,6 +10,7 @@ export {
   classifyMaturityLevel,
   applySecurityGate,
   aggregateResults,
+  annotateCompositeDelta,
 } from "./scoring/composite.js";
 export {
   getNotApplicableCodes,

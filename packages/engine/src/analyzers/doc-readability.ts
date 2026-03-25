@@ -61,6 +61,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
             finding: "Unstructured doc parsing triples token costs",
             confidence: "medium",
           },
+          scoreImpact: { pillarDelta: 20, compositeDelta: 0 },
         });
       }
     }
@@ -217,6 +218,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
           finding: "Unstructured doc parsing triples token costs",
           confidence: "medium",
         },
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
       });
     }
 
@@ -264,6 +266,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
             finding: "Unstructured doc parsing triples token costs",
             confidence: "medium",
           },
+          scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
         });
       }
     }
@@ -311,6 +314,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
                 "Update README to reflect current file structure and remove stale path references",
               confidence: "medium",
             },
+            scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
           });
         }
       }
@@ -335,6 +339,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
           finding: "Machine-readable API specs reduce integration errors 40%",
           confidence: "high",
         },
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
       });
     } else {
       findings.push({
@@ -351,6 +356,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
             "Add a CONTRIBUTING.md with PR conventions, branch naming, commit message format, and review expectations",
           confidence: "high",
         },
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
       });
     }
 
@@ -373,6 +379,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
           finding: "Machine-readable API specs reduce integration errors 40%",
           confidence: "high",
         },
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
       });
     } else {
       findings.push({
@@ -389,6 +396,7 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
             "Add architecture documentation describing system boundaries, module responsibilities, and key design decisions",
           confidence: "high",
         },
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
       });
     }
 

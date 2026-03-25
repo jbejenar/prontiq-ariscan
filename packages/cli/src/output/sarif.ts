@@ -51,6 +51,13 @@ function buildRule(finding: Finding): Record<string, unknown> {
     };
   }
 
+  if (finding.scoreImpact) {
+    (rule["properties"] as Record<string, unknown>)["scoreImpact"] = {
+      pillarDelta: finding.scoreImpact.pillarDelta,
+      compositeDelta: finding.scoreImpact.compositeDelta,
+    };
+  }
+
   return rule;
 }
 
@@ -119,7 +126,11 @@ export function formatSarif(result: ScanResult): string {
             },
           },
         },
-        results: result.findings.map(buildResult),
+        results: [...result.findings]
+          .sort(
+            (a, b) => (b.scoreImpact?.compositeDelta ?? 0) - (a.scoreImpact?.compositeDelta ?? 0),
+          )
+          .map(buildResult),
         invocations: [
           {
             executionSuccessful: true,

@@ -1,9 +1,11 @@
 import {
   type PillarResult,
+  type Finding,
   type ScanResult,
   type ScoreBreakdown,
   type MaturityLevel,
   type LevelMeta,
+  type PillarId,
   PILLAR_WEIGHTS,
   MATURITY_THRESHOLDS,
   MATURITY_NAMES,
@@ -134,6 +136,26 @@ export function applyCrossPillarTypeBonus(pillars: PillarResult[]): PillarResult
 }
 
 /**
+ * Annotate compositeDelta on all findings that have a scoreImpact.
+ * compositeDelta = abs(pillarDelta) × pillarWeight / effectiveWeightSum
+ * Rounded to 1 decimal place.
+ */
+export function annotateCompositeDelta(findings: Finding[], effectiveWeightSum: number): Finding[] {
+  if (effectiveWeightSum === 0) return findings;
+
+  return findings.map((f) => {
+    if (!f.scoreImpact) return f;
+    const weight = PILLAR_WEIGHTS[f.pillar as PillarId] ?? 0;
+    const compositeDelta =
+      Math.round((Math.abs(f.scoreImpact.pillarDelta) * weight * 10) / effectiveWeightSum) / 10;
+    return {
+      ...f,
+      scoreImpact: { ...f.scoreImpact, compositeDelta },
+    };
+  });
+}
+
+/**
  * Aggregate all pillar results into a final ScanResult.
  */
 export function aggregateResults(
@@ -144,8 +166,30 @@ export function aggregateResults(
   const score = calculateCompositeScore(adjustedPillars);
   const rawLevel = classifyMaturityLevel(score);
   const { level, gateTriggered } = applySecurityGate(adjustedPillars, rawLevel);
-  const allFindings = adjustedPillars.flatMap((p) => p.findings);
   const scoreBreakdown = computeScoreBreakdown(adjustedPillars);
+  const rawFindings = adjustedPillars.flatMap((p) => p.findings);
+  const allFindings = annotateCompositeDelta(rawFindings, scoreBreakdown.effectiveWeightSum);
+
+  // Build a lookup so pillar-level findings also carry annotated compositeDelta
+  const deltaLookup = new Map<string, number>();
+  for (const f of allFindings) {
+    if (f.scoreImpact && f.scoreImpact.compositeDelta !== 0) {
+      deltaLookup.set(`${f.pillar}:${f.code}`, f.scoreImpact.compositeDelta);
+    }
+  }
+
+  const annotatedPillars = adjustedPillars.map((p) => {
+    if (deltaLookup.size === 0) return p;
+    const updatedFindings = p.findings.map((f) => {
+      const key = `${f.pillar}:${f.code}`;
+      const delta = deltaLookup.get(key);
+      if (delta !== undefined && f.scoreImpact) {
+        return { ...f, scoreImpact: { ...f.scoreImpact, compositeDelta: delta } };
+      }
+      return f;
+    });
+    return { ...p, findings: updatedFindings };
+  });
 
   return {
     metadata: {
@@ -159,7 +203,7 @@ export function aggregateResults(
     level,
     levelMeta: buildLevelMeta(level),
     securityGateTriggered: gateTriggered,
-    pillars: adjustedPillars,
+    pillars: annotatedPillars,
     findings: allFindings,
     scoreBreakdown,
   };

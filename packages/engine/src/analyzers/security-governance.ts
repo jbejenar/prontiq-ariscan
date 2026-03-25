@@ -133,6 +133,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No CODEOWNERS file found",
         confidence: "high",
+        scoreImpact: { pillarDelta: 15, compositeDelta: 0 },
         remediation: {
           action: "create-file",
           path: ".github/CODEOWNERS",
@@ -172,6 +173,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No SECURITY.md found",
         confidence: "high",
+        scoreImpact: { pillarDelta: 10, compositeDelta: 0 },
         remediation: {
           action: "create-file",
           path: "SECURITY.md",
@@ -227,6 +229,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No secrets scanning configuration found",
         confidence: "high",
+        scoreImpact: { pillarDelta: 15, compositeDelta: 0 },
         remediation: {
           action: "configure-tool",
           description:
@@ -275,6 +278,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No dependency update automation (Dependabot, Renovate)",
         confidence: "high",
+        scoreImpact: { pillarDelta: 15, compositeDelta: 0 },
         remediation: {
           action: "create-file",
           path: ".github/dependabot.yml",
@@ -328,6 +332,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         message:
           "No branch protection detected — no ruleset files or PR-gated workflows with enforcement patterns found",
         confidence: "medium",
+        scoreImpact: { pillarDelta: 15, compositeDelta: 0 },
         remediation: {
           action: "configure-tool",
           description:
@@ -367,6 +372,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No SAST (Static Application Security Testing) configured in CI workflows",
         confidence: "high",
+        scoreImpact: { pillarDelta: 15, compositeDelta: 0 },
         remediation: {
           action: "configure-tool",
           description:
@@ -447,6 +453,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No license compliance tooling found in CI workflows",
         confidence: "medium",
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
         remediation: {
           action: "configure-tool",
           description:
@@ -492,6 +499,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "PR template does not include AI-specific review checklist items",
         confidence: "medium",
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
         remediation: {
           action: "modify-config",
           path: ".github/PULL_REQUEST_TEMPLATE.md",
@@ -544,6 +552,7 @@ export const securityGovernanceAnalyzer: PillarAnalyzer = {
         message:
           "No agent scope control found (.agentignore, .claudeignore, .copilotignore, or CLAUDE.md)",
         confidence: "high",
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
         remediation: {
           action: "create-file",
           path: ".agentignore",

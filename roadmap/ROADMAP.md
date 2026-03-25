@@ -4076,13 +4076,13 @@ The detection infrastructure already exists. What's missing is a classification 
 ```yaml
 id: P2.17
 title: Impact-Ordered Findings
-status: todo
+status: done
 priority: p1-high
 epic: P2
 persona: Any developer interpreting scan results who wants to know what to fix first
 depends_on: [P2.15, P2.16]
 tech_stack: [TypeScript, Zod]
-completed: null
+completed: 2026-03-26
 ```
 
 ## User Story
@@ -4099,26 +4099,26 @@ Severity and impact are not the same. A "critical" finding on a pillar weighted 
 
 ### Functional
 
-- [ ] `scoreImpact` field added to Finding schema: `{ pillarDelta: number, compositeDelta: number }`
+- [x] `scoreImpact` field added to Finding schema: `{ pillarDelta: number, compositeDelta: number }`
   - `Verify:` `--json` output includes `scoreImpact` per finding
-- [ ] Per-finding `pillarDelta` annotated in each analyzer (points the finding costs the pillar)
+- [x] Per-finding `pillarDelta` annotated in each analyzer (points the finding costs the pillar)
   - `Verify:` every finding has a non-zero `pillarDelta`
-- [ ] `compositeDelta` calculated: `pillarDelta × pillarWeight / effectiveWeightSum`
+- [x] `compositeDelta` calculated: `pillarDelta × pillarWeight / effectiveWeightSum`
   - `Verify:` compositeDelta math is correct for edge cases (insufficient pillars excluded from weight sum)
-- [ ] Default output sorted by `compositeDelta` descending, shows top 7 findings
+- [x] Default output sorted by `compositeDelta` descending, shows top 7 findings
   - `Verify:` visual inspection; highest-impact finding is first
-- [ ] Impact displayed inline: `[+8.2 pts]  ARI-SEC-003  No secrets scanning configured`
+- [x] Impact displayed inline: `[+8.2 pts]  ARI-SEC-003  No secrets scanning configured`
   - `Verify:` visual inspection of terminal output
-- [ ] Verbose mode shows all findings sorted by impact
+- [x] Verbose mode shows all findings sorted by impact
   - `Verify:` verbose output is impact-sorted
-- [ ] JSON, SARIF, Markdown formatters include `scoreImpact`
+- [x] JSON, SARIF, Markdown formatters include `scoreImpact`
   - `Verify:` all output formats include the field
 
 ### Testing
 
-- [ ] Unit tests for impact calculation with known pillar scores and weights
+- [x] Unit tests for impact calculation with known pillar scores and weights
   - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run impact-ordering`
-- [ ] Integration test: findings are ordered by composite delta, not severity
+- [x] Integration test: findings are ordered by composite delta, not severity
   - `Verify:` mock repo where a "high" finding has more impact than a "critical" finding
 
 ### Telemetry (non-blocking)

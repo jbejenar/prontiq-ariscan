@@ -45,6 +45,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: "No test command found in package.json scripts",
           confidence: "high",
+          scoreImpact: { pillarDelta: 22, compositeDelta: 0 },
           remediation: {
             action: "add-script",
             description: "Add a 'test' script to package.json",
@@ -71,6 +72,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No lint command found",
         confidence: "high",
+        scoreImpact: { pillarDelta: 17, compositeDelta: 0 },
         remediation: {
           action: "add-script",
           description: "Add a 'lint' script to package.json with ESLint or equivalent",
@@ -97,6 +99,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
           pillar: PILLAR,
           message: "TypeScript project without a dedicated typecheck script",
           confidence: "high",
+          scoreImpact: { pillarDelta: 17, compositeDelta: 0 },
           remediation: {
             action: "add-script",
             description: "Add 'typecheck': 'tsc --noEmit' to package.json scripts",
@@ -154,6 +157,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No CI configuration found",
         confidence: "high",
+        scoreImpact: { pillarDelta: 8, compositeDelta: 0 },
         remediation: {
           action: "create-file",
           path: ".github/workflows/ci.yml",
@@ -211,6 +215,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No changeset scope controls found (commitlint, changesets, or Danger)",
         confidence: "high",
+        scoreImpact: { pillarDelta: 3, compositeDelta: 0 },
         remediation: {
           action: "configure-tool",
           description:
@@ -249,6 +254,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "Watch mode detected",
         confidence: "medium",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
         evidence: {
           paper: "GitHub Copilot, 2024",
           finding: "Fast CI feedback increases AI code acceptance rate",
@@ -262,6 +268,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No watch mode command found",
         confidence: "medium",
+        scoreImpact: { pillarDelta: 6, compositeDelta: 0 },
         remediation: {
           action: "add-script",
           description:
@@ -289,6 +296,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: `Incremental build detected (${hasTurbo ? "turbo" : "nx"})`,
         confidence: "high",
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
         evidence: {
           paper: "Forsgren et al., 2018",
           finding: "Accelerate: elite teams deploy 46x more frequently with fast CI/CD",
@@ -302,6 +310,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: "No incremental build configuration",
         confidence: "high",
+        scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
         remediation: {
           action: "configure-tool",
           description: "Add Turborepo or Nx for incremental/cached builds",
@@ -388,6 +397,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: changeScopeMessage,
         confidence: "medium",
+        scoreImpact: { pillarDelta: 12, compositeDelta: 0 },
         remediation: {
           action: "configure-tool",
           description: `Add change-scope controls to prevent AI agents from producing oversized PRs. Missing: ${missingList}. DORA 2024 found AI increases batch sizes, which consistently introduces more risk.`,
@@ -407,6 +417,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: changeScopeMessage,
         confidence: "medium",
+        scoreImpact: { pillarDelta: 6, compositeDelta: 0 },
         remediation: {
           action: "configure-tool",
           description: `Add change-scope controls to prevent AI agents from producing oversized PRs. Missing: ${missingList}. DORA 2024 found AI increases batch sizes, which consistently introduces more risk.`,
@@ -426,6 +437,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
         pillar: PILLAR,
         message: changeScopeMessage,
         confidence: "high",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
         evidence: {
           paper: "DORA, 2024",
           finding:
@@ -469,6 +481,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
             pillar: PILLAR,
             message: `Test timeout is ${timeout}ms (>60s) — slow feedback loop`,
             confidence: "medium",
+            scoreImpact: { pillarDelta: 5, compositeDelta: 0 },
             remediation: {
               action: "modify-config",
               description:
@@ -651,6 +664,7 @@ export const feedbackLoopAnalyzer: PillarAnalyzer = {
       message: `Estimated feedback latency: ${latencyEstimate} (confidence: ${latencyLabel})${signalsSuffix}`,
       confidence:
         latencyLabel === "measured" ? "high" : latencyLabel === "inferred" ? "medium" : "low",
+      scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
       evidence: {
         paper: "DORA, 2024",
         finding:
