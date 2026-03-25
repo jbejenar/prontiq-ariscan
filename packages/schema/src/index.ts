@@ -59,3 +59,14 @@ export {
   telemetryPayloadSchema,
 } from "./telemetry.js";
 export type { TelemetryPayload } from "./telemetry.js";
+
+export {
+  SimulationStepId,
+  SimulationStepStatus,
+  SimulationStepResult,
+  PredictionComparison,
+  IsolationMode,
+  SimulationResult,
+  SimulationProfile,
+  DEFAULT_SIMULATION_PROFILE,
+} from "./simulate.js";

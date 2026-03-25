@@ -86,3 +86,22 @@ export type { PillarDelta, DeltaResult, CheckOptions, CheckResult } from "./chec
 export type { AuditResult, AuditIssue, DimensionScore, IssueSeverity } from "./audit/index.js";
 export { LANGUAGE_PROFILES, getLanguageProfile, resolveLanguageProfile } from "./profiles/index.js";
 export type { LanguageProfileDef } from "./profiles/index.js";
+export {
+  NativeExecutor,
+  DockerExecutor,
+  detectCommands,
+  buildStepConfigs,
+  runSimulationSteps,
+  compareStaticVsSimulation,
+  predictionAccuracy,
+  isDockerAvailable,
+  hasDevcontainer,
+  resolveIsolationMode,
+} from "./simulate/index.js";
+export type {
+  StepConfig,
+  StepExecutor,
+  OnSimulationProgress,
+  SimulationProgressEvent,
+  DetectedCommands,
+} from "./simulate/index.js";
