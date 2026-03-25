@@ -1,0 +1,232 @@
+# Prontiq ARI — GitLab CI Template
+#
+# Score your repository on AI agent readiness (0-100) and report results on MRs.
+#
+# Usage: Include this template in your .gitlab-ci.yml:
+#
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/prontiq/ariscan/main/gitlab/ariscan.gitlab-ci.yml'
+#
+# Or copy it into your repo and use a local include:
+#
+#   include:
+#     - local: '.gitlab/ariscan.gitlab-ci.yml'
+#
+# Variables you can override:
+#   ARI_PATH            — path to scan (default: ".")
+#   ARI_THRESHOLD       — minimum composite score, 0 to disable (default: "0")
+#   ARI_CONFIG          — path to .ariscan.yml policy file (default: "")
+#   ARI_FAIL_ON_VIOLATION — fail pipeline on policy violations (default: "true")
+#   ARI_COMMENT         — post MR comment with results (default: "true")
+#   ARI_DELTA           — compare scores against target branch (default: "true")
+#   ARI_VERSION         — version of @prontiq/ariscan-cli (default: "latest")
+#   ARI_NODE_VERSION    — Node.js major version (default: "22")
+#   GITLAB_TOKEN        — token with api scope for MR comments (set in CI/CD settings)
+
+variables:
+  ARI_PATH: "."
+  ARI_THRESHOLD: "0"
+  ARI_CONFIG: ""
+  ARI_FAIL_ON_VIOLATION: "true"
+  ARI_COMMENT: "true"
+  ARI_DELTA: "true"
+  ARI_VERSION: "latest"
+  ARI_NODE_VERSION: "22"
+
+.ari-scan:
+  image: node:${ARI_NODE_VERSION}-slim
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: 0
+  before_script:
+    - npm install -g "@prontiq/ariscan-cli@${ARI_VERSION}"
+  script:
+    # ── Scan MR branch ──
+    - |
+      SCAN_ARGS="${ARI_PATH} --json --threshold 0"
+      if [ -n "${ARI_CONFIG}" ]; then
+        SCAN_ARGS="${SCAN_ARGS} --config ${ARI_CONFIG}"
+      fi
+
+      RESULT_DIR="${CI_PROJECT_DIR}/.ari-results"
+      mkdir -p "${RESULT_DIR}"
+
+      STDERR_FILE="${RESULT_DIR}/scan-stderr.log"
+      if ! ariscan ${SCAN_ARGS} > "${RESULT_DIR}/pr-scan.json" 2>"${STDERR_FILE}"; then
+        echo "WARNING: ariscan exited with non-zero status"
+        cat "${STDERR_FILE}" >&2 || true
+      fi
+
+      if [ ! -s "${RESULT_DIR}/pr-scan.json" ]; then
+        echo "ERROR: ARI scan failed to produce output"
+        [ -s "${STDERR_FILE}" ] && cat "${STDERR_FILE}" >&2
+        exit 1
+      fi
+
+      SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('${RESULT_DIR}/pr-scan.json','utf8')).score)")
+      LEVEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('${RESULT_DIR}/pr-scan.json','utf8')).level)")
+      echo "ARI_SCORE=${SCORE}" >> "${RESULT_DIR}/env.txt"
+      echo "ARI_LEVEL=${LEVEL}" >> "${RESULT_DIR}/env.txt"
+      echo "ARI Score: ${SCORE}/100 (${LEVEL})"
+
+    # ── Delta: scan target branch ──
+    - |
+      if [ "${ARI_DELTA}" = "true" ] && [ -n "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}" ]; then
+        RESULT_DIR="${CI_PROJECT_DIR}/.ari-results"
+
+        git fetch origin "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}" --depth=1 2>/dev/null || true
+        TARGET_SHA=$(git rev-parse "origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}" 2>/dev/null || echo "")
+
+        if [ -n "${TARGET_SHA}" ]; then
+          WORKTREE_DIR="${RESULT_DIR}/base-worktree"
+          if git worktree add "${WORKTREE_DIR}" "${TARGET_SHA}" 2>/dev/null; then
+            trap 'git worktree remove "${WORKTREE_DIR}" --force 2>/dev/null || true' EXIT
+
+            BASE_SCAN_ARGS="${WORKTREE_DIR}/${ARI_PATH} --json --threshold 0"
+            if [ -n "${ARI_CONFIG}" ]; then
+              BASE_SCAN_ARGS="${BASE_SCAN_ARGS} --config ${ARI_CONFIG}"
+            fi
+
+            ariscan ${BASE_SCAN_ARGS} > "${RESULT_DIR}/base-scan.json" 2>/dev/null || true
+
+            if [ ! -s "${RESULT_DIR}/base-scan.json" ]; then
+              echo '{"score":0,"level":"L1","pillars":[],"findings":[]}' > "${RESULT_DIR}/base-scan.json"
+            fi
+
+            . "${RESULT_DIR}/env.txt"
+            BASE_SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('${RESULT_DIR}/base-scan.json','utf8')).score || 0)")
+            DELTA_VAL=$((ARI_SCORE - BASE_SCORE))
+            echo "ARI_DELTA_VAL=${DELTA_VAL}" >> "${RESULT_DIR}/env.txt"
+            echo "ARI_BASE_SCORE=${BASE_SCORE}" >> "${RESULT_DIR}/env.txt"
+            echo "Delta: ${DELTA_VAL} (base: ${BASE_SCORE})"
+          else
+            echo "WARNING: Could not create worktree for base branch"
+          fi
+        fi
+      fi
+
+    # ── Generate Code Quality report ──
+    - |
+      RESULT_DIR="${CI_PROJECT_DIR}/.ari-results"
+      SCRIPT_DIR="$(dirname "$(readlink -f "$0")" 2>/dev/null || echo ".")"
+
+      # Try to locate scripts relative to the template
+      # If included via remote, scripts must be installed alongside the CLI
+      # If included locally, scripts are in the same directory
+      for SCRIPTS_PATH in \
+        "${CI_PROJECT_DIR}/gitlab/scripts" \
+        "${CI_PROJECT_DIR}/.gitlab/scripts" \
+        "$(npm root -g)/@prontiq/ariscan-cli/../ariscan-gitlab/scripts" \
+        ; do
+        if [ -f "${SCRIPTS_PATH}/create-codequality.js" ]; then
+          break
+        fi
+        SCRIPTS_PATH=""
+      done
+
+      if [ -n "${SCRIPTS_PATH}" ]; then
+        ARI_PR_SCAN="${RESULT_DIR}/pr-scan.json" \
+          node "${SCRIPTS_PATH}/create-codequality.js" > "${RESULT_DIR}/codequality.json"
+        echo "Code Quality report generated"
+      else
+        echo "[]" > "${RESULT_DIR}/codequality.json"
+        echo "WARNING: GitLab scripts not found, skipping code quality report generation"
+      fi
+
+    # ── Post MR comment ──
+    - |
+      RESULT_DIR="${CI_PROJECT_DIR}/.ari-results"
+      . "${RESULT_DIR}/env.txt" 2>/dev/null || true
+
+      if [ "${ARI_COMMENT}" = "true" ] && [ -n "${CI_MERGE_REQUEST_IID}" ] && [ -n "${GITLAB_TOKEN}" ]; then
+        for SCRIPTS_PATH in \
+          "${CI_PROJECT_DIR}/gitlab/scripts" \
+          "${CI_PROJECT_DIR}/.gitlab/scripts" \
+          "$(npm root -g)/@prontiq/ariscan-cli/../ariscan-gitlab/scripts" \
+          ; do
+          if [ -f "${SCRIPTS_PATH}/generate-mr-comment.js" ]; then
+            break
+          fi
+          SCRIPTS_PATH=""
+        done
+
+        if [ -n "${SCRIPTS_PATH}" ]; then
+          COMMENT_BODY=$(ARI_PR_SCAN="${RESULT_DIR}/pr-scan.json" \
+            ARI_BASE_SCAN="${RESULT_DIR}/base-scan.json" \
+            ARI_DELTA="${ARI_DELTA_VAL:-}" \
+            ARI_BASE_SCORE="${ARI_BASE_SCORE:-}" \
+            node "${SCRIPTS_PATH}/generate-mr-comment.js")
+
+          HEADER="<!-- ari-scan -->"
+          FULL_BODY="${HEADER}
+      ${COMMENT_BODY}"
+
+          # Write body to temp file for safe JSON encoding
+          BODY_FILE="${RESULT_DIR}/comment-body.txt"
+          printf '%s' "${FULL_BODY}" > "${BODY_FILE}"
+
+          API_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes"
+
+          # Find existing comment
+          EXISTING_ID=$(curl -sf -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+            "${API_URL}?per_page=100" | \
+            node -e "
+              const notes = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+              const match = notes.find(n => n.body.startsWith('<!-- ari-scan -->'));
+              if (match) console.log(match.id);
+            " 2>/dev/null || echo "")
+
+          if [ -n "${EXISTING_ID}" ]; then
+            # Update existing comment
+            curl -sf -X PUT \
+              -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$(node -e "console.log(JSON.stringify({body: require('fs').readFileSync('${BODY_FILE}','utf8')}))")" \
+              "${API_URL}/${EXISTING_ID}" > /dev/null
+            echo "Updated existing MR comment"
+          else
+            # Create new comment
+            curl -sf -X POST \
+              -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$(node -e "console.log(JSON.stringify({body: require('fs').readFileSync('${BODY_FILE}','utf8')}))")" \
+              "${API_URL}" > /dev/null
+            echo "Posted MR comment"
+          fi
+        else
+          echo "WARNING: GitLab scripts not found, skipping MR comment"
+        fi
+      elif [ "${ARI_COMMENT}" = "true" ] && [ -z "${GITLAB_TOKEN}" ]; then
+        echo "WARNING: GITLAB_TOKEN not set, skipping MR comment"
+      fi
+
+    # ── Policy enforcement ──
+    - |
+      RESULT_DIR="${CI_PROJECT_DIR}/.ari-results"
+      . "${RESULT_DIR}/env.txt" 2>/dev/null || true
+
+      if [ "${ARI_FAIL_ON_VIOLATION}" = "true" ]; then
+        if [ "${ARI_THRESHOLD}" != "0" ] && [ "${ARI_SCORE}" -lt "${ARI_THRESHOLD}" ]; then
+          echo "ERROR: ARI score ${ARI_SCORE} is below threshold ${ARI_THRESHOLD}"
+          exit 1
+        fi
+
+        if [ "${ARI_THRESHOLD}" = "0" ]; then
+          ENFORCE_ARGS="${ARI_PATH}"
+          if [ -n "${ARI_CONFIG}" ]; then
+            ENFORCE_ARGS="${ENFORCE_ARGS} --config ${ARI_CONFIG}"
+          fi
+          ariscan ${ENFORCE_ARGS} --quiet 2>/dev/null
+        fi
+      fi
+
+  artifacts:
+    when: always
+    paths:
+      - .ari-results/pr-scan.json
+      - .ari-results/codequality.json
+    reports:
+      codequality: .ari-results/codequality.json
+    expire_in: 30 days
