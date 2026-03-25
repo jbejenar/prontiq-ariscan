@@ -16,19 +16,12 @@ import { posix } from "node:path";
 import type { RepoContext } from "../analyzers/analyzer.interface.js";
 import type { DetectionResult } from "@prontiq/ariscan-schema";
 import {
+  buildReferenceDocs,
   computeAdditionality,
   computeFrontLoadScore,
   normalizeForComparison,
-  REFERENCE_DOC_PATHS,
-  REFERENCE_CONFIG_PATHS,
-  DYNAMIC_CONFIG_PATTERNS,
-  SOURCE_EXTENSIONS,
-  MAX_SOURCE_FILES_FOR_DOCSTRINGS,
-  CI_WORKFLOW_PREFIXES,
-  normalizeConfigContent,
-  extractLeadingDocstring,
 } from "../context/additionality.js";
-import type { ReferenceDoc, AdditionalityResult } from "../context/additionality.js";
+import type { AdditionalityResult } from "../context/additionality.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -415,59 +408,6 @@ export async function discoverContextFiles(ctx: RepoContext): Promise<string[]> 
   }
 
   return [...found].sort();
-}
-
-/**
- * Build reference corpus for additionality comparison.
- * Reuses the same logic as the context-quality analyzer and generator.
- */
-async function buildReferenceDocs(ctx: RepoContext): Promise<ReferenceDoc[]> {
-  const docs: ReferenceDoc[] = [];
-
-  // Text docs
-  for (const path of REFERENCE_DOC_PATHS) {
-    const content = await ctx.readFile(path);
-    if (content) docs.push({ path, content });
-  }
-
-  // Static config paths
-  for (const path of REFERENCE_CONFIG_PATHS) {
-    const content = await ctx.readFile(path);
-    if (content) docs.push({ path, content: normalizeConfigContent(content, path) });
-  }
-
-  // Dynamic config patterns
-  for (const file of ctx.files) {
-    const base = file.split("/").pop() ?? "";
-    if (DYNAMIC_CONFIG_PATTERNS.some((p) => p.test(base))) {
-      const content = await ctx.readFile(file);
-      if (content) docs.push({ path: file, content: normalizeConfigContent(content, file) });
-    }
-  }
-
-  // CI workflows
-  for (const file of ctx.files) {
-    if (CI_WORKFLOW_PREFIXES.some((prefix) => file.startsWith(prefix))) {
-      const content = await ctx.readFile(file);
-      if (content) docs.push({ path: file, content });
-    }
-  }
-
-  // Leading docstrings from source files
-  let sourceCount = 0;
-  for (const file of ctx.files) {
-    if (sourceCount >= MAX_SOURCE_FILES_FOR_DOCSTRINGS) break;
-    if (SOURCE_EXTENSIONS.some((ext) => file.endsWith(ext))) {
-      const content = await ctx.readFile(file);
-      if (content) {
-        sourceCount++;
-        const docstring = extractLeadingDocstring(content);
-        if (docstring) docs.push({ path: file, content: docstring });
-      }
-    }
-  }
-
-  return docs;
 }
 
 /**

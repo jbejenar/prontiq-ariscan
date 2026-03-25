@@ -6,6 +6,8 @@
  * duplicated from existing repo documentation.
  */
 
+import type { RepoContext } from "../analyzers/analyzer.interface.js";
+
 /** Result of additionality analysis for a single context file */
 export interface AdditionalityResult {
   redundancyPct: number; // 0-100, one decimal (-1 if indeterminate)
@@ -348,6 +350,54 @@ export function jaccardSimilarity(a: string, b: string): number {
   const union = wordsA.size + wordsB.size - intersection;
   if (union === 0) return 0;
   return intersection / union;
+}
+
+/**
+ * Build reference corpus from repo documentation.
+ * Shared by the context-quality analyzer, audit agents-md, and the diff viewer.
+ */
+export async function buildReferenceDocs(ctx: RepoContext): Promise<ReferenceDoc[]> {
+  const docs: ReferenceDoc[] = [];
+
+  for (const path of REFERENCE_DOC_PATHS) {
+    const content = await ctx.readFile(path);
+    if (content) docs.push({ path, content });
+  }
+
+  for (const path of REFERENCE_CONFIG_PATHS) {
+    const content = await ctx.readFile(path);
+    if (content) docs.push({ path, content: normalizeConfigContent(content, path) });
+  }
+
+  for (const file of ctx.files) {
+    const base = file.split("/").pop() ?? "";
+    if (DYNAMIC_CONFIG_PATTERNS.some((p) => p.test(base))) {
+      const content = await ctx.readFile(file);
+      if (content) docs.push({ path: file, content: normalizeConfigContent(content, file) });
+    }
+  }
+
+  for (const file of ctx.files) {
+    if (CI_WORKFLOW_PREFIXES.some((prefix) => file.startsWith(prefix))) {
+      const content = await ctx.readFile(file);
+      if (content) docs.push({ path: file, content });
+    }
+  }
+
+  let sourceCount = 0;
+  for (const file of ctx.files) {
+    if (sourceCount >= MAX_SOURCE_FILES_FOR_DOCSTRINGS) break;
+    if (SOURCE_EXTENSIONS.some((ext) => file.endsWith(ext))) {
+      const content = await ctx.readFile(file);
+      if (content) {
+        sourceCount++;
+        const docstring = extractLeadingDocstring(content);
+        if (docstring) docs.push({ path: file, content: docstring });
+      }
+    }
+  }
+
+  return docs;
 }
 
 /**

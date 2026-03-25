@@ -14,19 +14,11 @@ import type { RepoContext } from "../analyzers/analyzer.interface.js";
 import type { DetectionResult } from "@prontiq/ariscan-schema";
 import { discoverContextFiles } from "../audit/agents-md.js";
 import {
+  buildReferenceDocs,
   normalizeForComparison,
   splitSegments,
   jaccardSimilarity,
-  REFERENCE_DOC_PATHS,
-  REFERENCE_CONFIG_PATHS,
-  DYNAMIC_CONFIG_PATTERNS,
-  SOURCE_EXTENSIONS,
-  MAX_SOURCE_FILES_FOR_DOCSTRINGS,
-  CI_WORKFLOW_PREFIXES,
-  normalizeConfigContent,
-  extractLeadingDocstring,
 } from "./additionality.js";
-import type { ReferenceDoc } from "./additionality.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -93,54 +85,6 @@ const MERGE_RECOMMENDATION_THRESHOLD = 50;
 const CHARS_PER_TOKEN = 4;
 
 // ─── Implementation ──────────────────────────────────────────────────────
-
-/**
- * Build reference corpus from repo documentation (excluding context files).
- * Same logic as audit/agents-md.ts buildReferenceDocs.
- */
-async function buildReferenceDocs(ctx: RepoContext): Promise<ReferenceDoc[]> {
-  const docs: ReferenceDoc[] = [];
-
-  for (const path of REFERENCE_DOC_PATHS) {
-    const content = await ctx.readFile(path);
-    if (content) docs.push({ path, content });
-  }
-
-  for (const path of REFERENCE_CONFIG_PATHS) {
-    const content = await ctx.readFile(path);
-    if (content) docs.push({ path, content: normalizeConfigContent(content, path) });
-  }
-
-  for (const file of ctx.files) {
-    const base = file.split("/").pop() ?? "";
-    if (DYNAMIC_CONFIG_PATTERNS.some((p) => p.test(base))) {
-      const content = await ctx.readFile(file);
-      if (content) docs.push({ path: file, content: normalizeConfigContent(content, file) });
-    }
-  }
-
-  for (const file of ctx.files) {
-    if (CI_WORKFLOW_PREFIXES.some((prefix) => file.startsWith(prefix))) {
-      const content = await ctx.readFile(file);
-      if (content) docs.push({ path: file, content });
-    }
-  }
-
-  let sourceCount = 0;
-  for (const file of ctx.files) {
-    if (sourceCount >= MAX_SOURCE_FILES_FOR_DOCSTRINGS) break;
-    if (SOURCE_EXTENSIONS.some((ext) => file.endsWith(ext))) {
-      const content = await ctx.readFile(file);
-      if (content) {
-        sourceCount++;
-        const docstring = extractLeadingDocstring(content);
-        if (docstring) docs.push({ path: file, content: docstring });
-      }
-    }
-  }
-
-  return docs;
-}
 
 /**
  * Compute pairwise overlap between two context files.

@@ -9,6 +9,7 @@
 import { defineCommand } from "citty";
 import { resolve } from "node:path";
 import { access } from "node:fs/promises";
+import pc from "picocolors";
 import { createRepoContext, detect, diffContext } from "@prontiq/ariscan-engine";
 import type {
   DiffResult,
@@ -17,26 +18,6 @@ import type {
 } from "@prontiq/ariscan-engine";
 
 // ─── Terminal formatting ─────────────────────────────────────────────────
-
-function colorGreen(text: string): string {
-  return `\x1b[32m${text}\x1b[0m`;
-}
-
-function colorRed(text: string): string {
-  return `\x1b[31m${text}\x1b[0m`;
-}
-
-function colorYellow(text: string): string {
-  return `\x1b[33m${text}\x1b[0m`;
-}
-
-function colorDim(text: string): string {
-  return `\x1b[2m${text}\x1b[0m`;
-}
-
-function colorBold(text: string): string {
-  return `\x1b[1m${text}\x1b[0m`;
-}
 
 function pctBar(pct: number, width: number = 28): string {
   const filled = Math.round((pct / 100) * width);
@@ -53,7 +34,7 @@ function formatTerminalDiff(result: DiffResult): string {
     return lines.join("\n");
   }
 
-  lines.push(`\n${colorBold("━━━ Context File Delta Analysis ━━━")}`);
+  lines.push(`\n${pc.bold("━━━ Context File Delta Analysis ━━━")}`);
   lines.push("");
   lines.push(`  Found ${result.totalFiles} context file(s):`);
   for (const file of result.files) {
@@ -62,18 +43,18 @@ function formatTerminalDiff(result: DiffResult): string {
   lines.push("");
 
   for (const file of result.files) {
-    lines.push(`  ${colorBold(`── ${file.path} ──`)}`);
+    lines.push(`  ${pc.bold(`── ${file.path} ──`)}`);
     lines.push(
-      `    ${colorGreen("Additive (unique):")}     ${file.additivePct.toFixed(1).padStart(5)}%  ${pctBar(file.additivePct)}`,
+      `    ${pc.green("Additive (unique):")}     ${file.additivePct.toFixed(1).padStart(5)}%  ${pctBar(file.additivePct)}`,
     );
     lines.push(
-      `    ${colorRed("Duplicates repo docs:")} ${file.duplicativeRepoPct.toFixed(1).padStart(5)}%  ${pctBar(file.duplicativeRepoPct)}`,
+      `    ${pc.red("Duplicates repo docs:")} ${file.duplicativeRepoPct.toFixed(1).padStart(5)}%  ${pctBar(file.duplicativeRepoPct)}`,
     );
     lines.push(
-      `    ${colorRed("Duplicates other ctx:")} ${file.duplicativeContextPct.toFixed(1).padStart(5)}%  ${pctBar(file.duplicativeContextPct)}`,
+      `    ${pc.red("Duplicates other ctx:")} ${file.duplicativeContextPct.toFixed(1).padStart(5)}%  ${pctBar(file.duplicativeContextPct)}`,
     );
     lines.push(
-      `    ${colorYellow("Overlapping:")}          ${file.overlappingPct.toFixed(1).padStart(5)}%  ${pctBar(file.overlappingPct)}`,
+      `    ${pc.yellow("Overlapping:")}          ${file.overlappingPct.toFixed(1).padStart(5)}%  ${pctBar(file.overlappingPct)}`,
     );
 
     // Show duplicated sections details
@@ -90,12 +71,12 @@ function formatTerminalDiff(result: DiffResult): string {
         shown.add(key);
         const label = seg.classification === "duplicative-context" ? "also in" : "overlaps with";
         lines.push(
-          `      ${colorRed("✗")} ${colorDim(`"${truncate(seg.text, 50)}" ${label} ${seg.matchedIn ?? "unknown"}`)}`,
+          `      ${pc.red("✗")} ${pc.dim(`"${truncate(seg.text, 50)}" ${label} ${seg.matchedIn ?? "unknown"}`)}`,
         );
         if (shown.size >= 5) {
           const remaining = dupSegments.filter((s) => !shown.has(s.matchedIn ?? "unknown")).length;
           if (remaining > 0) {
-            lines.push(`      ${colorDim(`  ... and ${remaining} more`)}`);
+            lines.push(`      ${pc.dim(`  ... and ${remaining} more`)}`);
           }
           break;
         }
@@ -107,7 +88,7 @@ function formatTerminalDiff(result: DiffResult): string {
 
   // Recommendations
   if (result.recommendations.length > 0) {
-    lines.push(`  ${colorBold("── Recommendations ──")}`);
+    lines.push(`  ${pc.bold("── Recommendations ──")}`);
     for (let i = 0; i < result.recommendations.length; i++) {
       const rec = result.recommendations[i] as DeduplicationRecommendation;
       lines.push(`    ${i + 1}. ${rec.description}`);
@@ -211,6 +192,11 @@ export const diffCommand = defineCommand({
         process.stdout.write("\n");
       } else {
         process.stdout.write(formatTerminalDiff(result));
+      }
+
+      // Exit 1 when high redundancy is detected (merge recommendations present)
+      if (result.recommendations.length > 0) {
+        process.exit(1);
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

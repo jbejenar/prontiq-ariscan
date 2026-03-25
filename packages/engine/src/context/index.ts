@@ -5,6 +5,7 @@ export { generateContextFiles } from "./generator.js";
 export type { GenerateResult, GeneratedContextFile } from "./generator.js";
 
 export {
+  buildReferenceDocs,
   computeAdditionality,
   computeFrontLoadScore,
   normalizeForComparison,
