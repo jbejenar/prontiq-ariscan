@@ -30,9 +30,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
-      # Make the built CLI available on PATH via pnpm workspace bin
+      # Make the built CLI available on PATH — pnpm workspaces don't
+      # symlink workspace package bins to root node_modules/.bin
       - name: Add CLI to PATH
-        run: echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+        run: |
+          mkdir -p "$PWD/node_modules/.bin"
+          ln -sf "$PWD/packages/cli/dist/cli.js" "$PWD/node_modules/.bin/ariscan"
+          chmod +x "$PWD/packages/cli/dist/cli.js"
+          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
 
       # Run the action against this repo (using local action definition)
       - name: Run ARI Action
