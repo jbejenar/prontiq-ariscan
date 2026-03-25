@@ -98,10 +98,21 @@ runs:
           SCAN_ARGS+=(--config "$INPUT_CONFIG")
         fi
 
-        ariscan "${SCAN_ARGS[@]}" > "$RESULT_PATH" 2>/dev/null || true
+        if ! command -v ariscan >/dev/null 2>&1; then
+          echo "::error::ariscan CLI not found on PATH"
+          echo "PATH=$PATH"
+          exit 1
+        fi
+
+        STDERR_FILE="$RUNNER_TEMP/ari-scan-stderr.log"
+        if ! ariscan "${SCAN_ARGS[@]}" > "$RESULT_PATH" 2>"$STDERR_FILE"; then
+          echo "::warning::ariscan exited with non-zero status"
+          cat "$STDERR_FILE" >&2 || true
+        fi
 
         if [ ! -s "$RESULT_PATH" ]; then
           echo "::error::ARI scan failed to produce output"
+          [ -s "$STDERR_FILE" ] && cat "$STDERR_FILE" >&2
           exit 1
         fi
 
