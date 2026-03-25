@@ -1,4 +1,4 @@
-import { readdir, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { PluginManifest, PLUGIN_API_VERSION } from "@prontiq/ariscan-schema";
@@ -118,8 +118,15 @@ async function loadNpmPlugins(
         continue;
       }
 
-      // Import the package using dynamic import
-      const moduleUrl = pathToFileURL(join(pkgPath, "index.js")).href;
+      // Resolve entry point from package.json main/exports, fallback to index.js
+      const pkgJsonRaw = await readFile(join(pkgPath, "package.json"), "utf-8");
+      const pkgJson: Record<string, unknown> = JSON.parse(pkgJsonRaw) as Record<string, unknown>;
+      const exports = pkgJson.exports as Record<string, unknown> | undefined;
+      const entryPoint =
+        (typeof exports?.["."] === "string" ? exports["."] : undefined) ??
+        (typeof pkgJson.main === "string" ? pkgJson.main : undefined) ??
+        "index.js";
+      const moduleUrl = pathToFileURL(join(pkgPath, entryPoint as string)).href;
       const plugin = await loadPluginModule(moduleUrl);
       validatePluginApi(plugin);
       plugins.push({ plugin, source: "npm", location: pkgName });

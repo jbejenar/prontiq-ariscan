@@ -247,17 +247,33 @@ export async function scan(
 
   // Run plugins if configured (P3.08)
   let pluginFindings: PluginFinding[] | undefined;
+  let pluginErrors: Array<{ pluginName: string; error: string }> | undefined;
   const pluginConfig = config.plugins;
-  if (pluginConfig?.enabled !== false) {
-    const { plugins } = await loadPlugins(repoPath, {
-      directory: pluginConfig?.directory,
-      packages: pluginConfig?.packages,
+  if (pluginConfig && pluginConfig.enabled !== false) {
+    const loadResult = await loadPlugins(repoPath, {
+      directory: pluginConfig.directory,
+      packages: pluginConfig.packages,
     });
 
-    if (plugins.length > 0) {
-      const pluginResult = await runPlugins(plugins, context);
+    // Surface loader errors
+    if (loadResult.errors.length > 0) {
+      pluginErrors = loadResult.errors.map((e) => ({
+        pluginName: e.location,
+        error: e.error,
+      }));
+    }
+
+    if (loadResult.plugins.length > 0) {
+      const pluginResult = await runPlugins(loadResult.plugins, context);
       if (pluginResult.findings.length > 0) {
         pluginFindings = pluginResult.findings;
+      }
+      if (pluginResult.errors.length > 0) {
+        const runErrors = pluginResult.errors.map((e) => ({
+          pluginName: e.pluginName,
+          error: e.error,
+        }));
+        pluginErrors = pluginErrors ? [...pluginErrors, ...runErrors] : runErrors;
       }
     }
   }
@@ -270,6 +286,7 @@ export async function scan(
     repoProfile,
     languageProfile: languageProfileDef?.language,
     ...(pluginFindings ? { pluginFindings } : {}),
+    ...(pluginErrors ? { pluginErrors } : {}),
   };
 }
 

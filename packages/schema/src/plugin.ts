@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { PillarId } from "./pillar.js";
-import { Confidence, Finding } from "./scan-result.js";
+import { Confidence, PluginFinding as _PluginFinding } from "./scan-result.js";
 
 /** Current plugin API version. Plugins must declare compatibility. */
 export const PLUGIN_API_VERSION = "1.0" as const;
@@ -24,17 +24,13 @@ export const PluginManifest = z.object({
 });
 export type PluginManifest = z.infer<typeof PluginManifest>;
 
-/** Result returned by a plugin, wrapping PillarResult with source attribution. */
-export const PluginFinding = Finding.extend({
-  /** Source attribution: "plugin:<name>". */
-  source: z.string(),
-});
-export type PluginFinding = z.infer<typeof PluginFinding>;
+// Re-export PluginFinding from scan-result (canonical definition lives there, next to Finding).
+export { PluginFinding } from "./scan-result.js";
 
 /** Result from running a plugin's analyze function. */
 export const PluginAnalysisResult = z.object({
   /** Findings produced by the plugin. */
-  findings: z.array(PluginFinding),
+  findings: z.array(_PluginFinding),
   /** Optional summary from the plugin. */
   summary: z.string().optional(),
 });
