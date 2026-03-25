@@ -1,20 +1,19 @@
 # Next Session Guide
 
-## Session: 2026-03-23
-Phase: P1 (active — all remaining items blocked/deferred)
-Checkboxes checked this session: 6 (P1.04 functional items)
+## Session: 2026-03-25
+Phase: P1 (active — all remaining items blocked/deferred), P2 work selected per governance rules
+Checkboxes checked this session: 7 (P2.03 functional + testing items)
 
 ### Completed
-- **P1.04 — Context Additionality Baseline (Pillar 1):** All 6 functional items verified with evidence. Ticket status updated to `done`. Features were already implemented; this session provided verification evidence and checked the boxes.
-  - Semantic comparison engine (computeAdditionality via Jaccard similarity)
-  - Redundancy percentage per context file
-  - Additionality score
-  - LLM-generated file penalty (ARI-CTX-012)
-  - Additive vs duplicative line-level annotations (ARI-CTX-011)
-  - Redundancy percentage to one decimal with methodology
+- **P2.03 — Context Delta Viewer:** All 7 functional + testing items verified with evidence. Ticket status updated to `done`. Implementation was already complete; this session provided verification evidence and checked the boxes.
+  - `ariscan diff context` command with terminal (color-coded) and JSON output
+  - Three-way comparison: context ↔ other context ↔ repo docs
+  - Segment classification: additive/duplicative-repo/duplicative-context/overlapping
+  - Deduplication recommendations with merge suggestions
+  - 9 unit tests passing in delta.test.ts
 
 ### Ticket Status Changes
-- P1.04: in-progress → done (all 6 functional items checked, 2 telemetry items remain non-blocking)
+- P2.03: todo → done (all 7 functional + testing items checked, 2 telemetry items remain non-blocking)
 
 ### In Progress
 - CI.10: Third checkbox (ARI alerts visible in GitHub Security tab) still needs verification after merge to main
@@ -30,26 +29,27 @@ Checkboxes checked this session: 6 (P1.04 functional items)
 - P1.07: order-sensitive assertion detection (AST-level deferred to P3.07)
 - P1.16 telemetry: fix adoption rate, fix types applied (requires fix-mode telemetry)
 - P1.18: benchmark cohort (BLOCKED: requires npm publishing)
-- P2 remaining: P2.01/P2.02/P2.03 blocked on P1.04 (now unblocked); P2.12 blocked on P1.18
+- P2.12 blocked on P1.18
 - CI.08: PR comment with coverage delta (requires external service)
 
 ### Key Decisions
-- P1.04 functional items were already fully implemented in code; evidence verification confirmed all features work as specified with 69 passing tests in context-quality.test.ts
+- P2.03 implementation was already complete in code; verification confirmed all features work as specified with 9 passing tests in delta.test.ts
+- Active phase determination: P1 still has unchecked items but all are blocked/deferred on P1.18 (npm publish) or external dependencies, making P2 the valid working phase
 
 ### Blockers
 - P1 remaining: Most items blocked on P1.18 (npm publish + benchmark cohort) or deferred
 - P1.07: All 8 functional items require tree-sitter AST analysis (deferred to P3.07)
-- P2.01/P2.02/P2.03: Previously blocked on P1.04, now UNBLOCKED
 - CI.10 third item requires push to main
 
 ### Next Session Should Start With
-- **P2.01/P2.02/P2.03 are now unblocked** (were blocked on P1.04) — evaluate for next batch
-- P2.01 (Context Quality Generator) is highest priority P2 work since P1.04 additionality is now complete
+- All P2 functional items are now complete (P2.01, P2.02, P2.03 all done)
+- Remaining P2 work: only non-blocking telemetry items
+- Consider whether P1/P2 phases can advance (most remaining items are blocked/deferred on P1.18)
+- P3 items may become actionable if P1/P2 exit criteria are evaluated
 - Verify CI.10 third checkbox after PR merge (check GitHub Security tab)
-- Consider whether P1 phase can advance (most remaining items are blocked/deferred on P1.18)
 
 ### Roadmap Progress
-- P1: ~125/128 done (6 newly checked). Remaining: blocked on P1.18, deferred telemetry, P1.07 deferred to P3.07
-- P2: 12/14 done. P2.01/P2.02/P2.03 now unblocked by P1.04 completion
+- P1: ~125/128 done. Remaining: blocked on P1.18, deferred telemetry, P1.07 deferred to P3.07
+- P2: 13/14 done (P2.03 newly completed). Remaining: only non-blocking telemetry items
 - CI: 9.67/10 done. CI.10 in-progress (2/3 items checked)
 - Selftest: 90/100 (L5 Autonomous) — baseline maintained

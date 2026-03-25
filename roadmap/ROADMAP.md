@@ -2901,13 +2901,13 @@ Many teams already have context files but don't know if they're helping or hurti
 ```yaml
 id: P2.03
 title: Context Delta Viewer
-status: todo
+status: done
 priority: p1-high
 epic: P2
 persona: Teams with multiple context files across different agent tools
 depends_on: [P2.02, P1.04]
 tech_stack: [TypeScript, Zod, citty]
-completed: null
+completed: 2026-03-25
 ```
 
 ## User Story
@@ -2922,23 +2922,30 @@ Repos often accumulate multiple context files (AGENTS.md + CLAUDE.md + .cursorru
 
 ### Functional
 
-- [ ] `ariscan diff context` command showing additive vs duplicative content across all context files
+- [x] `ariscan diff context` command showing additive vs duplicative content across all context files
   - `Verify:` `npx ariscan diff context` on a repo with AGENTS.md + CLAUDE.md returns comparison
-- [ ] Three-way comparison: context file ↔ other context files ↔ repo documentation
+  - `Evidence:` `ariscan diff context` analyzes 2 context files (AGENTS.md 2,370 tokens, CLAUDE.md 669 tokens) with per-file segment-level classification and deduplication recommendations
+- [x] Three-way comparison: context file ↔ other context files ↔ repo documentation
   - `Verify:` confirm output distinguishes: unique-to-this-file, duplicated-across-context-files, duplicated-from-repo-docs
-- [ ] Color-coded terminal output: green (additive), red (duplicative), yellow (partially overlapping)
+  - `Evidence:` Output classifies segments into 4 categories: additive (unique), duplicative-repo (overlaps README.md, CONTRIBUTING.md, .ariscan.yml), duplicative-context (overlaps other context files), overlapping (partial match). AGENTS.md: 68.1% additive, 9.2% dup-repo, 4.2% dup-context, 18.5% overlapping
+- [x] Color-coded terminal output: green (additive), red (duplicative), yellow (partially overlapping)
   - `Verify:` run in terminal and confirm color coding matches semantics
-- [ ] JSON output mode for programmatic consumption
+  - `Evidence:` Terminal output uses picocolors: `pc.green()` for additive, `pc.red()` for duplicative-repo and duplicative-context, `pc.yellow()` for overlapping. Visual bars with `█░` characters show percentages
+- [x] JSON output mode for programmatic consumption
   - `Verify:` `ariscan diff context --json` produces valid JSON
-- [ ] Deduplication recommendations with merge suggestions
+  - `Evidence:` `--json` produces valid JSON with `$schema: "https://prontiq.dev/schemas/ari-context-diff/v1.json"`, per-file segments with classification/similarity/matchedIn, and recommendations array
+- [x] Deduplication recommendations with merge suggestions
   - `Verify:` confirm actionable merge/consolidation suggestions in output
-- [ ] Diff output can be consumed in both terminal (colored) and JSON modes
+  - `Evidence:` Generates "Remove duplicated content from AGENTS.md — 11 segments duplicate README.md, CONTRIBUTING.md, .ariscan.yml" recommendation. Merge recommendations triggered when pairwise overlap ≥50%
+- [x] Diff output can be consumed in both terminal (colored) and JSON modes
   - `Verify:` compare terminal and JSON outputs for consistency
+  - `Evidence:` Both modes report same data: 2 files, matching percentages, same segment classifications. Terminal adds color coding and visual bars; JSON adds schema URL and structured segment array
 
 ### Testing
 
-- [ ] Unit tests for diff logic with known overlapping content
+- [x] Unit tests for diff logic with known overlapping content
   - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run context-delta`
+  - `Evidence:` 9 tests pass in delta.test.ts: empty result (no context files), single file analysis, cross-file duplication detection, merge recommendation for identical content, unique content classification, repo doc duplication detection, valid segment classifications, token estimates, graceful handling of short files
 
 ### Telemetry (non-blocking)
 
