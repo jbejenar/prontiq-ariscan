@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
 
       # Build the CLI from source so the local action can install it
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
