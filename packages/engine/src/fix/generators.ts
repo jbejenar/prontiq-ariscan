@@ -8,7 +8,7 @@
  */
 
 import type { RepoContext } from "../analyzers/analyzer.interface.js";
-import type { DetectionResult } from "@prontiq/ariscan-schema";
+import type { DetectionResult, RepoProfile, BuildSystem } from "@prontiq/ariscan-schema";
 
 /** Fix confidence level — determines auto-apply vs suggest-only classification. */
 export type FixConfidence = "high" | "medium" | "low";
@@ -53,6 +53,7 @@ export interface FixProposal {
 export async function generateFixProposals(
   context: RepoContext,
   detection: DetectionResult | undefined,
+  profile?: RepoProfile,
 ): Promise<FixProposal[]> {
   const proposals: FixProposal[] = [];
 
@@ -120,7 +121,79 @@ export async function generateFixProposals(
     }
   }
 
+  // Adapt proposal metadata for archetype and build systems (P2.18)
+  if (profile || detection?.buildSystems?.length) {
+    return proposals.map((p) => adaptProposalMetadata(p, detection?.buildSystems ?? [], profile));
+  }
+
   return proposals;
+}
+
+/**
+ * Adapt a fix proposal's metadata based on detected build systems and repo profile.
+ * Replaces npm/pnpm-specific instructions with build-tool-appropriate equivalents.
+ */
+function adaptProposalMetadata(
+  proposal: FixProposal,
+  buildSystems: BuildSystem[],
+  profile: RepoProfile | undefined,
+): FixProposal {
+  const archetype = profile?.archetype;
+  let { rationale, metadata } = proposal;
+  let adapted = false;
+
+  // Archetype-aware rationale for solo-hobby
+  if (archetype === "solo-hobby") {
+    if (proposal.criterion === "ARI-SEC-001") {
+      rationale =
+        "CODEOWNERS helps agents understand code ownership. Consider adding this when your project grows to multiple contributors.";
+      adapted = true;
+    }
+    if (proposal.path?.includes("pull_request_template")) {
+      rationale =
+        "PR templates standardize contributions. Consider adding this when your project accepts external contributions.";
+      adapted = true;
+    }
+  }
+
+  // Archetype-aware rationale for library
+  if (archetype === "library") {
+    if (proposal.path?.includes("pull_request_template")) {
+      rationale =
+        "PR templates should include sections for API surface changes, breaking changes, and type export impact — critical for library consumers.";
+      adapted = true;
+    }
+  }
+
+  // Build-system-aware steps: replace npm/pnpm references for Make-based projects
+  const hasMake = buildSystems.includes("make");
+  const hasCompose = buildSystems.includes("docker-compose");
+  const hasNoNodePm =
+    !buildSystems.includes("npm") &&
+    !buildSystems.includes("pnpm") &&
+    !buildSystems.includes("yarn");
+
+  if ((hasMake || hasCompose) && hasNoNodePm) {
+    const steps = metadata.steps.map((step) => {
+      let s = step;
+      s = s.replace(
+        /`npm install`|`pnpm install`|`yarn install`/g,
+        hasMake ? "`make install`" : "`docker compose up`",
+      );
+      s = s.replace(
+        /`npm run (\w+)`|`pnpm (\w+)`/g,
+        hasMake ? "`make $1$2`" : "`docker compose run app $1$2`",
+      );
+      return s;
+    });
+    if (steps.some((s, i) => s !== metadata.steps[i])) {
+      metadata = { ...metadata, steps };
+      adapted = true;
+    }
+  }
+
+  if (!adapted) return proposal;
+  return { ...proposal, rationale, metadata };
 }
 
 /**

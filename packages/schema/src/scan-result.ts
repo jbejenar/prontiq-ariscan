@@ -185,10 +185,25 @@ export const DetectedMonorepo = z.object({
 });
 export type DetectedMonorepo = z.infer<typeof DetectedMonorepo>;
 
+export const BuildSystem = z.enum([
+  "npm",
+  "pnpm",
+  "yarn",
+  "make",
+  "docker-compose",
+  "poetry",
+  "cargo",
+  "go",
+  "maven",
+  "gradle",
+]);
+export type BuildSystem = z.infer<typeof BuildSystem>;
+
 export const DetectionResult = z.object({
   languages: z.array(DetectedLanguage),
   frameworks: z.array(DetectedFramework),
   monorepo: DetectedMonorepo.nullable(),
+  buildSystems: z.array(BuildSystem).optional(),
 });
 export type DetectionResult = z.infer<typeof DetectionResult>;
 

@@ -18,6 +18,7 @@ import { aggregateResults } from "./scoring/composite.js";
 import { detect } from "./detection/index.js";
 import { classifyProfile } from "./detection/profile.js";
 import { adjustPillarResults } from "./scoring/applicability.js";
+import { adaptPillarRemediation } from "./scoring/remediation-adapter.js";
 import type { RepoContext } from "./analyzers/analyzer.interface.js";
 
 /** Progress event emitted during a scan. */
@@ -216,7 +217,10 @@ export async function scan(
         hasCI: false,
       }
     : await classifyProfile(context, detection);
-  const finalPillarResults = adjustPillarResults(suppressedResults, repoProfile.archetype);
+  const applicabilityResults = adjustPillarResults(suppressedResults, repoProfile.archetype);
+
+  // Adapt remediation text to detected build systems and repo archetype (P2.18)
+  const finalPillarResults = adaptPillarRemediation(applicabilityResults, detection, repoProfile);
 
   const duration = Math.round(performance.now() - startTime);
 

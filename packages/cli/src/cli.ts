@@ -8,6 +8,7 @@ import {
   createRepoContext,
   analyzeTokenBudget,
   detect,
+  classifyProfile,
   generateFixProposals,
   buildTelemetryPayload,
   sendTelemetry,
@@ -288,7 +289,8 @@ async function handleFixMode(
   try {
     const context = await createRepoContext(repoPath);
     const detection = await detect(context);
-    const proposals = await generateFixProposals(context, detection);
+    const profile = await classifyProfile(context, detection);
+    const proposals = await generateFixProposals(context, detection, profile);
 
     const forceMode = force === true;
     const actionable = proposals.filter((p) => !p.alreadyExists);

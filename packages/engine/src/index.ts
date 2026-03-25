@@ -18,12 +18,14 @@ export {
   adjustPillarResults,
   countNotApplicable,
 } from "./scoring/applicability.js";
+export { adaptPillarRemediation } from "./scoring/remediation-adapter.js";
 export type { PillarAnalyzer, RepoContext } from "./analyzers/analyzer.interface.js";
 export {
   detect,
   detectLanguages,
   detectFrameworks,
   detectMonorepo,
+  detectBuildSystems,
   classifyProfile,
 } from "./detection/index.js";
 export {
