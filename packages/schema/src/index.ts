@@ -35,6 +35,7 @@ export {
   DetectedLanguage,
   DetectedFramework,
   DetectedMonorepo,
+  BuildSystem,
   DetectionResult,
 } from "./scan-result.js";
 

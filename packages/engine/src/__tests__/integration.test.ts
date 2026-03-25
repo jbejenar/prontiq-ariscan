@@ -7,6 +7,7 @@ import { scan } from "../scan.js";
 import type { ScanProgressEvent } from "../scan.js";
 import { createRepoContext } from "../context/repo-context.js";
 import { detect } from "../detection/index.js";
+import { classifyProfile } from "../detection/profile.js";
 import { generateFixProposals } from "../fix/index.js";
 
 // Path to test fixtures
@@ -195,5 +196,64 @@ describe("integration: scaffold→scan gate", () => {
     const p8 = result.pillars.find((p) => p.pillar === "P8");
     expect(p8).toBeDefined();
     expect(p8?.score).toBeGreaterThanOrEqual(40);
+  }, 30000);
+});
+
+describe("integration: context-aware remediation (P2.18)", () => {
+  let makeDir: string;
+
+  beforeEach(async () => {
+    makeDir = await mkdtemp(join(tmpdir(), "ari-make-"));
+    await writeFile(
+      join(makeDir, "Makefile"),
+      [
+        "all: build test",
+        "",
+        "build:",
+        "\tgo build ./...",
+        "",
+        "test:",
+        "\tgo test ./...",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(join(makeDir, "go.mod"), "module example.com/foo\n\ngo 1.22\n");
+    await mkdir(join(makeDir, "cmd"), { recursive: true });
+    await writeFile(join(makeDir, "cmd/main.go"), "package main\n\nfunc main() {}\n");
+  });
+
+  afterEach(async () => {
+    if (makeDir) {
+      await rm(makeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("Make-based Go project gets build-tool-aware remediation", async () => {
+    const result = await scan(makeDir);
+    // Detection should include build systems
+    expect(result.detection?.buildSystems).toContain("make");
+    expect(result.detection?.buildSystems).toContain("go");
+
+    // Check that findings don't suggest npm/pnpm
+    const allFindings = result.pillars.flatMap((p) => p.findings);
+    for (const finding of allFindings) {
+      if (finding.remediation?.description) {
+        // No package.json suggestions for Go+Make project
+        expect(finding.remediation.description).not.toContain("package.json");
+      }
+    }
+  }, 30000);
+
+  it("--fix for solo-hobby Make project uses growth-oriented language", async () => {
+    const ctx = await createRepoContext(makeDir);
+    const detection = await detect(ctx);
+    const profile = await classifyProfile(ctx, detection);
+    // Should classify as solo-hobby (few files, no CI)
+    expect(profile.archetype).toBe("solo-hobby");
+
+    const proposals = await generateFixProposals(ctx, detection, profile);
+    const codeowners = proposals.find((p) => p.path.includes("CODEOWNERS"));
+    expect(codeowners).toBeDefined();
+    expect(codeowners?.rationale).toContain("Consider");
   }, 30000);
 });
