@@ -167,23 +167,43 @@ function extractGoImports(content: string, filePath: string): ImportInfo[] {
   }
 
   // Grouped imports: import ( "path1" \n "path2" )
-  // Require \s+ (not \s*) so the pattern cannot match dynamic-import-like
-  // "import(" prefixes, which would cause polynomial backtracking (ReDoS).
-  // Go grouped imports always have whitespace before the parenthesis.
-  const groupRegex = /import\s+\(([^)]*)\)/g;
-  while ((match = groupRegex.exec(content)) !== null) {
-    const body = match[1];
-    if (!body) continue;
-    const pathRegex = /["']([^"']+)["']/g;
-    let pathMatch: RegExpExecArray | null;
-    while ((pathMatch = pathRegex.exec(body)) !== null) {
-      if (pathMatch[1]) {
-        imports.push({
-          sourceFile: filePath,
-          target: pathMatch[1],
-          kind: "package",
-        });
+  // Uses iterative string search instead of regex to avoid polynomial
+  // backtracking (ReDoS) that CodeQL flags on patterns like /import\s+\(/.
+  {
+    const keyword = "import";
+    let searchPos = 0;
+    while (searchPos < content.length) {
+      const idx = content.indexOf(keyword, searchPos);
+      if (idx === -1) break;
+      // Advance past "import", require whitespace, then "("
+      let pos = idx + keyword.length;
+      if (pos >= content.length || !/\s/.test(content.charAt(pos))) {
+        searchPos = pos;
+        continue;
       }
+      while (pos < content.length && /\s/.test(content.charAt(pos))) pos++;
+      if (pos >= content.length || content[pos] !== "(") {
+        searchPos = pos;
+        continue;
+      }
+      // Find the matching closing paren
+      const openParen = pos;
+      const closeParen = content.indexOf(")", openParen + 1);
+      if (closeParen === -1) break;
+      const body = content.slice(openParen + 1, closeParen);
+      // Extract quoted paths from the group body
+      const pathRegex = /["']([^"']+)["']/g;
+      let pathMatch: RegExpExecArray | null;
+      while ((pathMatch = pathRegex.exec(body)) !== null) {
+        if (pathMatch[1]) {
+          imports.push({
+            sourceFile: filePath,
+            target: pathMatch[1],
+            kind: "package",
+          });
+        }
+      }
+      searchPos = closeParen + 1;
     }
   }
 
