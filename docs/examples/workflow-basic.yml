@@ -1,0 +1,21 @@
+# Basic ARI scoring on every PR.
+# Copy this file to .github/workflows/ari.yml in your repository.
+name: ARI Score
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  ari:
+    name: ARI Score
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: prontiq/ariscan-action@v1

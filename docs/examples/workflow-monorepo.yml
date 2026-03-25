@@ -1,0 +1,31 @@
+# Monorepo ARI scanning — scores each package independently using a matrix strategy.
+# Copy this file to .github/workflows/ari.yml in your repository.
+# Adjust the matrix.package list to match your workspace structure.
+name: ARI Monorepo
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  ari:
+    name: ARI — ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - packages/api
+          - packages/web
+          - packages/shared
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: prontiq/ariscan-action@v1
+        with:
+          path: ${{ matrix.package }}

@@ -1,0 +1,190 @@
+name: "ARI Scan — Prontiq Agent Readiness Index"
+description: "Score your repository on AI agent readiness (0-100) and report results on PRs"
+author: "Prontiq"
+
+branding:
+  icon: "bar-chart-2"
+  color: "purple"
+
+inputs:
+  path:
+    description: "Path to the repository (or subdirectory) to scan"
+    required: false
+    default: "."
+  threshold:
+    description: "Minimum composite score (exit 1 if below). Overrides ariscan.yml."
+    required: false
+    default: "0"
+  config:
+    description: "Path to .ariscan.yml policy file"
+    required: false
+    default: ""
+  fail-on-violation:
+    description: "Fail the action if policy violations are detected (true/false)"
+    required: false
+    default: "true"
+  comment:
+    description: "Post a PR comment with the scan summary (true/false)"
+    required: false
+    default: "true"
+  annotations:
+    description: "Add inline annotations for findings on changed files (true/false)"
+    required: false
+    default: "true"
+  delta:
+    description: "Compare scores against the base branch (true/false)"
+    required: false
+    default: "true"
+  version:
+    description: "Version of @prontiq/ariscan-cli to install (default: latest)"
+    required: false
+    default: "latest"
+  node-version:
+    description: "Node.js version to use"
+    required: false
+    default: "22"
+  token:
+    description: "GitHub token for PR comments and annotations"
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  score:
+    description: "Composite ARI score (0-100)"
+    value: ${{ steps.scan.outputs.score }}
+  level:
+    description: "Maturity level (L1-L5)"
+    value: ${{ steps.scan.outputs.level }}
+  delta:
+    description: "Score delta from base branch (empty if delta disabled)"
+    value: ${{ steps.delta.outputs.delta }}
+  result-json:
+    description: "Path to the full JSON scan result file"
+    value: ${{ steps.scan.outputs.result-path }}
+
+runs:
+  using: "composite"
+  steps:
+    # ── Setup ──
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install ariscan CLI
+      shell: bash
+      run: npm install -g @prontiq/ariscan-cli@${{ inputs.version }}
+
+    # ── Scan PR branch ──
+    - name: Scan repository
+      id: scan
+      shell: bash
+      run: |
+        SCAN_ARGS="${{ inputs.path }} --json"
+        if [ -n "${{ inputs.config }}" ]; then
+          SCAN_ARGS="$SCAN_ARGS --config ${{ inputs.config }}"
+        fi
+        if [ "${{ inputs.threshold }}" != "0" ]; then
+          SCAN_ARGS="$SCAN_ARGS --threshold 0"
+        fi
+
+        RESULT_PATH="${{ runner.temp }}/ari-pr-scan.json"
+        ariscan $SCAN_ARGS > "$RESULT_PATH" 2>/dev/null || true
+
+        if [ ! -s "$RESULT_PATH" ]; then
+          echo "::error::ARI scan failed to produce output"
+          exit 1
+        fi
+
+        SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$RESULT_PATH','utf8')).score)")
+        LEVEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$RESULT_PATH','utf8')).level)")
+
+        echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+        echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
+        echo "result-path=$RESULT_PATH" >> "$GITHUB_OUTPUT"
+        echo "### ARI Score: $SCORE/100 ($LEVEL)" >> "$GITHUB_STEP_SUMMARY"
+
+    # ── Delta: scan base branch ──
+    - name: Scan base branch for delta
+      id: delta
+      if: inputs.delta == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      run: |
+        BASE_PATH="${{ runner.temp }}/ari-base-scan.json"
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+
+        git stash --include-untracked 2>/dev/null || true
+        git fetch origin "$BASE_SHA" --depth=1 2>/dev/null || true
+        git checkout "$BASE_SHA" 2>/dev/null || {
+          echo "delta=" >> "$GITHUB_OUTPUT"
+          echo "base-path=" >> "$GITHUB_OUTPUT"
+          exit 0
+        }
+
+        SCAN_ARGS="${{ inputs.path }} --json"
+        if [ -n "${{ inputs.config }}" ]; then
+          SCAN_ARGS="$SCAN_ARGS --config ${{ inputs.config }}"
+        fi
+
+        ariscan $SCAN_ARGS > "$BASE_PATH" 2>/dev/null || echo '{"score":0,"level":"L1","pillars":[],"findings":[]}' > "$BASE_PATH"
+
+        git checkout "${{ github.event.pull_request.head.sha }}" 2>/dev/null || git checkout - 2>/dev/null
+        git stash pop 2>/dev/null || true
+
+        PR_SCORE=${{ steps.scan.outputs.score }}
+        BASE_SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$BASE_PATH','utf8')).score || 0)")
+        DELTA=$((PR_SCORE - BASE_SCORE))
+
+        echo "delta=$DELTA" >> "$GITHUB_OUTPUT"
+        echo "base-path=$BASE_PATH" >> "$GITHUB_OUTPUT"
+        echo "base-score=$BASE_SCORE" >> "$GITHUB_OUTPUT"
+
+    # ── Generate and post PR comment ──
+    - name: Generate PR comment
+      id: comment
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      run: node "${{ github.action_path }}/scripts/generate-comment.js"
+      env:
+        ARI_PR_SCAN: ${{ steps.scan.outputs.result-path }}
+        ARI_BASE_SCAN: ${{ steps.delta.outputs.base-path }}
+        ARI_DELTA: ${{ steps.delta.outputs.delta }}
+        ARI_BASE_SCORE: ${{ steps.delta.outputs.base-score }}
+
+    - name: Post or update PR comment
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: ari-scan
+        message: ${{ steps.comment.outputs.body }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+
+    # ── Inline annotations ──
+    - name: Create finding annotations
+      if: inputs.annotations == 'true'
+      shell: bash
+      run: node "${{ github.action_path }}/scripts/create-annotations.js"
+      env:
+        ARI_PR_SCAN: ${{ steps.scan.outputs.result-path }}
+
+    # ── Policy enforcement ──
+    - name: Enforce policy
+      if: inputs.fail-on-violation == 'true'
+      shell: bash
+      run: |
+        SCORE=${{ steps.scan.outputs.score }}
+        THRESHOLD=${{ inputs.threshold }}
+
+        if [ "$THRESHOLD" != "0" ] && [ "$SCORE" -lt "$THRESHOLD" ]; then
+          echo "::error::ARI score $SCORE is below threshold $THRESHOLD"
+          exit 1
+        fi
+
+        # If no explicit threshold, re-run with policy enforcement
+        if [ "$THRESHOLD" = "0" ]; then
+          SCAN_ARGS="${{ inputs.path }}"
+          if [ -n "${{ inputs.config }}" ]; then
+            SCAN_ARGS="$SCAN_ARGS --config ${{ inputs.config }}"
+          fi
+          ariscan $SCAN_ARGS --quiet 2>/dev/null
+        fi

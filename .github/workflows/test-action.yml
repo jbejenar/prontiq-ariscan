@@ -1,0 +1,50 @@
+name: Test ARI Action
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "action/**"
+      - ".github/workflows/test-action.yml"
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  test-action:
+    name: Test ARI Action (local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Build the CLI from source so the local action can install it
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # Make the built CLI available globally
+      - name: Link CLI globally
+        run: npm install -g ./packages/cli
+
+      # Run the action against this repo (using local action definition)
+      - name: Run ARI Action
+        uses: ./action
+        with:
+          version: "latest"
+          delta: "false"
+          comment: "false"
+          annotations: "true"
+          fail-on-violation: "false"
+
+      - name: Verify outputs
+        run: |
+          echo "Score: ${{ steps.scan.outputs.score }}"
+          echo "Level: ${{ steps.scan.outputs.level }}"

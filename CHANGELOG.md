@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.19.0] — 2026-03-25
+
+### Added
+- **Action (P3.02):** Official `prontiq/ariscan-action` GitHub Action — composite action that scores repos on every PR with delta reporting, inline annotations, and policy enforcement via `.ariscan.yml`.
+- **Action:** `action/action.yml` with configurable inputs: path, threshold, config, fail-on-violation, comment, annotations, delta, version.
+- **Action:** `action/scripts/generate-comment.js` — PR comment generator with score, delta, pillar table, top 3 recommendations, maturity level.
+- **Action:** `action/scripts/create-annotations.js` — emits `::warning`/`::error` annotations for findings with file locations.
+- **Action:** `action/README.md` with quick start guide and full input/output reference.
+- **Docs:** Example workflows: `docs/examples/workflow-{basic,strict,monorepo}.yml`.
+- **CI:** `.github/workflows/test-action.yml` — validates the action on PRs touching `action/`.
+
+### Changed
+- **Roadmap:** P3.02 advanced to `in-progress` (10/12 functional items checked). Remaining: Marketplace publication (requires separate repo) and runtime timing verification.
+
 ## [3.18.0] — 2026-03-17
 
 ### Added

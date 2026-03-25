@@ -1,0 +1,25 @@
+# Strict ARI policy enforcement — fails the PR check if score drops below threshold.
+# Copy this file to .github/workflows/ari.yml in your repository.
+# Pair with an .ariscan.yml policy file for per-pillar thresholds.
+name: ARI Policy Gate
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  ari:
+    name: ARI Policy Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: prontiq/ariscan-action@v1
+        with:
+          threshold: 60
+          fail-on-violation: "true"
