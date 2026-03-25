@@ -43,9 +43,7 @@ for (const f of findings) {
   const level = toAnnotationLevel(f.severity);
   const loc = f.line ? `file=${f.file},line=${f.line}` : `file=${f.file}`;
   const title = `${f.code} (${f.severity})`;
-  const msg = f.remediation
-    ? `${f.message} — ${f.remediation.description}`
-    : f.message;
+  const msg = f.remediation ? `${f.message} — ${f.remediation.description}` : f.message;
 
   process.stdout.write(`::${level} ${loc},title=${title}::${msg}\n`);
   count++;
