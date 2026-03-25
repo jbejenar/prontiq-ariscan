@@ -1,0 +1,15 @@
+# Strict ARI scoring with policy enforcement on every merge request.
+# Fails the pipeline if the composite score is below 60.
+# Copy this file to .gitlab-ci.yml in your repository.
+#
+# Prerequisites:
+#   1. Set GITLAB_TOKEN in CI/CD Settings (api scope) for MR comments
+#   2. Copy gitlab/scripts/ into your repo for MR comment + Code Quality support
+include:
+  - remote: "https://raw.githubusercontent.com/prontiq/ariscan/main/gitlab/ariscan.gitlab-ci.yml"
+
+ari-scan:
+  extends: .ari-scan
+  variables:
+    ARI_THRESHOLD: "60"
+    ARI_FAIL_ON_VIOLATION: "true"
