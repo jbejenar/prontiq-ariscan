@@ -99,7 +99,7 @@ for (const p of pillars) {
   if (hasDelta) {
     const bp = baseMap[p.pillar];
     if (bp) {
-      const d = p.score - bp.score;
+      const d = pillarScore - (bp.score ?? 0);
       const ds = d > 0 ? `+${d}` : d < 0 ? `${d}` : `±0`;
       const di = d > 0 ? "🟢" : d < 0 ? "🔴" : "⚪";
       row += ` ${di} ${ds} |`;
