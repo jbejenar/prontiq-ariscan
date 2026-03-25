@@ -126,7 +126,7 @@ Examples:
             profile: result.profile,
             composite: result.scanResult.score,
             level: result.scanResult.level,
-            scoreScope: isFiltered ? "full-repo" : "full-repo",
+            scoreScope: "full-repo",
             findingsScope: isFiltered ? "changed-files" : "full-repo",
             delta: result.delta,
             changedFiles: result.changedFiles,
