@@ -11,9 +11,7 @@ const path = require("path");
 const [, , revisionsPath, resultsDir, summaryOut] = process.argv;
 
 if (!revisionsPath || !resultsDir || !summaryOut) {
-  console.error(
-    "Usage: build-summary.js <revisions.json> <results-dir> <summary-out>"
-  );
+  console.error("Usage: build-summary.js <revisions.json> <results-dir> <summary-out>");
   process.exit(1);
 }
 
@@ -69,6 +67,4 @@ const summary = {
 };
 
 fs.writeFileSync(summaryOut, JSON.stringify(summary, null, 2) + "\n");
-console.log(
-  `Summary: ${summary.scanned} scanned, ${summary.failed} failed → ${summaryOut}`
-);
+console.log(`Summary: ${summary.scanned} scanned, ${summary.failed} failed → ${summaryOut}`);

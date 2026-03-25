@@ -18,11 +18,7 @@ if (!filePath || !command) {
 const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
 
 if (command === "meta") {
-  const parts = [
-    data.scoring_version,
-    data.rubric_version,
-    String(data.repos.length),
-  ];
+  const parts = [data.scoring_version, data.rubric_version, String(data.repos.length)];
   console.log(parts.join("\t"));
 } else if (command === "repo") {
   const i = parseInt(indexStr, 10);
