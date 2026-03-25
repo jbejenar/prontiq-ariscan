@@ -4691,14 +4691,13 @@ P1.11 provides surface-level navigability heuristics. This ticket adds AST-level
     - `Verify:` `computeCohesion()` computes internal/total dependency ratio per directory. ARI-NAV-011 finding for low cohesion (<30%). 3 cohesion tests pass. Verified 2026-03-26.
   - [x] Fan-in/fan-out metrics per module
     - `Verify:` `computeFanMetrics()` returns sorted fan-in/fan-out per module. ARI-NAV-012 finding for high fan-out (>15). 3 fan-metric tests pass. Verified 2026-03-26.
-  - [x] Cross-boundary violations (imports that break architectural layers)
-    - `Verify:` `detectBoundaryViolations()` checks production↔test boundary rules. ARI-NAV-013 finding. 2 boundary tests pass. Verified 2026-03-26.
+  - [ ] Cross-boundary violations (imports that break architectural layers) [DEFERRED: boundary detection was dead code — graph builder excludes test files, so production↔test boundary rules could never fire. Removed in e7d39b2. Needs redesign to be useful.]
 - [x] Findings mapped to remediation hints by severity
-  - `Verify:` All new findings (ARI-NAV-010 through ARI-NAV-013) include severity-appropriate remediation with action, description, and confidence. Research evidence cited. Verified 2026-03-26.
+  - `Verify:` All new findings (ARI-NAV-010 through ARI-NAV-012) include severity-appropriate remediation with action, description, and confidence. Research evidence cited. Verified 2026-03-26.
 - [x] Graph visualization output (DOT format for graphviz)
   - `Verify:` `generateDotGraph()` in `packages/engine/src/graph/dot-formatter.ts` generates valid DOT with cycle highlighting, directory clustering, and custom titles. 5 DOT formatter tests pass. Verified 2026-03-26.
 - [x] "Structural clarity score" measuring how well the codebase supports AST-derived retrieval
-  - `Verify:` `computeStructuralClarity()` returns 0-100 score factoring cycles, fan-out, cohesion, and boundary violations. Included in analyzer summary output. 4 structural clarity tests pass. Verified 2026-03-26.
+  - `Verify:` `computeStructuralClarity()` returns 0-100 score factoring cycles, fan-out, and cohesion. Included in analyzer summary output. 4 structural clarity tests pass. Verified 2026-03-26.
 - [x] Circular dependency detection reports specific import chains (not just "cycles exist")
   - `Verify:` ARI-NAV-010 message includes full chain path (e.g., "src/a → src/b → src/c → src/a"). Test confirms "→" in message. Verified 2026-03-26.
 - [x] Supports TypeScript, Python, Go, Java at minimum (via Tree-sitter grammars)

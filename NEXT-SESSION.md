@@ -10,7 +10,6 @@ Checkboxes checked this session: 11 (P3.07 functional + docs items)
   - Tarjan's SCC algorithm for circular dependency detection with specific chains (ARI-NAV-010)
   - Module cohesion scoring per directory (ARI-NAV-011)
   - Fan-in/fan-out metrics per module (ARI-NAV-012)
-  - Cross-boundary violation detection (ARI-NAV-013)
   - DOT format graph visualization with cycle highlighting and directory clustering
   - Structural clarity score (0-100)
   - Tree-sitter WASM infrastructure with lazy loading and graceful regex fallback
@@ -30,6 +29,7 @@ Checkboxes checked this session: 11 (P3.07 functional + docs items)
 - **P3.02 — GitHub Action GA:** Two items remain (Marketplace publication, runtime timing)
 
 ### Deferred
+- P3.07 cross-boundary violation detection (ARI-NAV-013): removed as dead code — graph builder excludes test files, so boundary rules never fire. Needs redesign.
 - P3.07 performance benchmark: requires P1.18 benchmark cohort for large repo testing
 - P3.07 telemetry: non-blocking
 - P3.05 research documentation: deferred for documentation pass
