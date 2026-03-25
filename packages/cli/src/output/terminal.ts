@@ -52,15 +52,28 @@ function scoreBar(score: number, width: number = 20): string {
   return color("\u2588".repeat(filled)) + pc.dim("\u2591".repeat(empty));
 }
 
-function formatPillar(pillar: PillarResult): string {
+function formatPillar(pillar: PillarResult, verbose?: boolean): string {
   const lines: string[] = [];
   const paddedName = pillar.name.padEnd(32);
-  const scoreStr = String(pillar.score).padStart(3);
   const weightStr = `${Math.round(pillar.weight * 100)}%`.padStart(4);
 
-  lines.push(
-    `  ${pc.bold(pillar.pillar)} ${paddedName} ${scoreBar(pillar.score)} ${scoreStr}/100  (${pc.dim(weightStr)})`,
-  );
+  if (pillar.dataStatus === "insufficient") {
+    lines.push(
+      `  ${pc.bold(pillar.pillar)} ${paddedName} ${pc.dim("░".repeat(20))} ${pc.dim("--/100")}  (${pc.dim(weightStr)})  ${pc.dim("INSUFFICIENT DATA")}`,
+    );
+  } else {
+    const scoreStr = String(pillar.score).padStart(3);
+    const partialLabel = pillar.dataStatus === "partial" ? `  ${pc.dim("PARTIAL DATA")}` : "";
+    lines.push(
+      `  ${pc.bold(pillar.pillar)} ${paddedName} ${scoreBar(pillar.score)} ${scoreStr}/100  (${pc.dim(weightStr)})${partialLabel}`,
+    );
+    if (verbose) {
+      const contribution = (pillar.score * pillar.weight).toFixed(1);
+      lines.push(
+        `       ${pc.dim(`${pillar.score}/100 (${Math.round(pillar.weight * 100)}%) → contributes ${contribution} pts`)}`,
+      );
+    }
+  }
 
   return lines.join("\n");
 }
@@ -253,7 +266,16 @@ export function formatTerminal(result: ScanResult, options: TerminalOptions = {}
   lines.push("");
 
   for (const pillar of result.pillars) {
-    lines.push(formatPillar(pillar));
+    lines.push(formatPillar(pillar, options.verbose));
+  }
+
+  if (result.scoreBreakdown && result.scoreBreakdown.insufficientPillars > 0) {
+    lines.push("");
+    lines.push(
+      pc.dim(
+        `  ${result.scoreBreakdown.activePillars} active pillars, ${result.scoreBreakdown.insufficientPillars} insufficient (excluded from composite)`,
+      ),
+    );
   }
 
   lines.push(...formatTopFindingsSection(result.findings));

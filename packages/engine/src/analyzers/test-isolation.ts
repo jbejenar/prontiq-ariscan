@@ -270,10 +270,18 @@ export const testIsolationAnalyzer: PillarAnalyzer = {
           confidence: "high",
         },
       });
-      return buildPillarResult(PILLAR, 0, "high", findings, "No test files found", [
-        "Berndt et al., 2026 — 63% of LLM-generated flaky tests from unordered collection assumptions",
-        "Luo et al., 2014 — Root causes of flaky tests: async waits, concurrency, test-order dependency",
-      ]);
+      return buildPillarResult(
+        PILLAR,
+        0,
+        "high",
+        findings,
+        "Insufficient data: no test files found",
+        [
+          "Berndt et al., 2026 — 63% of LLM-generated flaky tests from unordered collection assumptions",
+          "Luo et al., 2014 — Root causes of flaky tests: async waits, concurrency, test-order dependency",
+        ],
+        "insufficient",
+      );
     }
 
     // Test-to-source ratio

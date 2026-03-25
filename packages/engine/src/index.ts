@@ -6,6 +6,7 @@ export { createAnalyzerPipeline } from "./analyzers/analyzer-factory.js";
 export type { AnalyzerPipelineOptions } from "./analyzers/analyzer-factory.js";
 export {
   calculateCompositeScore,
+  computeScoreBreakdown,
   classifyMaturityLevel,
   applySecurityGate,
   aggregateResults,

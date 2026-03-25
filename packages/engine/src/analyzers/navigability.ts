@@ -237,14 +237,23 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     if (sourceFiles.length === 0) {
       return buildPillarResult(
         PILLAR,
-        50,
+        0,
         "low",
-        [],
-        "No source files to analyze for navigability",
+        [
+          {
+            code: "ARI-NAV-100",
+            severity: "info",
+            pillar: PILLAR,
+            message:
+              "No source files matching known extensions found — navigability analysis requires source code",
+          },
+        ],
+        "Insufficient data: no source files to analyze for navigability",
         [
           "Shippey et al., 2022 — Cognitive complexity >15 correlates with 3x higher defect density",
           "Microsoft, 2023 — Consistent naming decreases defects 40%",
         ],
+        "insufficient",
       );
     }
 

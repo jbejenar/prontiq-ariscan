@@ -392,16 +392,29 @@ export const docReadabilityAnalyzer: PillarAnalyzer = {
       });
     }
 
+    // Determine data status: "partial" when no structured docs beyond README
+    const hasStructuredDocs =
+      apiSpecs.length > 0 ||
+      graphqlSchemas.length > 0 ||
+      hasTrpc ||
+      hasErrorTaxonomy ||
+      hasEnvValidation;
+    const docDataStatus: "insufficient" | "partial" | undefined =
+      !hasStructuredDocs && !readme ? "insufficient" : !hasStructuredDocs ? "partial" : undefined;
+
     return buildPillarResult(
       PILLAR,
       score,
       "medium",
       findings,
-      `API specs: ${apiSpecs.length}, GraphQL: ${graphqlSchemas.length > 0}, Error taxonomy: ${hasErrorTaxonomy}, Runbooks: ${machineReadableRunbooks.length} machine-readable / ${proseOnlyRunbooks.length} prose`,
+      docDataStatus === "insufficient"
+        ? "Insufficient data: no documentation files found"
+        : `API specs: ${apiSpecs.length}, GraphQL: ${graphqlSchemas.length > 0}, Error taxonomy: ${hasErrorTaxonomy}, Runbooks: ${machineReadableRunbooks.length} machine-readable / ${proseOnlyRunbooks.length} prose`,
       [
         "Tetrate, 2025 — Unstructured doc parsing triples token costs",
         "OpenAPI Initiative, 2024 — Machine-readable API specs reduce integration errors 40%",
       ],
+      docDataStatus,
     );
   },
 };

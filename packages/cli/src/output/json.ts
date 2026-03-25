@@ -94,6 +94,12 @@ export function getJsonSchemaObject(): Record<string, unknown> {
               description:
                 "Research papers/sources that justify this pillar's weighting and scoring criteria.",
             },
+            dataStatus: {
+              type: "string",
+              enum: ["sufficient", "insufficient", "partial"],
+              description:
+                "Whether the analyzer had sufficient input data. Insufficient pillars are excluded from the composite score.",
+            },
           },
         },
       },
@@ -177,6 +183,26 @@ export function getJsonSchemaObject(): Record<string, unknown> {
       devcontainerDetected: {
         type: "boolean",
         description: "Whether a devcontainer configuration was detected in the repository.",
+      },
+      scoreBreakdown: {
+        type: "object",
+        description:
+          "Breakdown of active vs insufficient pillars and effective weight sum for composite scoring.",
+        required: ["activePillars", "insufficientPillars", "effectiveWeightSum"],
+        properties: {
+          activePillars: {
+            type: "number",
+            description: "Number of pillars with sufficient or partial data.",
+          },
+          insufficientPillars: {
+            type: "number",
+            description: "Number of pillars excluded from composite due to insufficient data.",
+          },
+          effectiveWeightSum: {
+            type: "number",
+            description: "Sum of weights of active pillars (denominator for composite).",
+          },
+        },
       },
     },
     $defs: {

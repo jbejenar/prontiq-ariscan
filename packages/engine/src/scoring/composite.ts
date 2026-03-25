@@ -1,6 +1,7 @@
 import {
   type PillarResult,
   type ScanResult,
+  type ScoreBreakdown,
   type MaturityLevel,
   type LevelMeta,
   PILLAR_WEIGHTS,
@@ -9,14 +10,22 @@ import {
   SECURITY_GATE,
 } from "@prontiq/ariscan-schema";
 
+/** Check if a pillar has sufficient data for scoring (not "insufficient"). */
+function isActivePillar(pillar: PillarResult): boolean {
+  return pillar.dataStatus !== "insufficient";
+}
+
 /**
  * Calculate the composite ARI score from pillar results.
+ * Pillars with dataStatus "insufficient" are excluded; their weight is
+ * redistributed proportionally among the remaining active pillars.
  */
 export function calculateCompositeScore(pillars: PillarResult[]): number {
   let weightedSum = 0;
   let totalWeight = 0;
 
   for (const pillar of pillars) {
+    if (!isActivePillar(pillar)) continue;
     const weight = PILLAR_WEIGHTS[pillar.pillar];
     weightedSum += pillar.score * weight;
     totalWeight += weight;
@@ -24,6 +33,21 @@ export function calculateCompositeScore(pillars: PillarResult[]): number {
 
   if (totalWeight === 0) return 0;
   return Math.round(weightedSum / totalWeight);
+}
+
+/**
+ * Compute the score breakdown showing active vs insufficient pillars.
+ */
+export function computeScoreBreakdown(pillars: PillarResult[]): ScoreBreakdown {
+  const active = pillars.filter(isActivePillar);
+  const insufficient = pillars.filter((p) => !isActivePillar(p));
+  const effectiveWeightSum = active.reduce((sum, p) => sum + PILLAR_WEIGHTS[p.pillar], 0);
+
+  return {
+    activePillars: active.length,
+    insufficientPillars: insufficient.length,
+    effectiveWeightSum: Math.round(effectiveWeightSum * 1000) / 1000,
+  };
 }
 
 /**
@@ -121,6 +145,7 @@ export function aggregateResults(
   const rawLevel = classifyMaturityLevel(score);
   const { level, gateTriggered } = applySecurityGate(adjustedPillars, rawLevel);
   const allFindings = adjustedPillars.flatMap((p) => p.findings);
+  const scoreBreakdown = computeScoreBreakdown(adjustedPillars);
 
   return {
     metadata: {
@@ -136,5 +161,6 @@ export function aggregateResults(
     securityGateTriggered: gateTriggered,
     pillars: adjustedPillars,
     findings: allFindings,
+    scoreBreakdown,
   };
 }

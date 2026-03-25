@@ -25,6 +25,8 @@ export {
   ContextFileType,
   ParseStatus,
   ContextFileInfo,
+  DataStatus,
+  ScoreBreakdown,
   ScanResult,
   DetectedLanguage,
   DetectedFramework,

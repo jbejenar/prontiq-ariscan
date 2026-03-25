@@ -33,12 +33,13 @@ describe("testIsolationAnalyzer (P3)", () => {
       expect(result.findings.some((f) => f.code === "ARI-TST-006")).toBe(true);
     });
 
-    it("returns early with summary 'No test files found'", async () => {
+    it("returns early with insufficient data status", async () => {
       const ctx = createMockContext({
         "src/index.ts": "export const x = 1;",
       });
       const result = await testIsolationAnalyzer.analyze(ctx);
-      expect(result.summary).toBe("No test files found");
+      expect(result.summary).toContain("Insufficient data");
+      expect(result.dataStatus).toBe("insufficient");
     });
   });
 
@@ -740,9 +741,9 @@ describe("testIsolationAnalyzer (P3)", () => {
         `,
       });
       const result = await testIsolationAnalyzer.analyze(ctx);
-      // Should find the test file and not report "No test files found"
+      // Should find the test file and not report insufficient data
       expect(result.findings.some((f) => f.code === "ARI-TST-006")).toBe(false);
-      expect(result.summary).not.toBe("No test files found");
+      expect(result.dataStatus).not.toBe("insufficient");
     });
 
     it("detects Rust inline tests via #[cfg(test)] in source files", async () => {
@@ -759,9 +760,9 @@ describe("testIsolationAnalyzer (P3)", () => {
         `,
       });
       const result = await testIsolationAnalyzer.analyze(ctx);
-      // The inline test should be detected — no "No test files found"
+      // The inline test should be detected — not insufficient data
       expect(result.findings.some((f) => f.code === "ARI-TST-006")).toBe(false);
-      expect(result.summary).not.toBe("No test files found");
+      expect(result.dataStatus).not.toBe("insufficient");
     });
 
     it("detects Rust _test.rs files as test files", async () => {
@@ -776,7 +777,7 @@ describe("testIsolationAnalyzer (P3)", () => {
       });
       const result = await testIsolationAnalyzer.analyze(ctx);
       expect(result.findings.some((f) => f.code === "ARI-TST-006")).toBe(false);
-      expect(result.summary).not.toBe("No test files found");
+      expect(result.dataStatus).not.toBe("insufficient");
     });
 
     it("detects std::thread::sleep as timing dependency in Rust test files", async () => {

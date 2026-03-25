@@ -1,5 +1,5 @@
 import { type PillarId, PILLAR_NAMES, PILLAR_WEIGHTS, type Finding } from "@prontiq/ariscan-schema";
-import type { Confidence, PillarResult } from "@prontiq/ariscan-schema";
+import type { Confidence, DataStatus, PillarResult } from "@prontiq/ariscan-schema";
 import type { RepoContext } from "./analyzer.interface.js";
 
 /**
@@ -19,6 +19,7 @@ export function buildPillarResult(
   findings: Finding[],
   summary: string,
   researchBasis?: string[],
+  dataStatus?: DataStatus,
 ): PillarResult {
   return {
     pillar,
@@ -29,6 +30,7 @@ export function buildPillarResult(
     findings,
     summary,
     researchBasis,
+    ...(dataStatus ? { dataStatus } : {}),
   };
 }
 
