@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { computeDelta } from "../../check/baseline.js";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  computeDelta,
+  loadBaseline,
+  saveBaseline,
+  getBaselineCacheDir,
+} from "../../check/baseline.js";
 import type { ScanResult, PillarResult, Finding } from "@prontiq/ariscan-schema";
 
 function makeFinding(code: string, file?: string): Finding {
@@ -146,5 +154,55 @@ describe("computeDelta", () => {
 
     expect(p1.newFindings).toHaveLength(1);
     expect(p1.resolvedFindings).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Baseline I/O
+// ---------------------------------------------------------------------------
+
+describe("baseline save/load", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), "ariscan-baseline-test-"));
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("returns null when no baseline exists", async () => {
+    const result = await loadBaseline(tmpDir);
+    expect(result).toBeNull();
+  });
+
+  it("round-trips a scan result", async () => {
+    const original = makeScanResult(60, [makePillarResult("P1", 70)]);
+    await saveBaseline(tmpDir, original);
+    const loaded = await loadBaseline(tmpDir);
+    expect(loaded).not.toBeNull();
+    expect(loaded?.score).toBe(original.score);
+    expect(loaded?.pillars).toHaveLength(original.pillars.length);
+  });
+
+  it("returns null for corrupted baseline", async () => {
+    const cacheDir = join(tmpDir, ".ariscan-cache");
+    await mkdir(cacheDir, { recursive: true });
+    await writeFile(join(cacheDir, "baseline.json"), "not valid json{{{", "utf-8");
+    const result = await loadBaseline(tmpDir);
+    expect(result).toBeNull();
+  });
+
+  it("returns null for invalid schema in baseline", async () => {
+    const cacheDir = join(tmpDir, ".ariscan-cache");
+    await mkdir(cacheDir, { recursive: true });
+    await writeFile(join(cacheDir, "baseline.json"), JSON.stringify({ invalid: true }), "utf-8");
+    const result = await loadBaseline(tmpDir);
+    expect(result).toBeNull();
+  });
+
+  it("getBaselineCacheDir returns .ariscan-cache", () => {
+    expect(getBaselineCacheDir()).toBe(".ariscan-cache");
   });
 });
