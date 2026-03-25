@@ -218,7 +218,7 @@ The `.ariscan.yml` policy file uses a `version` field to indicate the policy sch
 
 - **Structural proxies, not outcome measurement.** ARI measures codebase signals (config presence, code patterns, documentation quality) as readiness proxies. It does not execute agents or measure actual agent performance.
 - **No project-scale adaptation (yet).** A 2-file Docker project is currently evaluated against the same criteria as a 500-engineer monorepo. Enterprise-ceremony findings (CODEOWNERS, SECURITY.md, commitlint) may not be applicable to small projects. Planned: [P2.16 Repo Profile & Adaptive Scoring](./roadmap/ROADMAP.md).
-- **Insufficient-data pillars still scored (yet).** Pillars with no relevant input files (e.g., Code Navigability with no source files) currently return a numeric score rather than marking themselves as unscoreable. Planned: [P2.15 Insufficient Data Handling](./roadmap/ROADMAP.md).
+- **No insufficient-data handling (yet).** Pillars with no relevant input files (e.g., Code Navigability with no source files) currently return a numeric score rather than marking themselves as unscoreable. Planned: [P2.15 Insufficient Data Handling](./roadmap/ROADMAP.md).
 - **Weights are expert-informed, not regression-derived.** Pillar weights reflect research priorities and expert judgment, not a statistical model fit to outcome data. See [EVIDENCE-BASE.md](./docs/research/EVIDENCE-BASE.md).
 - **Remediation is template-based.** Fix suggestions are pre-written templates adapted to detected language and framework, not generated per-repo. They may not fit every project's conventions.
 
