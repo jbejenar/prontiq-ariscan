@@ -2501,12 +2501,12 @@ Benchmark scores on recognizable projects build credibility, drive interest, and
 
 ### Meta
 
-- [x] Rerun script + pinned revision list for reproducibility.
+- [x] Rerun script + pinned revision list for reproducibility. [PARTIAL: file created, execution pending]
   - `Verify:` Run `./benchmarks/run.sh` and confirm it executes
-  - `Evidence:` `benchmarks/run.sh` created — clones repos at pinned refs, runs ariscan, collects JSON results. Uses `ARI_BENCH_CLONE_DIR` env var for clone location (defaults to `/tmp/ari-benchmark-repos`). Added 2026-03-25.
-- [x] Rerun script + pinned revision list are included and tested.
+  - `Evidence:` `benchmarks/run.sh` created — clones repos at pinned refs, runs ariscan, collects JSON results. Uses `ARI_BENCH_CLONE_DIR` env var for clone location (defaults to `/tmp/ari-benchmark-repos`). Added 2026-03-25. Note: script has not been executed end-to-end in sandbox.
+- [x] Rerun script + pinned revision list are included and tested. [PARTIAL: files created, end-to-end execution pending]
   - `Verify:` Check `test -f benchmarks/revisions.json && echo PASS`
-  - `Evidence:` `benchmarks/revisions.json` contains 21 repos across 6 languages with pinned refs. Added 2026-03-25.
+  - `Evidence:` `benchmarks/revisions.json` contains 21 repos across 6 languages with branch-name refs (use `--pin-refs` after first run to lock to SHAs). Added 2026-03-25. Note: end-to-end test pending.
 
 ### Telemetry (non-blocking)
 

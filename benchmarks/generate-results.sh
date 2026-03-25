@@ -15,7 +15,10 @@ fi
 
 node -e "
 const fs = require('fs');
-const summary = JSON.parse(fs.readFileSync('$SUMMARY_FILE', 'utf8'));
+const summaryPath = process.argv[1];
+const outPath = process.argv[2];
+
+const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
 const results = summary.results.filter(r => r.score !== null).sort((a, b) => b.score - a.score);
 const failed = summary.results.filter(r => r.score === null);
 const languages = [...new Set(results.map(r => r.language))].sort();
@@ -83,8 +86,13 @@ md += 'pnpm build\n';
 md += 'bash benchmarks/run.sh\n';
 md += 'bash benchmarks/generate-results.sh\n';
 md += '\`\`\`\n\n';
+md += 'For full reproducibility, pin refs to commit SHAs after the first run:\n\n';
+md += '\`\`\`bash\n';
+md += 'bash benchmarks/run.sh --pin-refs\n';
+md += '\`\`\`\n\n';
 md += 'Repos are cloned at the refs specified in \`benchmarks/revisions.json\`.\n';
-md += 'The ARI scanner is deterministic: same input produces same scores (no network calls, no randomness, no time-dependent logic).\n\n';
+md += 'The ARI scanner is deterministic: same input produces same scores (no network calls, no randomness, no time-dependent logic).\n';
+md += 'Note: if refs are branch names (not commit SHAs), results may differ across runs as branch tips advance. Use \`--pin-refs\` to lock to specific commits.\n\n';
 
 md += '### Caveats\n\n';
 md += '- Scores reflect the state of each repo at the time of scanning (see commit SHAs in per-repo JSON files).\n';
@@ -92,7 +100,7 @@ md += '- ARI measures *agent readiness* — how well a repo supports AI coding a
 md += '- Repos without test infrastructure, type checking, or agent context files will score lower, even if they are excellent projects.\n';
 md += '- Monorepo scanning analyzes the root-level structure; per-package analysis may vary.\n';
 
-fs.writeFileSync('$RESULTS_FILE', md);
-console.log('Generated: $RESULTS_FILE');
+fs.writeFileSync(outPath, md);
+console.log('Generated: ' + outPath);
 console.log('  ' + results.length + ' repos, ' + languages.length + ' languages, avg score: ' + avgScore);
-"
+" "$SUMMARY_FILE" "$RESULTS_FILE"

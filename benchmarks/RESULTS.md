@@ -65,8 +65,16 @@ bash benchmarks/run.sh
 bash benchmarks/generate-results.sh
 ```
 
+For full reproducibility, pin refs to commit SHAs after the first run:
+
+```bash
+bash benchmarks/run.sh --pin-refs
+```
+
 Repos are cloned at the refs specified in `benchmarks/revisions.json`.
 The ARI scanner is deterministic: same input produces same scores (no network calls, no randomness, no time-dependent logic).
+
+**Note:** If `revisions.json` contains branch names (e.g. `main`, `master`) rather than commit SHAs, results may differ across runs as branch tips advance. Use `--pin-refs` to lock refs to the exact commits from your first run.
 
 ### Caveats
 
