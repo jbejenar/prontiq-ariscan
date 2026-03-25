@@ -243,24 +243,19 @@ export async function detectCommands(repoPath: string): Promise<DetectedCommands
     // No package.json or not parseable — try other ecosystems
   }
 
+  // Detect package manager once, use consistently across all steps
+  const { access: fsAccess } = await import("node:fs/promises");
+  const pm = await detectPackageManager(repoPath, fsAccess, join);
+
   // Try package.json scripts first
-  const bootstrap = await detectBootstrapCommand(scripts, repoPath);
-  const typecheck = detectTypecheckCommand(scripts);
-  const test = detectTestCommand(scripts);
+  const bootstrap = detectBootstrapCommand(scripts, pm);
+  const typecheck = detectTypecheckCommand(scripts, pm);
+  const test = detectTestCommand(scripts, pm);
 
   return { bootstrap, typecheck, test };
 }
 
-async function detectBootstrapCommand(
-  scripts: Record<string, string>,
-  repoPath: string,
-): Promise<string | null> {
-  const { access: fsAccess } = await import("node:fs/promises");
-  const { join } = await import("node:path");
-
-  // Detect package manager from lockfiles
-  const pm = await detectPackageManager(repoPath, fsAccess, join);
-
+function detectBootstrapCommand(scripts: Record<string, string>, pm: string): string | null {
   const install = `${pm} install`;
   const hasBuild = Boolean(scripts["prepare"] || scripts["build"]);
 
@@ -302,15 +297,15 @@ async function detectPackageManager(
   return "npm";
 }
 
-function detectTypecheckCommand(scripts: Record<string, string>): string | null {
-  if (scripts["typecheck"]) return "npm run typecheck";
-  if (scripts["type-check"]) return "npm run type-check";
-  if (scripts["tsc"]) return "npm run tsc";
+function detectTypecheckCommand(scripts: Record<string, string>, pm: string): string | null {
+  if (scripts["typecheck"]) return `${pm} run typecheck`;
+  if (scripts["type-check"]) return `${pm} run type-check`;
+  if (scripts["tsc"]) return `${pm} run tsc`;
   return null;
 }
 
-function detectTestCommand(scripts: Record<string, string>): string | null {
-  if (scripts["test"]) return "npm test";
+function detectTestCommand(scripts: Record<string, string>, pm: string): string | null {
+  if (scripts["test"]) return `${pm} test`;
   return null;
 }
 
