@@ -19,6 +19,7 @@ import { detect } from "./detection/index.js";
 import { classifyProfile } from "./detection/profile.js";
 import { adjustPillarResults } from "./scoring/applicability.js";
 import { adaptPillarRemediation } from "./scoring/remediation-adapter.js";
+import { resolveLanguageProfile } from "./profiles/index.js";
 import type { RepoContext } from "./analyzers/analyzer.interface.js";
 
 /** Progress event emitted during a scan. */
@@ -222,13 +223,20 @@ export async function scan(
   // Adapt remediation text to detected build systems and repo archetype (P2.18)
   const finalPillarResults = adaptPillarRemediation(applicabilityResults, detection, repoProfile);
 
+  // Resolve language profile for weight adjustment (P3.06)
+  const languageProfileDef = resolveLanguageProfile(detection, config.language);
+  const customWeights = languageProfileDef?.weights;
+
+  // Merge user-specified pillar weights on top of language profile weights
+  const effectiveWeights = mergeWeights(customWeights, config.pillars);
+
   const duration = Math.round(performance.now() - startTime);
 
-  const result = aggregateResults(finalPillarResults, {
-    version: VERSION,
-    repoPath,
-    duration,
-  });
+  const result = aggregateResults(
+    finalPillarResults,
+    { version: VERSION, repoPath, duration },
+    effectiveWeights,
+  );
 
   // Explicit devcontainer detection — propagated into ScanResult so telemetry
   // doesn't need to reverse-infer from finding codes.
@@ -240,7 +248,37 @@ export async function scan(
     contextFiles: contextFiles.length > 0 ? contextFiles : undefined,
     devcontainerDetected,
     repoProfile,
+    languageProfile: languageProfileDef?.language,
   };
+}
+
+/**
+ * Merge language profile weights with user-specified pillar weight overrides.
+ * User config weights take precedence over language profile weights.
+ * Returns undefined if no custom weights are in play.
+ */
+function mergeWeights(
+  profileWeights?: Record<PillarId, number>,
+  pillarConfig?: Record<string, { weight?: number; threshold?: number; enabled?: boolean }>,
+): Partial<Record<PillarId, number>> | undefined {
+  if (!profileWeights && !pillarConfig) return undefined;
+
+  // Start with language profile weights (if any)
+  const merged: Partial<Record<PillarId, number>> = profileWeights ? { ...profileWeights } : {};
+
+  // Layer user-specified pillar weight overrides on top
+  if (pillarConfig) {
+    for (const [pillar, override] of Object.entries(pillarConfig)) {
+      if (override.weight !== undefined) {
+        merged[pillar as PillarId] = override.weight;
+      }
+    }
+  }
+
+  // If nothing was merged, return undefined
+  if (Object.keys(merged).length === 0) return undefined;
+
+  return merged;
 }
 
 /**

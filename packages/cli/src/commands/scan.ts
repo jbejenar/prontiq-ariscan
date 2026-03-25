@@ -5,7 +5,11 @@ import { access } from "node:fs/promises";
 import { scan } from "@prontiq/ariscan-engine";
 import type { OnProgress } from "@prontiq/ariscan-engine";
 import type { ScanConfig, ScanResult } from "@prontiq/ariscan-schema";
-import { PILLAR_NAMES, Archetype as ArchetypeSchema } from "@prontiq/ariscan-schema";
+import {
+  PILLAR_NAMES,
+  Archetype as ArchetypeSchema,
+  SupportedLanguage as SupportedLanguageSchema,
+} from "@prontiq/ariscan-schema";
 import { formatTerminal } from "../output/terminal.js";
 import { formatJson, formatNdjson, formatJsonSchema } from "../output/json.js";
 import { formatMarkdown } from "../output/markdown.js";
@@ -23,6 +27,7 @@ export interface ScanOptions {
   threshold: number;
   config?: string;
   archetype?: string;
+  language?: string;
 }
 
 async function validateRepoPath(path: string): Promise<string> {
@@ -53,6 +58,16 @@ function buildCliOverrides(options: ScanOptions): Partial<ScanConfig> {
     } else {
       process.stderr.write(
         `Warning: Invalid archetype "${options.archetype}". Valid values: ${ArchetypeSchema.options.join(", ")}\n`,
+      );
+    }
+  }
+  if (options.language) {
+    const parsed = SupportedLanguageSchema.safeParse(options.language);
+    if (parsed.success) {
+      overrides.language = parsed.data;
+    } else {
+      process.stderr.write(
+        `Warning: Invalid language "${options.language}". Valid values: ${SupportedLanguageSchema.options.join(", ")}\n`,
       );
     }
   }
@@ -165,6 +180,12 @@ export const scanCommand = defineCommand({
         "Manual archetype override: solo-hobby, small-team, library, api-service, cli-tool, monorepo-enterprise",
       required: false,
     },
+    language: {
+      type: "string",
+      description:
+        "Language profile for weight adjustment: typescript, javascript, python, go, rust, java, csharp, ruby",
+      required: false,
+    },
   },
   async run({ args }) {
     await runScan({
@@ -177,6 +198,7 @@ export const scanCommand = defineCommand({
       threshold: parseInt(args.threshold, 10),
       config: args.config,
       archetype: args.archetype,
+      language: args.language,
     });
   },
 });
