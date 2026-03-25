@@ -40,6 +40,9 @@ export const Evidence = z.object({
 });
 export type Evidence = z.infer<typeof Evidence>;
 
+export const FindingApplicability = z.enum(["applicable", "not-applicable"]);
+export type FindingApplicability = z.infer<typeof FindingApplicability>;
+
 export const Finding = z.object({
   code: z.string().regex(/^ARI-[A-Z]{3}-\d{3}$/),
   severity: Severity,
@@ -58,6 +61,8 @@ export const Finding = z.object({
   evidence: Evidence.optional(),
   /** When true, the finding was matched by a policy suppression and excluded from scoring. */
   suppressed: z.boolean().optional(),
+  /** Whether this finding is applicable to the repo's archetype profile. */
+  applicability: FindingApplicability.optional(),
 });
 export type Finding = z.infer<typeof Finding>;
 
@@ -177,6 +182,32 @@ export const DetectionResult = z.object({
 });
 export type DetectionResult = z.infer<typeof DetectionResult>;
 
+export const Archetype = z.enum([
+  "solo-hobby",
+  "small-team",
+  "library",
+  "api-service",
+  "cli-tool",
+  "monorepo-enterprise",
+]);
+export type Archetype = z.infer<typeof Archetype>;
+
+export const RepoProfile = z.object({
+  /** Classified archetype of the repository. */
+  archetype: Archetype,
+  /** Confidence in the classification. */
+  confidence: Confidence,
+  /** Detection signals that contributed to the classification. */
+  signals: z.array(z.string()),
+  /** Total number of files in the repository. */
+  fileCount: z.number(),
+  /** Number of source code files (known extensions). */
+  sourceFileCount: z.number(),
+  /** Whether CI configuration was detected. */
+  hasCI: z.boolean(),
+});
+export type RepoProfile = z.infer<typeof RepoProfile>;
+
 export const ScoreBreakdown = z.object({
   /** Number of pillars with sufficient or partial data (included in composite). */
   activePillars: z.number(),
@@ -202,5 +233,7 @@ export const ScanResult = z.object({
   devcontainerDetected: z.boolean().optional(),
   /** Breakdown of active vs insufficient pillars and effective weight sum. */
   scoreBreakdown: ScoreBreakdown.optional(),
+  /** Classified repository profile (archetype, confidence, signals). */
+  repoProfile: RepoProfile.optional(),
 });
 export type ScanResult = z.infer<typeof ScanResult>;

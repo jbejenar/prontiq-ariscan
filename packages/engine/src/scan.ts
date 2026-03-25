@@ -15,6 +15,8 @@ import { ANALYZERS } from "./analyzers/registry.js";
 import { createRepoContext } from "./context/repo-context.js";
 import { aggregateResults } from "./scoring/composite.js";
 import { detect } from "./detection/index.js";
+import { classifyProfile } from "./detection/profile.js";
+import { adjustPillarResults } from "./scoring/applicability.js";
 import type { RepoContext } from "./analyzers/analyzer.interface.js";
 
 /** Progress event emitted during a scan. */
@@ -198,9 +200,15 @@ export async function scan(
   );
 
   // Apply suppressions: mark matching findings and recalculate pillar scores
-  const finalPillarResults = config.suppressions
+  const suppressedResults = config.suppressions
     ? applySuppressions(pillarResults, config.suppressions)
     : pillarResults;
+
+  // Classify repo profile and apply archetype-based finding applicability
+  const repoProfile = config.archetype
+    ? { ...(await classifyProfile(context, detection)), archetype: config.archetype }
+    : await classifyProfile(context, detection);
+  const finalPillarResults = adjustPillarResults(suppressedResults, repoProfile.archetype);
 
   const duration = Math.round(performance.now() - startTime);
 
@@ -219,6 +227,7 @@ export async function scan(
     detection,
     contextFiles: contextFiles.length > 0 ? contextFiles : undefined,
     devcontainerDetected,
+    repoProfile,
   };
 }
 

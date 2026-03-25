@@ -7,6 +7,7 @@ import { detectMonorepo } from "./monorepo.js";
 export { detectLanguages } from "./languages.js";
 export { detectFrameworks } from "./frameworks.js";
 export { detectMonorepo } from "./monorepo.js";
+export { classifyProfile } from "./profile.js";
 
 /**
  * Run all detection modules and return a combined result.

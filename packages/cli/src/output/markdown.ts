@@ -168,9 +168,19 @@ export function formatMarkdown(result: ScanResult): string {
     lines.push("");
   }
 
+  if (result.repoProfile) {
+    const p = result.repoProfile;
+    const naCount = result.findings.filter((f) => f.applicability === "not-applicable").length;
+    const naLabel = naCount > 0 ? ` — ${naCount} findings not applicable` : "";
+    lines.push(`> **Profile:** ${p.archetype} (${p.confidence} confidence)${naLabel}`);
+    lines.push("");
+  }
+
   lines.push(...formatPillarTable(result));
 
-  const sortedFindings = [...result.findings].sort(
+  // Filter out not-applicable findings from default display
+  const applicableFindings = result.findings.filter((f) => f.applicability !== "not-applicable");
+  const sortedFindings = [...applicableFindings].sort(
     (a, b) => (SEVERITY_ORDER[a.severity] ?? 99) - (SEVERITY_ORDER[b.severity] ?? 99),
   );
   lines.push(...formatTopFindings(sortedFindings));

@@ -5,7 +5,7 @@ import { access } from "node:fs/promises";
 import { scan } from "@prontiq/ariscan-engine";
 import type { OnProgress } from "@prontiq/ariscan-engine";
 import type { ScanConfig, ScanResult } from "@prontiq/ariscan-schema";
-import { PILLAR_NAMES } from "@prontiq/ariscan-schema";
+import { PILLAR_NAMES, Archetype as ArchetypeSchema } from "@prontiq/ariscan-schema";
 import { formatTerminal } from "../output/terminal.js";
 import { formatJson, formatNdjson, formatJsonSchema } from "../output/json.js";
 import { formatMarkdown } from "../output/markdown.js";
@@ -22,6 +22,7 @@ export interface ScanOptions {
   jsonSchema: boolean;
   threshold: number;
   config?: string;
+  archetype?: string;
 }
 
 async function validateRepoPath(path: string): Promise<string> {
@@ -44,6 +45,16 @@ function buildCliOverrides(options: ScanOptions): Partial<ScanConfig> {
     overrides.format = "json";
   } else if (options.format !== "terminal") {
     overrides.format = options.format as ScanConfig["format"];
+  }
+  if (options.archetype) {
+    const parsed = ArchetypeSchema.safeParse(options.archetype);
+    if (parsed.success) {
+      overrides.archetype = parsed.data;
+    } else {
+      process.stderr.write(
+        `Warning: Invalid archetype "${options.archetype}". Valid values: ${ArchetypeSchema.options.join(", ")}\n`,
+      );
+    }
   }
   return overrides;
 }
@@ -148,6 +159,12 @@ export const scanCommand = defineCommand({
       description: "Print the JSON Schema for scan output and exit",
       default: false,
     },
+    archetype: {
+      type: "string",
+      description:
+        "Manual archetype override: solo-hobby, small-team, library, api-service, cli-tool, monorepo-enterprise",
+      required: false,
+    },
   },
   async run({ args }) {
     await runScan({
@@ -159,6 +176,7 @@ export const scanCommand = defineCommand({
       jsonSchema: args.jsonSchema,
       threshold: parseInt(args.threshold, 10),
       config: args.config,
+      archetype: args.archetype,
     });
   },
 });
