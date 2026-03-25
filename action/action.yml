@@ -1,0 +1,249 @@
+name: "ARI Scan — Prontiq Agent Readiness Index"
+description: "Score your repository on AI agent readiness (0-100) and report results on PRs"
+author: "Prontiq"
+
+branding:
+  icon: "bar-chart-2"
+  color: "purple"
+
+inputs:
+  path:
+    description: "Path to the repository (or subdirectory) to scan"
+    required: false
+    default: "."
+  threshold:
+    description: "Minimum composite score (exit 1 if below). Overrides ariscan.yml."
+    required: false
+    default: "0"
+  config:
+    description: "Path to .ariscan.yml policy file"
+    required: false
+    default: ""
+  fail-on-violation:
+    description: "Fail the action if policy violations are detected (true/false)"
+    required: false
+    default: "true"
+  comment:
+    description: "Post a PR comment with the scan summary (true/false)"
+    required: false
+    default: "true"
+  annotations:
+    description: "Add inline annotations for findings on changed files (true/false)"
+    required: false
+    default: "true"
+  delta:
+    description: "Compare scores against the base branch (true/false)"
+    required: false
+    default: "true"
+  version:
+    description: "Version of @prontiq/ariscan-cli to install (default: latest)"
+    required: false
+    default: "latest"
+  node-version:
+    description: "Node.js version to use"
+    required: false
+    default: "22"
+  token:
+    description: "GitHub token for PR comments and annotations"
+    required: false
+    default: ${{ github.token }}
+  skip-install:
+    description: "Skip CLI installation (use when CLI is already available, e.g. from source build)"
+    required: false
+    default: "false"
+
+outputs:
+  score:
+    description: "Composite ARI score (0-100)"
+    value: ${{ steps.scan.outputs.score }}
+  level:
+    description: "Maturity level (L1-L5)"
+    value: ${{ steps.scan.outputs.level }}
+  delta:
+    description: "Score delta from base branch (empty if delta disabled)"
+    value: ${{ steps.delta.outputs.delta }}
+  result-json:
+    description: "Path to the full JSON scan result file"
+    value: ${{ steps.scan.outputs.result-path }}
+
+runs:
+  using: "composite"
+  steps:
+    # ── Setup ──
+    - name: Setup Node.js
+      if: inputs.skip-install != 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install ariscan CLI
+      if: inputs.skip-install != 'true'
+      shell: bash
+      run: npm install -g "@prontiq/ariscan-cli@${INPUT_VERSION}"
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+
+    # ── Scan PR branch ──
+    - name: Scan repository
+      id: scan
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        RUNNER_TEMP: ${{ runner.temp }}
+        RESULT_PATH: ${{ runner.temp }}/ari-pr-scan.json
+      run: |
+        SCAN_ARGS=("$INPUT_PATH" --json --threshold 0)
+        if [ -n "$INPUT_CONFIG" ]; then
+          SCAN_ARGS+=(--config "$INPUT_CONFIG")
+        fi
+
+        if ! command -v ariscan >/dev/null 2>&1; then
+          echo "::error::ariscan CLI not found on PATH"
+          echo "PATH=$PATH"
+          exit 1
+        fi
+
+        STDERR_FILE="$RUNNER_TEMP/ari-scan-stderr.log"
+        if ! ariscan "${SCAN_ARGS[@]}" > "$RESULT_PATH" 2>"$STDERR_FILE"; then
+          echo "::warning::ariscan exited with non-zero status"
+          cat "$STDERR_FILE" >&2 || true
+        fi
+
+        if [ ! -s "$RESULT_PATH" ]; then
+          echo "::error::ARI scan failed to produce output"
+          [ -s "$STDERR_FILE" ] && cat "$STDERR_FILE" >&2
+          exit 1
+        fi
+
+        SCORE=$(SCAN_FILE="$RESULT_PATH" node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.SCAN_FILE,'utf8')).score)")
+        LEVEL=$(SCAN_FILE="$RESULT_PATH" node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.SCAN_FILE,'utf8')).level)")
+
+        echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+        echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
+        echo "result-path=$RESULT_PATH" >> "$GITHUB_OUTPUT"
+        echo "### ARI Score: $SCORE/100 ($LEVEL)" >> "$GITHUB_STEP_SUMMARY"
+
+    # ── Delta: scan base branch ──
+    - name: Scan base branch for delta
+      id: delta
+      if: inputs.delta == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        PR_SCORE: ${{ steps.scan.outputs.score }}
+        RUNNER_TEMP: ${{ runner.temp }}
+      run: |
+        BASE_PATH="$RUNNER_TEMP/ari-base-scan.json"
+
+        git fetch origin "$BASE_SHA" --depth=1 2>/dev/null || true
+
+        WORKTREE_DIR="$RUNNER_TEMP/ari-base-worktree"
+        if ! git worktree add "$WORKTREE_DIR" "$BASE_SHA" 2>/dev/null; then
+          echo "delta=" >> "$GITHUB_OUTPUT"
+          echo "base-path=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # Ensure worktree is cleaned up regardless of how the script exits
+        trap 'git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true' EXIT
+
+        SCAN_ARGS=("$WORKTREE_DIR/$INPUT_PATH" --json --threshold 0)
+        if [ -n "$INPUT_CONFIG" ]; then
+          SCAN_ARGS+=(--config "$INPUT_CONFIG")
+        fi
+
+        ariscan "${SCAN_ARGS[@]}" > "$BASE_PATH" 2>/dev/null || true
+
+        # Only overwrite with fallback if no valid JSON was produced
+        if [ ! -s "$BASE_PATH" ]; then
+          echo '{"score":0,"level":"L1","pillars":[],"findings":[]}' > "$BASE_PATH"
+        fi
+
+        PR_SCORE_VAL="${PR_SCORE:-0}"
+        BASE_SCORE=$(SCAN_FILE="$BASE_PATH" node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.SCAN_FILE,'utf8')).score || 0)")
+        BASE_SCORE="${BASE_SCORE:-0}"
+        DELTA=$((PR_SCORE_VAL - BASE_SCORE))
+
+        echo "delta=$DELTA" >> "$GITHUB_OUTPUT"
+        echo "base-path=$BASE_PATH" >> "$GITHUB_OUTPUT"
+        echo "base-score=$BASE_SCORE" >> "$GITHUB_OUTPUT"
+
+    # ── Generate and post PR comment ──
+    - name: Generate PR comment
+      id: comment
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      run: node "${{ github.action_path }}/scripts/generate-comment.js"
+      env:
+        ARI_PR_SCAN: ${{ steps.scan.outputs.result-path }}
+        ARI_BASE_SCAN: ${{ steps.delta.outputs.base-path }}
+        ARI_DELTA: ${{ steps.delta.outputs.delta }}
+        ARI_BASE_SCORE: ${{ steps.delta.outputs.base-score }}
+
+    - name: Post or update PR comment
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        COMMENT_BODY: ${{ steps.comment.outputs.body }}
+        REPO: ${{ github.repository }}
+        RUNNER_TEMP: ${{ runner.temp }}
+      run: |
+        HEADER="<!-- ari-scan -->"
+        BODY="${HEADER}
+        ${COMMENT_BODY}"
+
+        # Write body to temp file and use jq to safely encode for the API
+        BODY_FILE="$RUNNER_TEMP/ari-comment-body.txt"
+        printf '%s' "$BODY" > "$BODY_FILE"
+
+        # Find existing comment by marker
+        EXISTING_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+          --jq ".[] | select(.body | startswith(\"$HEADER\")) | .id" 2>/dev/null | head -1)
+
+        if [ -n "$EXISTING_ID" ]; then
+          jq -n --rawfile body "$BODY_FILE" '{body: $body}' | \
+            gh api "repos/${REPO}/issues/comments/${EXISTING_ID}" -X PATCH --input - > /dev/null
+        else
+          jq -n --rawfile body "$BODY_FILE" '{body: $body}' | \
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --input - > /dev/null
+        fi
+
+    # ── Inline annotations ──
+    - name: Create finding annotations
+      if: inputs.annotations == 'true'
+      shell: bash
+      run: node "${{ github.action_path }}/scripts/create-annotations.js"
+      env:
+        ARI_PR_SCAN: ${{ steps.scan.outputs.result-path }}
+
+    # ── Policy enforcement ──
+    - name: Enforce policy
+      if: inputs.fail-on-violation == 'true'
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_THRESHOLD: ${{ inputs.threshold }}
+        SCORE: ${{ steps.scan.outputs.score }}
+      run: |
+        SCORE="${SCORE:-0}"
+        INPUT_THRESHOLD="${INPUT_THRESHOLD:-0}"
+
+        if [ "$INPUT_THRESHOLD" != "0" ] && [ "$SCORE" -lt "$INPUT_THRESHOLD" ]; then
+          echo "::error::ARI score $SCORE is below threshold $INPUT_THRESHOLD"
+          exit 1
+        fi
+
+        # If no explicit threshold, re-run with policy enforcement
+        if [ "$INPUT_THRESHOLD" = "0" ]; then
+          SCAN_ARGS=("$INPUT_PATH")
+          if [ -n "$INPUT_CONFIG" ]; then
+            SCAN_ARGS+=(--config "$INPUT_CONFIG")
+          fi
+          ariscan "${SCAN_ARGS[@]}" --quiet 2>/dev/null
+        fi

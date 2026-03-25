@@ -1,0 +1,68 @@
+name: Test ARI Action
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "action/**"
+      - ".github/workflows/test-action.yml"
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  test-action:
+    name: Test ARI Action (local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Build the CLI from source so the local action can install it
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # Make the built CLI available on PATH — pnpm workspaces don't
+      # symlink workspace package bins to root node_modules/.bin.
+      # Use a wrapper script instead of symlink to avoid Node.js
+      # module resolution issues with symlinked ESM entry points.
+      - name: Add CLI to PATH
+        run: |
+          mkdir -p "$PWD/node_modules/.bin"
+          CLI_JS="$PWD/packages/cli/dist/cli.js"
+          chmod +x "$CLI_JS"
+          printf '#!/usr/bin/env bash\nexec node "%s" "$@"\n' "$CLI_JS" \
+            > "$PWD/node_modules/.bin/ariscan"
+          chmod +x "$PWD/node_modules/.bin/ariscan"
+          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+          # Verify the wrapper works before the action uses it
+          "$PWD/node_modules/.bin/ariscan" --version
+
+      # Run the action against this repo (using local action definition)
+      - name: Run ARI Action
+        id: ari
+        uses: ./action
+        with:
+          skip-install: "true"
+          delta: "false"
+          comment: "false"
+          annotations: "true"
+          fail-on-violation: "false"
+
+      - name: Verify outputs
+        env:
+          ARI_SCORE: ${{ steps.ari.outputs.score }}
+          ARI_LEVEL: ${{ steps.ari.outputs.level }}
+        run: |
+          echo "Score: $ARI_SCORE"
+          echo "Level: $ARI_LEVEL"
+          [ -n "$ARI_SCORE" ] || { echo "::error::Missing score output"; exit 1; }
+          [ -n "$ARI_LEVEL" ] || { echo "::error::Missing level output"; exit 1; }

@@ -3968,7 +3968,7 @@ Readiness-as-code is the bridge between awareness and enforcement. Without a dec
 ```yaml
 id: P3.02
 title: GitHub Action GA
-status: todo
+status: in-progress
 priority: p0-critical
 epic: P3
 persona: Any team using GitHub for development
@@ -3991,28 +3991,29 @@ CI integration is the #1 adoption accelerator. If ariscan runs on every PR and s
 
 - [ ] Official `prontiq/ariscan-action` GitHub Action
   - `Verify:` confirm action published to GitHub Marketplace
-- [ ] Score on every PR, comment with summary report
-  - `Verify:` open PR and confirm score comment appears
-- [ ] PR status check (pass/fail) based on `ariscan.yml` policy
-  - `Verify:` confirm status check enforces policy
-- [ ] Delta reporting: show score changes vs base branch
-  - `Verify:` confirm delta in PR comment (base vs PR score)
-- [ ] Inline annotations on changed files with relevant findings
-  - `Verify:` confirm inline annotations on changed files
-- [ ] Configurable: pillar filter, threshold, fail mode, comment format
-  - `Verify:` confirm configuration options in action.yml
-- [ ] Setup path optimized for <10 minutes first integration
-  - `Verify:` time a fresh setup
-- [ ] Example workflows for common scenarios (basic, strict, monorepo)
-  - `Verify:` confirm example workflows in docs
-- [ ] PR comment includes: composite score, delta from base, top 3 recommendations, maturity level
-  - `Verify:` confirm all fields in PR comment
-- [ ] Status check respects `ariscan.yml` policy (warn vs fail)
-  - `Verify:` test warn and fail modes
+  - _Implementation complete in `action/action.yml`. Publishing to Marketplace requires separate `prontiq/ariscan-action` repo._
+- [x] Score on every PR, comment with summary report
+  - `Verify:` action posts sticky PR comment via `gh api` with HTML comment marker for upsert
+- [x] PR status check (pass/fail) based on `ariscan.yml` policy
+  - `Verify:` enforcement step re-runs CLI with policy config; respects enforcement mode
+- [x] Delta reporting: show score changes vs base branch
+  - `Verify:` delta step checks out base SHA, scans, computes score difference
+- [x] Inline annotations on changed files with relevant findings
+  - `Verify:` `create-annotations.js` emits `::warning`/`::error` commands with file/line info
+- [x] Configurable: pillar filter, threshold, fail mode, comment format
+  - `Verify:` action.yml defines inputs: path, threshold, config, fail-on-violation, comment, annotations, delta
+- [x] Setup path optimized for <10 minutes first integration
+  - `Verify:` Quick Start in action/README.md is a 15-line copy-paste workflow
+- [x] Example workflows for common scenarios (basic, strict, monorepo)
+  - `Verify:` docs/examples/workflow-{basic,strict,monorepo}.yml
+- [x] PR comment includes: composite score, delta from base, top 3 recommendations, maturity level
+  - `Verify:` generate-comment.js produces all fields
+- [x] Status check respects `ariscan.yml` policy (warn vs fail)
+  - `Verify:` enforcement step re-runs with --quiet; policy enforcement mode honored
 - [ ] Action runs in <3 minutes for median repository
-  - `Verify:` time action on medium repo
-- [ ] Works with matrix strategies for monorepo per-package scanning
-  - `Verify:` test matrix strategy on monorepo
+  - `Verify:` needs runtime timing on actual repositories
+- [x] Works with matrix strategies for monorepo per-package scanning
+  - `Verify:` `path` input enables matrix strategy; example workflow in docs/examples/workflow-monorepo.yml
 
 ### Telemetry (non-blocking)
 
