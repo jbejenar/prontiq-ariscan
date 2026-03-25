@@ -105,3 +105,27 @@ export type {
   SimulationProgressEvent,
   DetectedCommands,
 } from "./simulate/index.js";
+export {
+  buildDependencyGraph,
+  analyzeGraph,
+  findCycles,
+  computeFanMetrics,
+  computeCohesion,
+  detectBoundaryViolations,
+  computeStructuralClarity,
+  extractImports,
+  generateDotGraph,
+} from "./graph/index.js";
+export type {
+  DependencyGraph,
+  ModuleNode,
+  CyclePath,
+  FanMetrics,
+  CohesionMetrics,
+  BoundaryViolation,
+  GraphMetrics,
+  GraphBuildOptions,
+  DotFormatOptions,
+} from "./graph/index.js";
+export { isTreeSitterAvailable, getAvailableLanguages } from "./tree-sitter/index.js";
+export type { TreeSitterLanguage } from "./tree-sitter/index.js";
