@@ -1,0 +1,155 @@
+{
+  "version": "1.0.0",
+  "scoring_version": "0.2.0",
+  "rubric_version": "v1",
+  "date": "2026-03-25",
+  "repos": [
+    {
+      "name": "react",
+      "repo": "facebook/react",
+      "ref": "main",
+      "language": "JavaScript",
+      "description": "React UI library"
+    },
+    {
+      "name": "next.js",
+      "repo": "vercel/next.js",
+      "ref": "canary",
+      "language": "TypeScript",
+      "description": "React framework for production"
+    },
+    {
+      "name": "vue",
+      "repo": "vuejs/core",
+      "ref": "main",
+      "language": "TypeScript",
+      "description": "Progressive JavaScript framework"
+    },
+    {
+      "name": "nuxt",
+      "repo": "nuxt/nuxt",
+      "ref": "main",
+      "language": "TypeScript",
+      "description": "Vue framework"
+    },
+    {
+      "name": "express",
+      "repo": "expressjs/express",
+      "ref": "main",
+      "language": "JavaScript",
+      "description": "Fast web framework for Node.js"
+    },
+    {
+      "name": "remix",
+      "repo": "remix-run/remix",
+      "ref": "main",
+      "language": "TypeScript",
+      "description": "Full-stack React framework"
+    },
+    {
+      "name": "astro",
+      "repo": "withastro/astro",
+      "ref": "main",
+      "language": "TypeScript",
+      "description": "Web framework for content-driven websites"
+    },
+    {
+      "name": "fastapi",
+      "repo": "fastapi/fastapi",
+      "ref": "master",
+      "language": "Python",
+      "description": "Modern Python web framework"
+    },
+    {
+      "name": "django",
+      "repo": "django/django",
+      "ref": "main",
+      "language": "Python",
+      "description": "Python web framework"
+    },
+    {
+      "name": "flask",
+      "repo": "pallets/flask",
+      "ref": "main",
+      "language": "Python",
+      "description": "Lightweight Python web framework"
+    },
+    {
+      "name": "pydantic",
+      "repo": "pydantic/pydantic",
+      "ref": "main",
+      "language": "Python",
+      "description": "Data validation using Python type hints"
+    },
+    {
+      "name": "langchain",
+      "repo": "langchain-ai/langchain",
+      "ref": "master",
+      "language": "Python",
+      "description": "LLM application framework"
+    },
+    {
+      "name": "hugo",
+      "repo": "gohugoio/hugo",
+      "ref": "master",
+      "language": "Go",
+      "description": "Static site generator"
+    },
+    {
+      "name": "terraform",
+      "repo": "hashicorp/terraform",
+      "ref": "main",
+      "language": "Go",
+      "description": "Infrastructure as code"
+    },
+    {
+      "name": "gin",
+      "repo": "gin-gonic/gin",
+      "ref": "master",
+      "language": "Go",
+      "description": "HTTP web framework for Go"
+    },
+    {
+      "name": "ripgrep",
+      "repo": "BurntSushi/ripgrep",
+      "ref": "master",
+      "language": "Rust",
+      "description": "Fast line-oriented search tool"
+    },
+    {
+      "name": "tokio",
+      "repo": "tokio-rs/tokio",
+      "ref": "master",
+      "language": "Rust",
+      "description": "Async runtime for Rust"
+    },
+    {
+      "name": "spring-boot",
+      "repo": "spring-projects/spring-boot",
+      "ref": "main",
+      "language": "Java",
+      "description": "Java application framework"
+    },
+    {
+      "name": "vscode",
+      "repo": "microsoft/vscode",
+      "ref": "main",
+      "language": "TypeScript",
+      "description": "Code editor"
+    },
+    {
+      "name": "svelte",
+      "repo": "sveltejs/svelte",
+      "ref": "main",
+      "language": "TypeScript",
+      "description": "Cybernetically enhanced web apps"
+    },
+    {
+      "name": "deno",
+      "repo": "denoland/deno",
+      "ref": "main",
+      "language": "Rust",
+      "description": "JavaScript/TypeScript runtime"
+    }
+  ]
+}
