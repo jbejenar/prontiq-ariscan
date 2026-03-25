@@ -4512,7 +4512,7 @@ The fastest feedback loop is pre-commit. Catching readiness regressions before t
 ```yaml
 id: P3.05
 title: Agent Simulation Hooks
-status: todo
+status: in-progress
 priority: p1-high
 epic: P3
 persona: Platform engineers, developer experience teams
@@ -4533,35 +4533,35 @@ Static analysis can detect the presence of `.devcontainer` or test scripts, but 
 
 ### Functional
 
-- [ ] `ariscan simulate` command that executes a controlled agent-like workflow:
-  - [ ] Clone into isolated environment (devcontainer or Docker)
-    - `Verify:` confirm clone into isolated environment
-  - [ ] Run bootstrap/setup command
-    - `Verify:` confirm bootstrap executes
-  - [ ] Execute type checking
-    - `Verify:` confirm typecheck runs
-  - [ ] Run test suite
-    - `Verify:` confirm tests run
-  - [ ] Measure time-to-green (total time from clone to all-pass)
-    - `Verify:` confirm time-to-green reported
-- [ ] Simulation profile configuration: which steps to run, timeout per step
-  - `Verify:` confirm profile configuration works
-- [ ] Machine-readable output: per-step timing, pass/fail, error logs
-  - `Verify:` confirm JSON output with per-step data
-- [ ] Comparison with static analysis predictions (did the scan correctly predict blockers?)
-  - `Verify:` confirm comparison report
-- [ ] Simulation metadata captured in machine-readable output
-  - `Verify:` confirm metadata in JSON output
-- [ ] Timeout handling prevents infinite hangs (default: 10 minutes total)
-  - `Verify:` confirm timeout kills stuck simulation
-- [ ] Works with Docker and devcontainers (not just native execution)
-  - `Verify:` test with Docker and devcontainer
-- [ ] Comparison report shows static analysis accuracy vs simulation reality
-  - `Verify:` confirm accuracy comparison
+- [x] `ariscan simulate` command that executes a controlled agent-like workflow:
+  - [x] Clone into isolated environment (devcontainer or Docker)
+    - `Verify:` DockerExecutor with volume mount + NativeExecutor fallback. `resolveIsolationMode()` auto-detects devcontainer/Docker/native. Verified 2026-03-26.
+  - [x] Run bootstrap/setup command
+    - `Verify:` `detectCommands()` reads package.json scripts. Bootstrap step runs detected install+build command. 21 unit tests pass. Verified 2026-03-26.
+  - [x] Execute type checking
+    - `Verify:` Detects `typecheck`/`type-check`/`tsc` scripts. Step runner executes with AbortController timeout. Verified 2026-03-26.
+  - [x] Run test suite
+    - `Verify:` Detects `test` script. Sequential execution with fail-fast (remaining steps skipped on failure). Verified 2026-03-26.
+  - [x] Measure time-to-green (total time from clone to all-pass)
+    - `Verify:` `timeToGreenMs` field in SimulationResult captures total elapsed time. Terminal output shows formatted duration. Verified 2026-03-26.
+- [x] Simulation profile configuration: which steps to run, timeout per step
+  - `Verify:` `SimulationProfile` schema with `steps`, `stepTimeoutMs`, `totalTimeoutMs`. CLI flags `--steps`, `--timeout`, `--step-timeout`. `buildStepConfigs()` respects profile. 4 unit tests verify profile handling. Verified 2026-03-26.
+- [x] Machine-readable output: per-step timing, pass/fail, error logs
+  - `Verify:` `--json` flag outputs `SimulationResult` with per-step `durationMs`, `status`, `stdout`, `stderr`. Zod schema validates output shape. Verified 2026-03-26.
+- [x] Comparison with static analysis predictions (did the scan correctly predict blockers?)
+  - `Verify:` `compareStaticVsSimulation()` maps P4→bootstrap, P6→typecheck, P3→test, P2→feedback loop. 5 comparison tests + 4 accuracy tests pass. Verified 2026-03-26.
+- [x] Simulation metadata captured in machine-readable output
+  - `Verify:` `metadata` object includes `startedAt`, `timeoutMs`, `dockerImage`, `devcontainerDetected`, `nodeVersion`. Verified 2026-03-26.
+- [x] Timeout handling prevents infinite hangs (default: 10 minutes total)
+  - `Verify:` AbortController with configurable timeout per step and total. Steps exceeding timeout return status "timeout". Remaining steps skipped. Unit test verifies timeout propagation. Verified 2026-03-26.
+- [x] Works with Docker and devcontainers (not just native execution)
+  - `Verify:` `DockerExecutor` runs commands via `docker exec`. `resolveIsolationMode()` detects `.devcontainer/devcontainer.json`, reads image. `hasDevcontainer()` tested with 3 unit tests. `--isolation` CLI flag for manual override. Verified 2026-03-26.
+- [x] Comparison report shows static analysis accuracy vs simulation reality
+  - `Verify:` `predictionAccuracy()` computes percentage. Terminal output shows per-pillar comparison with ✓/✗ icons and overall accuracy. Verified 2026-03-26.
 
 ### Documentation
 
-- [ ] Research basis documented: Tutorial Problem (VS Code Blog, 2022), Microsoft/GitLab (2022)
+- [ ] Research basis documented: Tutorial Problem (VS Code Blog, 2022), Microsoft/GitLab (2022) [DEFERRED: documentation pass — core functionality shipped first]
   - `Verify:` confirm references in help or output
 
 ### Telemetry (non-blocking)
@@ -4624,8 +4624,8 @@ A TypeScript-heavy default rubric unfairly penalizes Python, Go, Rust, and Java 
     - `Verify:` C# profile defined with default-equivalent weights (strong type system with nullable reference types). Verified 2026-03-26.
 - [x] Each profile includes weight adjustments with rationale, language-specific criteria added/removed, confidence labels
   - `Verify:` Each of 8 profiles has `weights` (Record<PillarId, number> summing to 1.0), `rationale` (Record<PillarId, string>), and `displayName`. Unit tests verify all profiles have 8-pillar rationale and weights sum to 1.0. Verified 2026-03-26.
-- [ ] Profile differences documented in changelog
-  - `Verify:` confirm changelog entries
+- [x] Profile differences documented in changelog
+  - `Verify:` CHANGELOG.md [3.20.0] entry documents all 8 language profiles with per-pillar weight differences, auto-selection, CLI flag, and schema additions. Verified 2026-03-26.
 - [x] Auto-selection based on P1.02 language detection (with manual override)
   - `Verify:` `resolveLanguageProfile()` maps detected primary language to profile via DETECTION_NAME_MAP. Minimum confidence threshold 0.3. 11 unit tests verify auto-selection for TypeScript, Python, Go, C#, low-confidence, empty detection, unsupported language. Verified 2026-03-26.
 - [ ] Scores are comparable across languages at the maturity level

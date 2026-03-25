@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.20.0] — 2026-03-26
+
+### Added
+- **Engine (P3.06):** Language rubric profiles — per-language pillar weight adjustments for 8 languages:
+  - **TypeScript** — calibration baseline, default weights unchanged
+  - **JavaScript** — P6 reduced (0.12, no native type system), P8 increased (0.08, dynamic typing surface area)
+  - **Python** — P4 increased (0.12, venv/poetry/uv complexity), P6 reduced (0.13, gradual typing)
+  - **Go** — P4 reduced (0.08, self-contained toolchain), P6 reduced (0.10, inherent type safety), P7 increased (0.14, package system), P8 increased (0.10, infrastructure use)
+  - **Rust** — P4 reduced (0.08, Cargo tooling), P6 lowest (0.08, ownership model), P7 highest (0.16, module clarity), P8 increased (0.10, security-critical use)
+  - **Java** — default-equivalent weights (strong type system comparable to TypeScript)
+  - **C#** — default-equivalent weights (nullable reference types)
+  - **Ruby** — P4 increased (0.12, rbenv/Bundler complexity), P6 reduced (0.12, dynamic typing), P8 slightly increased (0.06)
+- **Engine (P3.06):** Auto-selection of language profile from P1.02 language detection with 0.3 minimum confidence threshold
+- **CLI (P3.06):** `--language` flag for manual language profile override (validates against supported languages)
+- **Schema (P3.06):** `SupportedLanguage` enum (typescript, javascript, python, go, rust, java, csharp, ruby), `language` field in `ScanConfig` and `FileConfig`, `languageProfile` field in `ScanResult`
+
+- **Engine (P3.05):** Agent Simulation Hooks — `ariscan simulate` command that runs an agent-like workflow (clone → bootstrap → typecheck → test) and measures time-to-green
+- **Engine (P3.05):** Simulation step runner with AbortController timeout, fail-fast on step failure, progress reporting
+- **Engine (P3.05):** Docker and devcontainer isolation — auto-detects `.devcontainer/devcontainer.json`, falls back to Docker, then native execution
+- **Engine (P3.05):** Static vs simulation comparison — maps P4→bootstrap, P6→typecheck, P3→test, P2→feedback loop accuracy
+- **CLI (P3.05):** `ariscan simulate` subcommand with `--isolation`, `--json`, `--timeout`, `--step-timeout`, `--steps`, `--compare` flags
+- **Schema (P3.05):** `SimulationResult`, `SimulationStepResult`, `SimulationProfile`, `PredictionComparison`, `IsolationMode` types
+
+### Changed
+- **Engine (P3.06):** Composite scoring accepts custom pillar weights from language profiles — language profile weights merge with user overrides
+
 ## [3.19.0] — 2026-03-25
 
 ### Added
