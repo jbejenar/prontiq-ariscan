@@ -2944,7 +2944,7 @@ Repos often accumulate multiple context files (AGENTS.md + CLAUDE.md + .cursorru
 ### Testing
 
 - [x] Unit tests for diff logic with known overlapping content
-  - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run context-delta`
+  - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run delta`
   - `Evidence:` 9 tests pass in delta.test.ts: empty result (no context files), single file analysis, cross-file duplication detection, merge recommendation for identical content, unique content classification, repo doc duplication detection, valid segment classifications, token estimates, graceful handling of short files
 
 ### Telemetry (non-blocking)
