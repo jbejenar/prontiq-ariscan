@@ -38,13 +38,15 @@ Prontiq is a platform that measures and improves repository readiness for AI cod
 
 | Level | Name | Score | What Agents Can Achieve |
 |---|---|---|---|
-| L1 | Hostile | 0-25 | Almost nothing — agents thrash, hallucinate, waste tokens |
-| L2 | Fragile | 26-45 | Simple single-file edits with heavy supervision |
+| L1 | Hostile | 0-25 | Agents face significant friction — missing context, absent guardrails, high rework risk |
+| L2 | Fragile | 26-45 | Simple single-file edits feasible with close supervision |
 | L3 | Capable | 46-65 | Routine tasks with moderate supervision |
 | L4 | Productive | 66-80 | Multi-file features and refactoring with light supervision |
 | L5 | Autonomous | 81-100 | Complex cross-service tasks, agent self-verifies |
 
 Security acts as a **gate**: below 40% on Pillar 8 caps the overall level at L2 regardless of other scores.
+
+> Maturity levels are directional indicators informed by [cited research](./docs/research/EVIDENCE-BASE.md), not empirically validated predictions of agent performance. See the [evidence base methodology](./docs/research/EVIDENCE-BASE.md#validation-status--methodology-transparency) for details.
 
 ---
 
@@ -209,6 +211,16 @@ The `.ariscan.yml` policy file uses a `version` field to indicate the policy sch
 3. **Agent agnosticism** — ARI is independent of any single model vendor.
 4. **Operational outcomes first** — readiness scores must drive concrete improvements.
 5. **Transparent evolution** — rubric and roadmap updates are explicit and versioned.
+
+---
+
+## Known Limitations
+
+- **Structural proxies, not outcome measurement.** ARI measures codebase signals (config presence, code patterns, documentation quality) as readiness proxies. It does not execute agents or measure actual agent performance.
+- **No project-scale adaptation (yet).** A 2-file Docker project is currently evaluated against the same criteria as a 500-engineer monorepo. Enterprise-ceremony findings (CODEOWNERS, SECURITY.md, commitlint) may not be applicable to small projects. Planned: [P2.16 Repo Profile & Adaptive Scoring](./roadmap/ROADMAP.md).
+- **No insufficient-data handling (yet).** Pillars with no relevant input files (e.g., Code Navigability with no source files) currently return a numeric score rather than marking themselves as unscoreable. Planned: [P2.15 Insufficient Data Handling](./roadmap/ROADMAP.md).
+- **Weights are expert-informed, not regression-derived.** Pillar weights reflect research priorities and expert judgment, not a statistical model fit to outcome data. See [EVIDENCE-BASE.md](./docs/research/EVIDENCE-BASE.md).
+- **Remediation is template-based.** Fix suggestions are pre-written templates adapted to detected language and framework, not generated per-repo. They may not fit every project's conventions.
 
 ---
 

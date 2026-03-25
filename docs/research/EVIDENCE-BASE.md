@@ -26,6 +26,32 @@
 
 ---
 
+## Validation Status & Methodology Transparency
+
+> This section documents what ARI can and cannot claim, and where the methodology has known gaps. Transparency about limitations is a feature, not a weakness.
+
+### Weight Derivation
+
+Pillar weights are **expert-informed**, calibrated against cited research priorities, but **not the output of a regression model**. P3 (Test Isolation) carries the highest weight (18%) because flakiness research is the most robust and the causal mechanism is clearest (flaky tests → wasted retries → compounding cost). P8 (Security & Governance) carries the lowest weight (5%) but acts as a gate because security failures have outsized tail risk. These are defensible judgments informed by the evidence below, not statistical outputs derived from outcome data.
+
+### Measurement Approach
+
+ARI measures **structural readiness signals** — config presence, code patterns, documentation quality, type system strictness — as proxies for agent effectiveness. It does **not** execute agents, measure token consumption, or track task completion rates. The gap between proxy measurement and outcome measurement is the primary methodological limitation.
+
+The proxies are chosen because research demonstrates causal or strong correlational links between each signal and agent-relevant outcomes (e.g., type errors cause 33.6% of LLM program failures → type strictness is a meaningful readiness signal). However, the composite score has not been validated end-to-end against agent task success rates.
+
+### Maturity Level Descriptions
+
+L1-L5 descriptions (Hostile → Autonomous) extrapolate from component-level research to system-level directional indicators. For example: "type errors cause 33.6% of failures" (TyFlow, 2025) supports "type safety improves agent success" at the pillar level, but the system-level claim "L4 repos enable multi-file features with light supervision" has not been directly measured. No controlled study has yet measured agent performance at each ARI level.
+
+Maturity descriptions should be interpreted as **directional indicators**, not empirically validated performance predictions.
+
+### Calibration Plan
+
+End-to-end validation — running agents on repos at different ARI levels and measuring task success, token waste, and error rates — is a high-priority research gap (see [Research Gaps](#research-gaps-and-study-backlog)). Until validated, scores should be interpreted as structural readiness indicators with research-informed weighting, not as performance benchmarks.
+
+---
+
 ## Pillar 1: Agent Context Quality (Weight: 15%)
 
 ### Thesis
@@ -228,3 +254,6 @@ AI-assisted code introduces concentrated security risk that compounds over itera
 | Language-specific type safety impact beyond TypeScript | Medium | P6 | Not started |
 | CI speed thresholds for agent effectiveness | Low | P2 | Not started |
 | Navigability metric validation against agent task success | Low | P7 | Not started |
+| End-to-end ARI score validation against agent task success/token waste | High | Cross | Planned |
+| Repo-scale impact on finding applicability and scoring fairness | High | Cross | Planned |
+| Remediation effectiveness: score delta after applying --fix suggestions | Medium | Cross | Not started |

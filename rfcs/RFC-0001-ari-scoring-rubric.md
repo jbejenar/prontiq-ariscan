@@ -36,9 +36,12 @@ P8 < 40% → overall level capped at L2 regardless of composite. Rationale: 37.6
 Rubric is versioned (v1, v2...). New research → new version. Old versions remain for comparison.
 
 ## Open Questions
-1. Should per-criterion weights be configurable in v1?
-2. How to handle languages without type systems?
-3. Should simulation results feed into ARI score?
+1. ~~Should per-criterion weights be configurable in v1?~~ **Resolved:** Yes, via `.ariscan.yml` profiles with weight overrides (P3.01).
+2. ~~How to handle languages without type systems?~~ **Resolved:** P3.06 (Language Rubric Profiles) will adjust weights per language. Go/Rust get reduced P6 weight due to inherent type safety.
+3. Should simulation results feed into ARI score? **Open.**
+4. How should scoring adapt to project scale? Enterprise-ceremony findings on solo projects erode credibility. **Addressed by P2.16.**
+5. Should pillars with insufficient data be excluded from composite rather than scored? **Addressed by P2.15.**
+6. How should pillar weights be empirically validated? Current weights are expert-informed. End-to-end agent performance study planned. **Open — research gap.**
 
 ## Decision
-[Pending]
+[Pending — blocked on P2.15/P2.16 implementation and end-to-end validation study]
