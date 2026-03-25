@@ -128,3 +128,12 @@ export type {
 } from "./graph/index.js";
 export { isTreeSitterAvailable, getAvailableLanguages } from "./tree-sitter/index.js";
 export type { TreeSitterLanguage } from "./tree-sitter/index.js";
+export { loadPlugins, runPlugins, validatePlugin } from "./plugins/index.js";
+export type {
+  AriscanPlugin,
+  PluginAnalyzeResult,
+  LoadedPlugin,
+  PluginRunResult,
+  ConformanceCheck,
+  ConformanceResult,
+} from "./plugins/index.js";

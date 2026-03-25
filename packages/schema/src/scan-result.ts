@@ -262,5 +262,9 @@ export const ScanResult = z.object({
   repoProfile: RepoProfile.optional(),
   /** Language profile applied for weight adjustment (P3.06). */
   languageProfile: z.string().optional(),
+  /** Findings from plugins, attributed separately from core findings (P3.08). */
+  pluginFindings: z
+    .array(Finding.extend({ /** Source attribution: "plugin:<name>". */ source: z.string() }))
+    .optional(),
 });
 export type ScanResult = z.infer<typeof ScanResult>;

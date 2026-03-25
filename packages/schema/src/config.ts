@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PillarId, MaturityLevel } from "./pillar.js";
 import { Archetype } from "./scan-result.js";
+import { PluginConfig } from "./plugin.js";
 
 const VALID_PILLAR_IDS = new Set(PillarId.options);
 
@@ -55,6 +56,8 @@ export const ScanConfig = z.object({
   archetype: Archetype.optional(),
   /** Language profile override. When set, skips auto-detection for weight adjustment. */
   language: SupportedLanguage.optional(),
+  /** Plugin configuration (P3.08). */
+  plugins: PluginConfig.optional(),
 });
 export type ScanConfig = z.infer<typeof ScanConfig>;
 
@@ -126,6 +129,8 @@ export const FileConfig = z
     paths: z.array(PathRule).optional(),
     /** Language profile for weight adjustment. Auto-detected if omitted. */
     language: SupportedLanguage.optional(),
+    /** Plugin configuration (P3.08). */
+    plugins: PluginConfig.optional(),
   })
   .strict();
 export type FileConfig = z.infer<typeof FileConfig>;

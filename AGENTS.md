@@ -91,6 +91,7 @@ packages/schema/src/
   pillar.ts             — PillarId, PILLAR_NAMES, PILLAR_WEIGHTS
   config.ts             — configuration types
   scan-result.ts        — Finding, PillarResult, ScanResult, Confidence types
+  plugin.ts             — PluginManifest, PluginFinding, PluginConfig types
   telemetry.ts          — telemetry event schemas
 
 packages/engine/src/
@@ -129,7 +130,13 @@ packages/engine/src/
   agentignore/
     parser.ts             — .agentignore parser (gitignore-compatible patterns)
     index.ts              — barrel export
-  scan.ts                — orchestrates analyzers, computes composite
+  plugins/
+    types.ts              — AriscanPlugin interface, LoadedPlugin, PluginRunResult
+    loader.ts             — plugin discovery (local dir + npm packages)
+    runner.ts             — isolated plugin execution with timeout
+    conformance.ts        — plugin validation suite
+    index.ts              — barrel export
+  scan.ts                — orchestrates analyzers + plugins, computes composite
   index.ts               — public API
 
 packages/cli/src/
@@ -164,6 +171,20 @@ packages/cli/src/
 2. Pillar abbreviations: CTX, FBK, TST, ENV, DOC, BLD, NAV, SEC
 3. Include `severity`, `message`, `remediation` (with `action`, `description`, `confidence`)
 4. Optionally include `evidence` with `paper`, `finding`, `confidence` for research-backed findings
+
+### Writing a Plugin
+
+Plugins extend ariscan with custom checks without forking the project. See `examples/ariscan-plugin-terraform/` for a complete reference implementation.
+
+1. Create a module exporting an `AriscanPlugin` object (default or named `plugin` export)
+2. Define `manifest` with `name`, `version`, `apiVersion: "1.0"`
+3. Implement `analyze(context: RepoContext)` returning `{ findings, summary? }`
+4. Use finding codes in the `9xx` range (e.g., `ARI-BLD-901`) to avoid conflicts with core
+5. Place in `.ariscan/plugins/` directory or publish as `ariscan-plugin-*` npm package
+6. Configure in `.ariscan.yml`: `plugins: { directory: ".ariscan/plugins", packages: ["ariscan-plugin-foo"] }`
+7. Run `validatePlugin(plugin)` from `@prontiq/ariscan-engine` to check conformance
+
+Plugin findings are attributed separately (`source: "plugin:<name>"`) and don't affect core scores.
 
 ### Modifying Scoring
 

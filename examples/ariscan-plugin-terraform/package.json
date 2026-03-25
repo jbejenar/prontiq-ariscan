@@ -1,0 +1,19 @@
+{
+  "name": "ariscan-plugin-terraform",
+  "version": "0.1.0",
+  "description": "Prontiq ARI plugin — Terraform agent readiness checks",
+  "type": "module",
+  "main": "index.js",
+  "author": "Prontiq",
+  "license": "MIT",
+  "keywords": [
+    "ariscan",
+    "ariscan-plugin",
+    "terraform",
+    "iac",
+    "agent-readiness"
+  ],
+  "peerDependencies": {
+    "@prontiq/ariscan-schema": ">=0.34.0"
+  }
+}

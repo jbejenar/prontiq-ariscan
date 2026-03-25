@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.21.0] — 2026-03-26
+
+### Added
+- **Engine (P3.08):** Plugin architecture — extensible analysis via community plugins:
+  - Plugin loader: discovers plugins from `.ariscan/plugins/` directory and npm packages (`ariscan-plugin-*`)
+  - Plugin runner: isolated execution with per-plugin timeout (30s default), error containment
+  - Conformance suite: `validatePlugin()` checks manifest, API version, analyze function, error handling
+  - Plugin findings attributed separately (`source: "plugin:<name>"`) — do not affect core pillar scores
+- **Schema (P3.08):** `PluginManifest`, `PluginFinding`, `PluginAnalysisResult`, `PluginConfig` types; `PLUGIN_API_VERSION` constant (1.0)
+- **Schema (P3.08):** `plugins` field in `ScanConfig` and `FileConfig` for plugin configuration
+- **Schema (P3.08):** `pluginFindings` field in `ScanResult` for attributed plugin findings
+- **Examples:** Reference plugin `ariscan-plugin-terraform` demonstrating the plugin API with 3 Terraform-specific checks (lock file, backend config, module docs)
+
 ## [3.20.0] — 2026-03-26
 
 ### Added
