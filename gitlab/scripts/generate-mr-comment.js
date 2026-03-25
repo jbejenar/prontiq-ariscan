@@ -57,9 +57,7 @@ if (hasDelta) {
 const lines = [];
 
 if (hasDelta) {
-  lines.push(
-    `## ${emoji} ARI Score: ${score}/100 (${levelName}) — Delta: ${sign}${delta}`,
-  );
+  lines.push(`## ${emoji} ARI Score: ${score}/100 (${levelName}) — Delta: ${sign}${delta}`);
 } else {
   lines.push(`## ${emoji} ARI Score: ${score}/100 (${levelName})`);
 }
@@ -74,14 +72,8 @@ if (base?.pillars) {
   }
 }
 
-lines.push(
-  "| Pillar | Name | Score | Weight | Status |" +
-    (hasDelta ? " Delta |" : ""),
-);
-lines.push(
-  "|--------|------|-------|--------|--------|" +
-    (hasDelta ? "-------|" : ""),
-);
+lines.push("| Pillar | Name | Score | Weight | Status |" + (hasDelta ? " Delta |" : ""));
+lines.push("|--------|------|-------|--------|--------|" + (hasDelta ? "-------|" : ""));
 
 for (const p of pillars) {
   const status = p.status ?? "—";
@@ -134,21 +126,15 @@ if (actionable.length > 0) {
   lines.push("### Top Recommendations");
   lines.push("");
   for (const f of actionable) {
-    const impact = f.remediation.estimatedImpact
-      ? ` (${f.remediation.estimatedImpact})`
-      : "";
-    lines.push(
-      `- **${f.code}** (${f.severity}): ${f.remediation.description}${impact}`,
-    );
+    const impact = f.remediation.estimatedImpact ? ` (${f.remediation.estimatedImpact})` : "";
+    lines.push(`- **${f.code}** (${f.severity}): ${f.remediation.description}${impact}`);
   }
   lines.push("");
 }
 
 // Security gate
 if (pr.securityGateTriggered) {
-  lines.push(
-    "> **Security Gate Triggered:** P8 score below 40% caps maturity at L2.",
-  );
+  lines.push("> **Security Gate Triggered:** P8 score below 40% caps maturity at L2.");
   lines.push("");
 }
 

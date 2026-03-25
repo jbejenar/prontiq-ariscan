@@ -48,15 +48,11 @@ const issues = [];
 for (const f of findings) {
   if (f.suppressed) continue;
 
-  const description = f.remediation
-    ? `${f.message} — ${f.remediation.description}`
-    : f.message;
+  const description = f.remediation ? `${f.message} — ${f.remediation.description}` : f.message;
 
   // Generate a stable fingerprint from the finding code and file
   const fingerprintInput = `${f.code}:${f.file ?? ""}:${f.line ?? ""}:${f.message}`;
-  const fingerprint = createHash("md5")
-    .update(fingerprintInput)
-    .digest("hex");
+  const fingerprint = createHash("md5").update(fingerprintInput).digest("hex");
 
   const issue = {
     type: "issue",
@@ -79,7 +75,5 @@ for (const f of findings) {
 process.stdout.write(JSON.stringify(issues, null, 2) + "\n");
 
 if (issues.length > 0) {
-  process.stderr.write(
-    `Generated ${issues.length} code quality issue(s) from ARI findings\n`,
-  );
+  process.stderr.write(`Generated ${issues.length} code quality issue(s) from ARI findings\n`);
 }
