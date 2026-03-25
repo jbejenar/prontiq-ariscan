@@ -16,6 +16,7 @@ import { handleTelemetrySet, handleTelemetryShow } from "./commands/config.js";
 import { policyCommand } from "./commands/policy.js";
 import { generateCommand } from "./commands/generate.js";
 import { auditCommand } from "./commands/audit.js";
+import { diffCommand } from "./commands/diff.js";
 import { formatTerminal } from "./output/terminal.js";
 import {
   formatJson,
@@ -111,6 +112,12 @@ export async function dispatchCommand(args: Record<string, unknown>): Promise<vo
   if (isBareWord && rawFirstArg === "audit") {
     const { runCommand } = await import("citty");
     await runCommand(auditCommand, { rawArgs: process.argv.slice(3) });
+    return;
+  }
+
+  if (isBareWord && rawFirstArg === "diff") {
+    const { runCommand } = await import("citty");
+    await runCommand(diffCommand, { rawArgs: process.argv.slice(3) });
     return;
   }
 

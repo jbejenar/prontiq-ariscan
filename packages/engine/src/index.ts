@@ -41,7 +41,7 @@ export {
   buildTelemetryPayload,
   sendTelemetry,
 } from "./telemetry/index.js";
-export { analyzeGaps, generateContextFiles } from "./context/index.js";
+export { analyzeGaps, generateContextFiles, diffContext } from "./context/index.js";
 export type {
   GapAnalysisResult,
   GapItem,
@@ -49,6 +49,11 @@ export type {
   IndexedDoc,
   GenerateResult,
   GeneratedContextFile,
+  DiffResult,
+  ContextFileDiff,
+  DiffSegment,
+  DeduplicationRecommendation,
+  SegmentClass,
 } from "./context/index.js";
 export { auditAgentsMd, auditContextFile, discoverContextFiles } from "./audit/index.js";
 export type { AuditResult, AuditIssue, DimensionScore, IssueSeverity } from "./audit/index.js";
