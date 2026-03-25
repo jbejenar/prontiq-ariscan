@@ -41,6 +41,7 @@ export {
   PillarThresholds,
   PolicyProfile,
   PathRule,
+  CheckProfile,
 } from "./config.js";
 
 export {

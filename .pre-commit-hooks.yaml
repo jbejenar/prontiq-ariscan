@@ -1,0 +1,46 @@
+# Pre-commit framework hooks for ariscan (P3.04).
+#
+# Usage in .pre-commit-config.yaml:
+#
+#   repos:
+#     - repo: https://github.com/prontiq/ariscan
+#       rev: v0.2.0
+#       hooks:
+#         - id: ariscan-check
+#         - id: ariscan-check-standard  # for more thorough checks
+#
+# Or use the local hook (requires ariscan to be installed):
+#
+#   repos:
+#     - repo: local
+#       hooks:
+#         - id: ariscan-check
+#           name: ariscan readiness check
+#           entry: npx @prontiq/ariscan-cli check . --mode fast
+#           language: system
+#           pass_filenames: false
+#           always_run: true
+
+- id: ariscan-check
+  name: ariscan readiness check (fast)
+  entry: npx @prontiq/ariscan-cli check . --mode fast --quiet
+  language: node
+  pass_filenames: false
+  always_run: true
+  stages: [pre-commit]
+
+- id: ariscan-check-standard
+  name: ariscan readiness check (standard)
+  entry: npx @prontiq/ariscan-cli check . --mode standard --quiet
+  language: node
+  pass_filenames: false
+  always_run: true
+  stages: [pre-commit]
+
+- id: ariscan-check-thorough
+  name: ariscan readiness check (thorough)
+  entry: npx @prontiq/ariscan-cli check . --mode thorough --quiet
+  language: node
+  pass_filenames: false
+  always_run: true
+  stages: [pre-commit]
