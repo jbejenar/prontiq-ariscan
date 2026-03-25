@@ -3993,7 +3993,7 @@ CI integration is the #1 adoption accelerator. If ariscan runs on every PR and s
   - `Verify:` confirm action published to GitHub Marketplace
   - _Implementation complete in `action/action.yml`. Publishing to Marketplace requires separate `prontiq/ariscan-action` repo._
 - [x] Score on every PR, comment with summary report
-  - `Verify:` action posts sticky PR comment via `marocchino/sticky-pull-request-comment`
+  - `Verify:` action posts sticky PR comment via `gh api` with HTML comment marker for upsert
 - [x] PR status check (pass/fail) based on `ariscan.yml` policy
   - `Verify:` enforcement step re-runs CLI with policy config; respects enforcement mode
 - [x] Delta reporting: show score changes vs base branch

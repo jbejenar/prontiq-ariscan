@@ -47,6 +47,7 @@ That's it. The action will:
 | `version` | Version of `@prontiq/ariscan-cli` to install | `latest` |
 | `node-version` | Node.js version to use | `22` |
 | `token` | GitHub token for comments/annotations | `${{ github.token }}` |
+| `skip-install` | Skip CLI installation (when CLI is already available) | `false` |
 
 ## Outputs
 

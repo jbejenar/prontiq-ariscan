@@ -47,6 +47,10 @@ inputs:
     description: "GitHub token for PR comments and annotations"
     required: false
     default: ${{ github.token }}
+  skip-install:
+    description: "Skip CLI installation (use when CLI is already available, e.g. from source build)"
+    required: false
+    default: "false"
 
 outputs:
   score:
@@ -72,6 +76,7 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Install ariscan CLI
+      if: inputs.skip-install != 'true'
       shell: bash
       run: npm install -g "@prontiq/ariscan-cli@${INPUT_VERSION}"
       env:
@@ -86,20 +91,20 @@ runs:
         INPUT_CONFIG: ${{ inputs.config }}
         RESULT_PATH: ${{ runner.temp }}/ari-pr-scan.json
       run: |
-        SCAN_ARGS="$INPUT_PATH --json --threshold 0"
+        SCAN_ARGS=("$INPUT_PATH" --json --threshold 0)
         if [ -n "$INPUT_CONFIG" ]; then
-          SCAN_ARGS="$SCAN_ARGS --config $INPUT_CONFIG"
+          SCAN_ARGS+=(--config "$INPUT_CONFIG")
         fi
 
-        ariscan $SCAN_ARGS > "$RESULT_PATH" 2>/dev/null || true
+        ariscan "${SCAN_ARGS[@]}" > "$RESULT_PATH" 2>/dev/null || true
 
         if [ ! -s "$RESULT_PATH" ]; then
           echo "::error::ARI scan failed to produce output"
           exit 1
         fi
 
-        SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$RESULT_PATH','utf8')).score)")
-        LEVEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$RESULT_PATH','utf8')).level)")
+        SCORE=$(SCAN_FILE="$RESULT_PATH" node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.SCAN_FILE,'utf8')).score)")
+        LEVEL=$(SCAN_FILE="$RESULT_PATH" node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.SCAN_FILE,'utf8')).level)")
 
         echo "score=$SCORE" >> "$GITHUB_OUTPUT"
         echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
@@ -128,23 +133,23 @@ runs:
           exit 0
         fi
 
-        SCAN_ARGS="$WORKTREE_DIR/$INPUT_PATH --json --threshold 0"
+        # Ensure worktree is cleaned up regardless of how the script exits
+        trap 'git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true' EXIT
+
+        SCAN_ARGS=("$WORKTREE_DIR/$INPUT_PATH" --json --threshold 0)
         if [ -n "$INPUT_CONFIG" ]; then
-          SCAN_ARGS="$SCAN_ARGS --config $INPUT_CONFIG"
+          SCAN_ARGS+=(--config "$INPUT_CONFIG")
         fi
 
-        ariscan $SCAN_ARGS > "$BASE_PATH" 2>/dev/null
-        SCAN_EXIT=$?
+        ariscan "${SCAN_ARGS[@]}" > "$BASE_PATH" 2>/dev/null || true
 
         # Only overwrite with fallback if no valid JSON was produced
         if [ ! -s "$BASE_PATH" ]; then
           echo '{"score":0,"level":"L1","pillars":[],"findings":[]}' > "$BASE_PATH"
         fi
 
-        git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
-
         PR_SCORE_VAL="${PR_SCORE:-0}"
-        BASE_SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$BASE_PATH','utf8')).score || 0)")
+        BASE_SCORE=$(SCAN_FILE="$BASE_PATH" node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.SCAN_FILE,'utf8')).score || 0)")
         BASE_SCORE="${BASE_SCORE:-0}"
         DELTA=$((PR_SCORE_VAL - BASE_SCORE))
 
@@ -171,21 +176,26 @@ runs:
         GH_TOKEN: ${{ inputs.token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         COMMENT_BODY: ${{ steps.comment.outputs.body }}
+        REPO: ${{ github.repository }}
       run: |
         HEADER="<!-- ari-scan -->"
         BODY="${HEADER}
         ${COMMENT_BODY}"
 
+        # Write body to temp file and use jq to safely encode for the API
+        BODY_FILE="${{ runner.temp }}/ari-comment-body.txt"
+        printf '%s' "$BODY" > "$BODY_FILE"
+
         # Find existing comment by marker
-        EXISTING_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+        EXISTING_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
           --jq ".[] | select(.body | startswith(\"$HEADER\")) | .id" 2>/dev/null | head -1)
 
         if [ -n "$EXISTING_ID" ]; then
-          gh api "repos/${{ github.repository }}/issues/comments/${EXISTING_ID}" \
-            -X PATCH -f body="$BODY" > /dev/null
+          jq -n --rawfile body "$BODY_FILE" '{body: $body}' | \
+            gh api "repos/${REPO}/issues/comments/${EXISTING_ID}" -X PATCH --input - > /dev/null
         else
-          gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-            -f body="$BODY" > /dev/null
+          jq -n --rawfile body "$BODY_FILE" '{body: $body}' | \
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --input - > /dev/null
         fi
 
     # ── Inline annotations ──
@@ -216,9 +226,9 @@ runs:
 
         # If no explicit threshold, re-run with policy enforcement
         if [ "$INPUT_THRESHOLD" = "0" ]; then
-          SCAN_ARGS="$INPUT_PATH"
+          SCAN_ARGS=("$INPUT_PATH")
           if [ -n "$INPUT_CONFIG" ]; then
-            SCAN_ARGS="$SCAN_ARGS --config $INPUT_CONFIG"
+            SCAN_ARGS+=(--config "$INPUT_CONFIG")
           fi
-          ariscan $SCAN_ARGS --quiet 2>/dev/null
+          ariscan "${SCAN_ARGS[@]}" --quiet 2>/dev/null
         fi
