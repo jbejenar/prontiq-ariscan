@@ -553,6 +553,11 @@ async function applyProposals(
 // Only run CLI when executed directly, not when imported for testing
 const __filename = fileURLToPath(import.meta.url);
 const invoked = process.argv[1];
-if (invoked && realpathSync(resolve(invoked)) === __filename) {
+try {
+  if (invoked && realpathSync(resolve(invoked)) === __filename) {
+    runMain(main);
+  }
+} catch {
+  // Broken symlink or missing path — assume direct execution
   runMain(main);
 }

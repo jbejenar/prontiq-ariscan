@@ -93,6 +93,26 @@ export function computeDelta(current: ScanResult, baseline: ScanResult): DeltaRe
     });
   }
 
+  // Detect pillars present in baseline but absent from current scan
+  const currentPillarIds = new Set(current.pillars.map((p) => p.pillar));
+  for (const baselinePillar of baseline.pillars) {
+    if (currentPillarIds.has(baselinePillar.pillar)) continue;
+
+    const resolvedFindings = baselinePillar.findings;
+    if (baselinePillar.score > 0 || resolvedFindings.length > 0) {
+      hasRegressions = true;
+    }
+
+    pillarDeltas.push({
+      pillar: baselinePillar.pillar,
+      scoreBefore: baselinePillar.score,
+      scoreAfter: 0,
+      delta: -baselinePillar.score,
+      newFindings: [],
+      resolvedFindings,
+    });
+  }
+
   return {
     compositeBefore: baseline.score,
     compositeAfter: current.score,

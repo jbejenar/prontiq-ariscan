@@ -111,6 +111,28 @@ describe("computeDelta", () => {
     expect(p1.delta).toBe(70);
   });
 
+  it("detects regressions when baseline pillar is absent from current scan", () => {
+    const baseline = makeScanResult(70, [
+      makePillarResult("P1", 80, [makeFinding("ARI-CTX-001")]),
+      makePillarResult("P2", 60, [makeFinding("ARI-SEC-001")]),
+    ]);
+    const current = makeScanResult(65, [makePillarResult("P1", 80)]);
+
+    const delta = computeDelta(current, baseline);
+
+    expect(delta.hasRegressions).toBe(true);
+    expect(delta.pillars).toHaveLength(2);
+    const p2 = delta.pillars.find((p) => p.pillar === "P2");
+    expect(p2).toBeDefined();
+    if (p2) {
+      expect(p2.scoreBefore).toBe(60);
+      expect(p2.scoreAfter).toBe(0);
+      expect(p2.delta).toBe(-60);
+      expect(p2.resolvedFindings).toHaveLength(1);
+      expect(p2.newFindings).toHaveLength(0);
+    }
+  });
+
   it("distinguishes findings by file path", () => {
     const baseline = makeScanResult(70, [
       makePillarResult("P1", 70, [makeFinding("ARI-CTX-001", "src/a.ts")]),
