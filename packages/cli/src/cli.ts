@@ -1,6 +1,7 @@
 import { defineCommand, runMain } from "citty";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { realpathSync } from "node:fs";
 import { access, writeFile } from "node:fs/promises";
 import {
   scan,
@@ -551,6 +552,7 @@ async function applyProposals(
 
 // Only run CLI when executed directly, not when imported for testing
 const __filename = fileURLToPath(import.meta.url);
-if (resolve(process.argv[1] ?? "") === __filename) {
+const invoked = process.argv[1];
+if (invoked && realpathSync(resolve(invoked)) === __filename) {
   runMain(main);
 }
