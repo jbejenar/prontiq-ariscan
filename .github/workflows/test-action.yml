@@ -39,7 +39,7 @@ jobs:
         id: ari
         uses: ./action
         with:
-          version: "latest"
+          skip-install: "true"
           delta: "false"
           comment: "false"
           annotations: "true"
