@@ -42,14 +42,14 @@ Checkboxes checked this session: 7 (P2.03 functional + testing items)
 - CI.10 third item requires push to main
 
 ### Next Session Should Start With
-- All P2 functional items are now complete (P2.01, P2.02, P2.03 all done)
-- Remaining P2 work: only non-blocking telemetry items
+- All unblocked P2 functional items are now complete (P2.01, P2.02, P2.03 all done)
+- Remaining P2 work: P2.12 (blocked on P1.18 — has unchecked functional deliverables) + non-blocking telemetry items
 - Consider whether P1/P2 phases can advance (most remaining items are blocked/deferred on P1.18)
 - P3 items may become actionable if P1/P2 exit criteria are evaluated
 - Verify CI.10 third checkbox after PR merge (check GitHub Security tab)
 
 ### Roadmap Progress
 - P1: ~125/128 done. Remaining: blocked on P1.18, deferred telemetry, P1.07 deferred to P3.07
-- P2: 13/14 done (P2.03 newly completed). Remaining: only non-blocking telemetry items
+- P2: 13/14 done (P2.03 newly completed). Remaining: P2.12 blocked on P1.18 (functional) + non-blocking telemetry items
 - CI: 9.67/10 done. CI.10 in-progress (2/3 items checked)
 - Selftest: 90/100 (L5 Autonomous) — baseline maintained
