@@ -56,14 +56,28 @@ function formatPillarTable(result: ScanResult): string[] {
   const lines: string[] = [];
   lines.push("## Pillar Scores");
   lines.push("");
-  lines.push("| Pillar | Name | Score | Bar | Weight | Confidence |");
-  lines.push("|--------|------|------:|-----|-------:|------------|");
+  lines.push("| Pillar | Name | Score | Bar | Weight | Confidence | Data |");
+  lines.push("|--------|------|------:|-----|-------:|------------|------|");
 
   for (const pillar of result.pillars) {
     const weightPct = `${Math.round(pillar.weight * 100)}%`;
-    const bar = `\`${scoreBar(pillar.score)}\``;
+    if (pillar.dataStatus === "insufficient") {
+      lines.push(
+        `| ${pillar.pillar} | ${pillar.name} | --/100 | | ${weightPct} | ${pillar.confidence} | ⚠️ Insufficient |`,
+      );
+    } else {
+      const bar = `\`${scoreBar(pillar.score)}\``;
+      const dataLabel = pillar.dataStatus === "partial" ? "Partial" : "✓";
+      lines.push(
+        `| ${pillar.pillar} | ${pillar.name} | ${pillar.score} | ${bar} | ${weightPct} | ${pillar.confidence} | ${dataLabel} |`,
+      );
+    }
+  }
+
+  if (result.scoreBreakdown && result.scoreBreakdown.insufficientPillars > 0) {
+    lines.push("");
     lines.push(
-      `| ${pillar.pillar} | ${pillar.name} | ${pillar.score} | ${bar} | ${weightPct} | ${pillar.confidence} |`,
+      `> **Note:** ${result.scoreBreakdown.insufficientPillars} pillar(s) excluded from composite due to insufficient data. Composite based on ${result.scoreBreakdown.activePillars} active pillars.`,
     );
   }
 

@@ -16,11 +16,12 @@ describe("navigabilityAnalyzer (P7)", () => {
   });
 
   describe("empty repo", () => {
-    it("returns midpoint score with low confidence", async () => {
+    it("returns insufficient data with score 0", async () => {
       const ctx = createMockContext({});
       const result = await navigabilityAnalyzer.analyze(ctx);
-      expect(result.score).toBe(50);
+      expect(result.score).toBe(0);
       expect(result.confidence).toBe("low");
+      expect(result.dataStatus).toBe("insufficient");
     });
   });
 

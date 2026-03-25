@@ -149,6 +149,7 @@ describe("buildDeterminismAnalyzer (P6)", () => {
   describe("lockfile in .gitignore", () => {
     it("emits ARI-BLD-002 when lockfile is gitignored", async () => {
       const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
         ".gitignore": "node_modules/\npackage-lock.json\n",
       });
       const result = await buildDeterminismAnalyzer.analyze(ctx);
@@ -157,6 +158,7 @@ describe("buildDeterminismAnalyzer (P6)", () => {
 
     it("emits ARI-BLD-003 when no lockfile and not gitignored", async () => {
       const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
         ".gitignore": "node_modules/\ndist/\n",
       });
       const result = await buildDeterminismAnalyzer.analyze(ctx);
@@ -589,7 +591,9 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     });
 
     it("emits low finding when neither is configured", async () => {
-      const ctx = createMockContext({});
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
       const result = await buildDeterminismAnalyzer.analyze(ctx);
       const finding = result.findings.find((f) => f.code === "ARI-BLD-011");
       expect(finding).toBeDefined();
@@ -656,7 +660,9 @@ describe("buildDeterminismAnalyzer (P6)", () => {
     });
 
     it("emits low finding when no hooks configured", async () => {
-      const ctx = createMockContext({});
+      const ctx = createMockContext({
+        "package.json": JSON.stringify({ name: "test" }),
+      });
       const result = await buildDeterminismAnalyzer.analyze(ctx);
       const finding = result.findings.find((f) => f.code === "ARI-BLD-012");
       expect(finding).toBeDefined();

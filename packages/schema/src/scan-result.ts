@@ -64,6 +64,9 @@ export type Finding = z.infer<typeof Finding>;
 export const PillarStatus = z.enum(["excellent", "good", "needs-improvement", "poor"]);
 export type PillarStatus = z.infer<typeof PillarStatus>;
 
+export const DataStatus = z.enum(["sufficient", "insufficient", "partial"]);
+export type DataStatus = z.infer<typeof DataStatus>;
+
 /**
  * Derive a status label from a numeric score.
  *   >= 80 → "excellent"
@@ -89,6 +92,13 @@ export const PillarResult = z.object({
   status: PillarStatus.optional(),
   /** Research papers/sources that justify this pillar's weighting and scoring criteria. */
   researchBasis: z.array(z.string()).optional(),
+  /**
+   * Whether the analyzer had sufficient input data to produce a meaningful score.
+   * - "sufficient": normal scoring (default when omitted).
+   * - "insufficient": minimum input threshold not met; pillar excluded from composite.
+   * - "partial": some data available but below ideal; pillar still scored.
+   */
+  dataStatus: DataStatus.optional(),
 });
 export type PillarResult = z.infer<typeof PillarResult>;
 
@@ -167,6 +177,16 @@ export const DetectionResult = z.object({
 });
 export type DetectionResult = z.infer<typeof DetectionResult>;
 
+export const ScoreBreakdown = z.object({
+  /** Number of pillars with sufficient or partial data (included in composite). */
+  activePillars: z.number(),
+  /** Number of pillars with insufficient data (excluded from composite). */
+  insufficientPillars: z.number(),
+  /** Sum of weights of active pillars (used as denominator for composite). */
+  effectiveWeightSum: z.number(),
+});
+export type ScoreBreakdown = z.infer<typeof ScoreBreakdown>;
+
 export const ScanResult = z.object({
   metadata: ScanMetadata,
   score: z.number().min(0).max(100),
@@ -180,5 +200,7 @@ export const ScanResult = z.object({
   contextFiles: z.array(ContextFileInfo).optional(),
   /** Whether a devcontainer configuration was detected in the repository. */
   devcontainerDetected: z.boolean().optional(),
+  /** Breakdown of active vs insufficient pillars and effective weight sum. */
+  scoreBreakdown: ScoreBreakdown.optional(),
 });
 export type ScanResult = z.infer<typeof ScanResult>;

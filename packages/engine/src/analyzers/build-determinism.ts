@@ -17,6 +17,50 @@ export const buildDeterminismAnalyzer: PillarAnalyzer = {
     const findings: Finding[] = [];
     let score = 0;
 
+    // Pre-check: is there any build config at all?
+    const buildConfigFiles = [
+      "tsconfig.json",
+      "pyproject.toml",
+      "go.mod",
+      "Cargo.toml",
+      "package.json",
+      "Makefile",
+      "CMakeLists.txt",
+      "build.gradle",
+      "pom.xml",
+      "mypy.ini",
+      ".mypy.ini",
+      "pyrightconfig.json",
+      "setup.py",
+      "setup.cfg",
+    ];
+    const hasBuildConfig = await anyFileExists(context, buildConfigFiles);
+    // Also check for lockfiles, linting configs, or any dev tooling files
+    const hasDevTooling = context.files.some((f) =>
+      /package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb|poetry\.lock|Cargo\.lock|go\.sum|Gemfile\.lock|composer\.lock|\.eslintrc|eslint\.config|\.prettierrc|prettier\.config|\.husky\/|lefthook\.yml|\.pre-commit-config\.yaml|\.npmrc|\.nvmrc|pnpm-workspace\.yaml|\.csproj$|\.sln$|\.java$/i.test(
+        f,
+      ),
+    );
+    if (!hasBuildConfig && !hasDevTooling) {
+      return buildPillarResult(
+        PILLAR,
+        0,
+        "low",
+        [
+          {
+            code: "ARI-BLD-100",
+            severity: "info",
+            pillar: PILLAR,
+            message:
+              "No build configuration or package manager detected — build determinism analysis requires a build system",
+          },
+        ],
+        "Insufficient data: no build configuration or package manager detected",
+        ["GitHub Octoverse, 2025 — 94% of LLM compilation errors are type-check failures"],
+        "insufficient",
+      );
+    }
+
     // TypeScript strict mode
     const tsconfig = await context.readJson<Record<string, unknown>>("tsconfig.json");
     if (tsconfig) {

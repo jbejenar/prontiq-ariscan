@@ -25,6 +25,7 @@ describe("engine barrel exports", () => {
 
   it("exports scoring functions", () => {
     expect(typeof engine.calculateCompositeScore).toBe("function");
+    expect(typeof engine.computeScoreBreakdown).toBe("function");
     expect(typeof engine.classifyMaturityLevel).toBe("function");
     expect(typeof engine.applySecurityGate).toBe("function");
     expect(typeof engine.aggregateResults).toBe("function");
