@@ -3898,13 +3898,13 @@ The repo ships a tool that measures agent readiness. If the repo itself doesn't 
 ```yaml
 id: P3.01
 title: ariscan.yml Policy Contract
-status: in-progress
+status: done
 priority: p0-critical
 epic: P3
 persona: Platform engineers, engineering leads, DevOps teams
 depends_on: [P1.13, P1.14]
 tech_stack: [TypeScript, Zod, citty]
-completed: null
+completed: 2026-03-25
 ```
 
 ## User Story
@@ -3949,8 +3949,8 @@ Readiness-as-code is the bridge between awareness and enforcement. Without a dec
 
 ### Telemetry (non-blocking)
 
-- [ ] Policy file adoption rate
-- [ ] Enforcement mode distribution
+- [ ] Policy file adoption rate [DEFERRED: telemetry, non-blocking]
+- [ ] Enforcement mode distribution [DEFERRED: telemetry, non-blocking]
 
 ## Scope
 
