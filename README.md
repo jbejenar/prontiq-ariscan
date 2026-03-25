@@ -162,6 +162,21 @@ The schema URI uses major-only versioning (`v1`, `v2`, …) as a structural stab
 
 **Backwards compatibility guarantee:** within a major version, all previously valid JSON output fields remain present with the same types and semantics. Consumers can safely parse ARI output without breaking when patch or minor versions are released. A major version bump in `metadata.version` will coincide with a new schema URI (e.g., `v2.json`).
 
+### Policy File Migration
+
+The `.ariscan.yml` policy file uses a `version` field to indicate the policy schema version. Current version: `"1"`.
+
+**Migration guidance:**
+
+- **Version `"1"` (current):** Supports composite/per-pillar thresholds, enforcement modes (`warn`/`fail`/`block`), suppressions with reason + expiry, named profiles with weight overrides, and inheritance via `extends`.
+- **Path-specific rules:** The `paths` field is defined in the schema but not yet enforced at runtime. Policies containing `paths` rules will fail validation. This will be implemented in a future release.
+- **When a new policy version ships:** A migration guide will accompany the release. Run `ariscan policy validate` after upgrading to detect any incompatibilities. The `version` field is optional today — setting it explicitly protects against silent breakage on upgrade.
+
+**Suppression lifecycle:**
+- All suppressions require a `reason` (non-empty string) and an `expiry` (YYYY-MM-DD date or `"no-expiry"`).
+- Expired suppressions are automatically filtered at scan time and flagged by `ariscan policy validate`.
+- Permanent suppressions require explicit `expiry: "no-expiry"`.
+
 ---
 
 ## Documentation
