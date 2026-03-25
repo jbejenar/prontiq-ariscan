@@ -30,9 +30,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
-      # Make the built CLI available globally
-      - name: Link CLI globally
-        run: npm install -g ./packages/cli
+      # Make the built CLI available on PATH via pnpm workspace bin
+      - name: Add CLI to PATH
+        run: echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
 
       # Run the action against this repo (using local action definition)
       - name: Run ARI Action
@@ -46,8 +46,11 @@ jobs:
           fail-on-violation: "false"
 
       - name: Verify outputs
+        env:
+          ARI_SCORE: ${{ steps.ari.outputs.score }}
+          ARI_LEVEL: ${{ steps.ari.outputs.level }}
         run: |
-          echo "Score: ${{ steps.ari.outputs.score }}"
-          echo "Level: ${{ steps.ari.outputs.level }}"
-          [ -n "${{ steps.ari.outputs.score }}" ] || { echo "::error::Missing score output"; exit 1; }
-          [ -n "${{ steps.ari.outputs.level }}" ] || { echo "::error::Missing level output"; exit 1; }
+          echo "Score: $ARI_SCORE"
+          echo "Level: $ARI_LEVEL"
+          [ -n "$ARI_SCORE" ] || { echo "::error::Missing score output"; exit 1; }
+          [ -n "$ARI_LEVEL" ] || { echo "::error::Missing level output"; exit 1; }
