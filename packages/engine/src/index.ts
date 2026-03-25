@@ -111,8 +111,8 @@ export {
   findCycles,
   computeFanMetrics,
   computeCohesion,
-  detectBoundaryViolations,
   computeStructuralClarity,
+  computeStructuralClarityFromResults,
   extractImports,
   generateDotGraph,
 } from "./graph/index.js";
@@ -122,7 +122,6 @@ export type {
   CyclePath,
   FanMetrics,
   CohesionMetrics,
-  BoundaryViolation,
   GraphMetrics,
   GraphBuildOptions,
   DotFormatOptions,

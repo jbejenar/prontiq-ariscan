@@ -425,6 +425,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
     }
 
     // --- ARI-NAV-010: Circular dependency chains (Tarjan's SCC) ---
+    // Also emits deprecated ARI-NAV-005 alias for backward compatibility
     const circularCount = graphMetrics.cycles.length;
     for (const cycle of graphMetrics.cycles.slice(0, 3)) {
       const chainStr = [...cycle.chain, cycle.chain[0]].join(" → ");
@@ -445,6 +446,21 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
           paper: "arXiv 2601.08773, 2025",
           finding:
             "AST-derived dependency graphs achieve highest accuracy for multi-hop code reasoning; circular dependencies reduce graph navigability",
+          confidence: "high",
+        },
+      });
+      // Emit deprecated ARI-NAV-005 alias so existing suppression configs still work
+      findings.push({
+        code: "ARI-NAV-005",
+        severity: "high",
+        pillar: PILLAR,
+        message: `[Deprecated → ARI-NAV-010] Circular dependency: ${chainStr}`,
+        confidence: "high",
+        scoreImpact: { pillarDelta: 0, compositeDelta: 0 },
+        remediation: {
+          action: "refactor",
+          description:
+            "ARI-NAV-005 is deprecated — use ARI-NAV-010 in suppression configs. Break the circular dependency by extracting shared types/interfaces.",
           confidence: "high",
         },
       });
@@ -488,11 +504,12 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
       });
     }
 
-    // --- ARI-NAV-012: High fan-out modules ---
-    const veryHighFanOut = graphMetrics.fanMetrics.filter((m) => m.fanOut > 15);
-    if (veryHighFanOut.length > 0) {
-      score -= Math.min(5, veryHighFanOut.length * 2);
-      const examples = veryHighFanOut
+    // --- ARI-NAV-012: Elevated fan-out modules (15 < fanOut <= 20) ---
+    // Only emit for the 15-20 range; modules with fanOut > 20 are covered by ARI-NAV-004 above.
+    const elevatedFanOut = graphMetrics.fanMetrics.filter((m) => m.fanOut > 15 && m.fanOut <= 20);
+    if (elevatedFanOut.length > 0) {
+      score -= Math.min(5, elevatedFanOut.length * 2);
+      const examples = elevatedFanOut
         .slice(0, 3)
         .map((m) => `${m.path} (${m.fanOut} deps)`)
         .join(", ");
@@ -500,7 +517,7 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
         code: "ARI-NAV-012",
         severity: "medium",
         pillar: PILLAR,
-        message: `High fan-out modules: ${examples} — these are potential bottlenecks for changes`,
+        message: `Elevated fan-out modules: ${examples} — approaching high coupling threshold`,
         confidence: "medium",
         scoreImpact: { pillarDelta: -2, compositeDelta: 0 },
         remediation: {
@@ -514,29 +531,6 @@ export const navigabilityAnalyzer: PillarAnalyzer = {
           finding:
             "Modules with high fan-out require more context for agents to reason about safely",
           confidence: "medium",
-        },
-      });
-    }
-
-    // --- ARI-NAV-013: Cross-boundary violations ---
-    if (graphMetrics.violations.length > 0) {
-      score -= Math.min(10, graphMetrics.violations.length * 5);
-      const examples = graphMetrics.violations
-        .slice(0, 3)
-        .map((v) => `${v.sourceFile} → ${v.targetFile} (${v.rule})`)
-        .join("; ");
-      findings.push({
-        code: "ARI-NAV-013",
-        severity: "high",
-        pillar: PILLAR,
-        message: `Cross-boundary violations: ${examples}`,
-        confidence: "high",
-        scoreImpact: { pillarDelta: -5, compositeDelta: 0 },
-        remediation: {
-          action: "refactor",
-          description:
-            "Fix architectural boundary violations — production code should not import test files and vice versa",
-          confidence: "high",
         },
       });
     }

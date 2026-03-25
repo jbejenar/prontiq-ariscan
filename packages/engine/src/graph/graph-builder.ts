@@ -67,7 +67,7 @@ export async function buildDependencyGraph(
     for (const imp of fileImports) {
       if (imp.kind === "package" && !includeExternal) continue;
 
-      const targetKey = imp.kind === "relative" ? imp.target : imp.target;
+      const targetKey = imp.target;
 
       // Add to imports map
       const sourceImports = importsMap.get(sourceKey) ?? new Set<string>();

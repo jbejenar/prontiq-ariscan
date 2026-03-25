@@ -5,7 +5,6 @@ export type {
   CyclePath,
   FanMetrics,
   CohesionMetrics,
-  BoundaryViolation,
   GraphMetrics,
 } from "./types.js";
 
@@ -20,8 +19,8 @@ export {
   findCycles,
   computeFanMetrics,
   computeCohesion,
-  detectBoundaryViolations,
   computeStructuralClarity,
+  computeStructuralClarityFromResults,
   analyzeGraph,
 } from "./graph-analyzer.js";
 export { generateDotGraph } from "./dot-formatter.js";

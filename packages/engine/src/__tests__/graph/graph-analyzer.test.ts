@@ -3,7 +3,6 @@ import {
   findCycles,
   computeFanMetrics,
   computeCohesion,
-  detectBoundaryViolations,
   computeStructuralClarity,
   analyzeGraph,
 } from "../../graph/graph-analyzer.js";
@@ -196,27 +195,6 @@ describe("computeCohesion", () => {
   });
 });
 
-describe("detectBoundaryViolations", () => {
-  it("detects production code importing test files", () => {
-    const graph = buildGraph({
-      "src/service": ["src/__tests__/helper"],
-      "src/__tests__/helper": [],
-    });
-    const violations = detectBoundaryViolations(graph);
-    expect(violations.length).toBeGreaterThan(0);
-    expect(violations[0]?.rule).toContain("test");
-  });
-
-  it("does not flag normal imports", () => {
-    const graph = buildGraph({
-      "src/a": ["src/b"],
-      "src/b": [],
-    });
-    const violations = detectBoundaryViolations(graph);
-    expect(violations).toHaveLength(0);
-  });
-});
-
 describe("computeStructuralClarity", () => {
   it("returns 100 for clean graph with no issues", () => {
     const graph = buildGraph({
@@ -244,13 +222,11 @@ describe("computeStructuralClarity", () => {
   });
 
   it("is clamped to [0, 100]", () => {
-    // Create a graph with many issues
+    // Create a graph with cycles
     const graph = buildGraph({
       "src/a": ["src/b"],
       "src/b": ["src/c"],
       "src/c": ["src/a"], // cycle
-      "src/__tests__/test": [],
-      "src/prod": ["src/__tests__/test"], // boundary violation
     });
     const score = computeStructuralClarity(graph);
     expect(score).toBeGreaterThanOrEqual(0);

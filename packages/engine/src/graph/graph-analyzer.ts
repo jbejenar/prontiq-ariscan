@@ -4,7 +4,6 @@
  */
 
 import type {
-  BoundaryViolation,
   CohesionMetrics,
   CyclePath,
   DependencyGraph,
@@ -153,72 +152,32 @@ export function computeCohesion(graph: DependencyGraph): CohesionMetrics[] {
   return results.sort((a, b) => a.ratio - b.ratio);
 }
 
-/** Default boundary rules: source → target patterns that are violations. */
-const DEFAULT_BOUNDARY_RULES: Array<{
-  sourcePattern: RegExp;
-  targetPattern: RegExp;
-  rule: string;
-}> = [
-  {
-    sourcePattern: /\/__tests__\/|\.test\.|\.spec\./,
-    targetPattern: /^(?!.*(__tests__|\.test\.|\.spec\.))/,
-    rule: "Tests should not be imported by production code",
-  },
-  {
-    sourcePattern: /^(?!.*(__tests__|\.test\.|\.spec\.))/,
-    targetPattern: /\/__tests__\/|\.test\.|\.spec\./,
-    rule: "Production code importing test files",
-  },
-];
-
 /**
- * Detect cross-boundary violations: imports that break architectural layer rules.
- *
- * Default rules:
- * - Production code should not import test files
- * - Test utilities should not be imported by production code
- */
-export function detectBoundaryViolations(graph: DependencyGraph): BoundaryViolation[] {
-  const violations: BoundaryViolation[] = [];
-
-  for (const [sourcePath, node] of graph.nodes) {
-    for (const targetPath of node.imports) {
-      for (const { sourcePattern, targetPattern, rule } of DEFAULT_BOUNDARY_RULES) {
-        if (sourcePattern.test(sourcePath) && targetPattern.test(targetPath)) {
-          violations.push({ sourceFile: sourcePath, targetFile: targetPath, rule });
-        }
-      }
-    }
-  }
-
-  return violations;
-}
-
-/**
- * Compute an overall structural clarity score (0-100) from graph metrics.
+ * Compute an overall structural clarity score (0-100) from pre-computed metrics.
  *
  * Factors:
  * - Absence of cycles (major factor)
  * - Balanced fan-out (no extreme hubs)
  * - Good directory cohesion
- * - No boundary violations
  */
-export function computeStructuralClarity(graph: DependencyGraph): number {
-  if (graph.nodes.size === 0) return 50;
+export function computeStructuralClarityFromResults(
+  nodeCount: number,
+  cycles: readonly CyclePath[],
+  fanMetrics: readonly FanMetrics[],
+  cohesion: readonly CohesionMetrics[],
+): number {
+  if (nodeCount === 0) return 50;
 
   let score = 100;
 
   // Cycle penalty: -15 per cycle, max -45
-  const cycles = findCycles(graph);
   score -= Math.min(45, cycles.length * 15);
 
   // Fan-out penalty: -5 for each module with fan-out > 15, max -20
-  const fanMetrics = computeFanMetrics(graph);
   const highFanOut = fanMetrics.filter((m) => m.fanOut > 15).length;
   score -= Math.min(20, highFanOut * 5);
 
   // Cohesion penalty: -10 if average cohesion < 0.3, -5 if < 0.5
-  const cohesion = computeCohesion(graph);
   if (cohesion.length > 0) {
     const avgCohesion = cohesion.reduce((sum, c) => sum + c.ratio, 0) / cohesion.length;
     if (avgCohesion < 0.3) {
@@ -228,11 +187,21 @@ export function computeStructuralClarity(graph: DependencyGraph): number {
     }
   }
 
-  // Boundary violation penalty: -5 per violation, max -15
-  const violations = detectBoundaryViolations(graph);
-  score -= Math.min(15, violations.length * 5);
-
   return Math.min(100, Math.max(0, score));
+}
+
+/**
+ * Convenience wrapper: compute structural clarity directly from a graph.
+ * Runs all algorithms internally — prefer `computeStructuralClarityFromResults`
+ * when you already have pre-computed metrics.
+ */
+export function computeStructuralClarity(graph: DependencyGraph): number {
+  return computeStructuralClarityFromResults(
+    graph.nodes.size,
+    findCycles(graph),
+    computeFanMetrics(graph),
+    computeCohesion(graph),
+  );
 }
 
 /**
@@ -242,8 +211,12 @@ export function analyzeGraph(graph: DependencyGraph): GraphMetrics {
   const cycles = findCycles(graph);
   const fanMetrics = computeFanMetrics(graph);
   const cohesion = computeCohesion(graph);
-  const violations = detectBoundaryViolations(graph);
-  const structuralClarity = computeStructuralClarity(graph);
+  const structuralClarity = computeStructuralClarityFromResults(
+    graph.nodes.size,
+    cycles,
+    fanMetrics,
+    cohesion,
+  );
 
   return {
     nodeCount: graph.nodes.size,
@@ -251,7 +224,6 @@ export function analyzeGraph(graph: DependencyGraph): GraphMetrics {
     cycles,
     fanMetrics,
     cohesion,
-    violations,
     structuralClarity,
   };
 }

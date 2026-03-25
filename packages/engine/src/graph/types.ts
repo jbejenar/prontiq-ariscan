@@ -60,13 +60,6 @@ export interface CohesionMetrics {
   readonly ratio: number;
 }
 
-/** A cross-boundary violation: an import that breaks architectural layers. */
-export interface BoundaryViolation {
-  readonly sourceFile: string;
-  readonly targetFile: string;
-  readonly rule: string;
-}
-
 /** Aggregate graph metrics. */
 export interface GraphMetrics {
   readonly nodeCount: number;
@@ -74,7 +67,6 @@ export interface GraphMetrics {
   readonly cycles: readonly CyclePath[];
   readonly fanMetrics: readonly FanMetrics[];
   readonly cohesion: readonly CohesionMetrics[];
-  readonly violations: readonly BoundaryViolation[];
   /** Overall structural clarity score (0-100) */
   readonly structuralClarity: number;
 }
