@@ -76,6 +76,13 @@ export const Finding = z.object({
 });
 export type Finding = z.infer<typeof Finding>;
 
+/** A finding attributed to a plugin source. */
+export const PluginFinding = Finding.extend({
+  /** Source attribution: "plugin:<name>". */
+  source: z.string(),
+});
+export type PluginFinding = z.infer<typeof PluginFinding>;
+
 export const PillarStatus = z.enum(["excellent", "good", "needs-improvement", "poor"]);
 export type PillarStatus = z.infer<typeof PillarStatus>;
 
@@ -262,5 +269,9 @@ export const ScanResult = z.object({
   repoProfile: RepoProfile.optional(),
   /** Language profile applied for weight adjustment (P3.06). */
   languageProfile: z.string().optional(),
+  /** Findings from plugins, attributed separately from core findings (P3.08). */
+  pluginFindings: z.array(PluginFinding).optional(),
+  /** Errors from plugin loading/execution, surfaced for observability (P3.08). */
+  pluginErrors: z.array(z.object({ pluginName: z.string(), error: z.string() })).optional(),
 });
 export type ScanResult = z.infer<typeof ScanResult>;

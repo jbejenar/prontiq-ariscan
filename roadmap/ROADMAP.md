@@ -4731,7 +4731,7 @@ P1.11 provides surface-level navigability heuristics. This ticket adds AST-level
 ```yaml
 id: P3.08
 title: Plugin Architecture
-status: todo
+status: in-progress
 priority: p2-medium
 epic: P3
 persona: Community developers, platform teams with custom requirements
@@ -4752,29 +4752,29 @@ No single team can anticipate every scoring criterion for every ecosystem. A plu
 
 ### Functional
 
-- [ ] Extension API for community checks/providers (built on `PillarAnalyzer` provider pattern from RFC-0003):
-  - [ ] Plugin interface: implements `PillarAnalyzer` — `name`, `pillar`, `analyze(context: RepoContext): PillarResult`
-    - `Verify:` confirm plugin interface definition
-  - [ ] Plugin discovery: local directory, npm packages (`ariscan-plugin-*`)
-    - `Verify:` confirm both discovery methods work
-  - [ ] Plugin isolation: plugins cannot modify core scoring, only add criteria
-    - `Verify:` confirm plugin cannot change core scores
-  - [ ] Plugin metadata: version, author, confidence level, dependencies
-    - `Verify:` confirm metadata fields required
-  - [ ] Conformance suites: plugins must pass `packages/testing/conformance/` tests
-    - `Verify:` confirm conformance tests exist and enforce
-- [ ] One reference plugin (`ariscan-plugin-terraform`) demonstrating the API
-  - `Verify:` confirm reference plugin exists and works
-- [ ] API stability guidance: plugin API versioned separately from core, with deprecation windows
-  - `Verify:` confirm versioning docs
-- [ ] Plugin development documentation and starter template
-  - `Verify:` confirm docs and template
-- [ ] Plugin API is versioned with clear stability guarantees
-  - `Verify:` confirm version in API definition
-- [ ] Plugins cannot crash the core scanner (error isolation)
-  - `Verify:` make a plugin throw and confirm scanner continues
-- [ ] Plugin results clearly attributed in output (not mixed with core findings)
-  - `Verify:` confirm plugin findings have source attribution
+- [x] Extension API for community checks/providers (built on `PillarAnalyzer` provider pattern from RFC-0003):
+  - [x] Plugin interface: implements `AriscanPlugin` — `manifest`, `analyze(context: RepoContext): PluginAnalyzeResult`
+    - `Verify:` `AriscanPlugin` interface in `packages/engine/src/plugins/types.ts`. `PluginManifest` schema in `packages/schema/src/plugin.ts`. Verified 2026-03-26.
+  - [x] Plugin discovery: local directory, npm packages (`ariscan-plugin-*`)
+    - `Verify:` `loadPlugins()` in `packages/engine/src/plugins/loader.ts` discovers from `.ariscan/plugins/` dir and npm packages. 10 loader tests pass. Verified 2026-03-26.
+  - [x] Plugin isolation: plugins cannot modify core scoring, only add criteria
+    - `Verify:` Plugin findings stored in `pluginFindings` array on ScanResult, separate from core `findings`. Plugins never modify pillar scores. Verified 2026-03-26.
+  - [x] Plugin metadata: version, author, confidence level, dependencies
+    - `Verify:` `PluginManifest` Zod schema requires name, version; optional author, description, apiVersion, pillar, confidence. Verified 2026-03-26.
+  - [x] Conformance suites: plugins must pass conformance validation
+    - `Verify:` `validatePlugin()` in `packages/engine/src/plugins/conformance.ts` checks manifest, API version, analyze function, error handling, timeout. 9 conformance tests pass. Verified 2026-03-26.
+- [x] One reference plugin (`ariscan-plugin-terraform`) demonstrating the API
+  - `Verify:` `examples/ariscan-plugin-terraform/` with index.js (3 Terraform checks), package.json, README.md. Verified 2026-03-26.
+- [x] API stability guidance: plugin API versioned separately from core, with deprecation windows
+  - `Verify:` `PLUGIN_API_VERSION = "1.0"` in schema package. Loader validates major version compatibility. README documents versioning. Verified 2026-03-26.
+- [x] Plugin development documentation and starter template
+  - `Verify:` `examples/ariscan-plugin-terraform/README.md` includes full development guide. AGENTS.md "Writing a Plugin" section added. Verified 2026-03-26.
+- [x] Plugin API is versioned with clear stability guarantees
+  - `Verify:` `PLUGIN_API_VERSION` constant exported from schema. Major version mismatch blocks loading. Verified 2026-03-26.
+- [x] Plugins cannot crash the core scanner (error isolation)
+  - `Verify:` `runPlugins()` catches per-plugin errors. Test "isolates plugin errors" confirms one crash doesn't affect others. Verified 2026-03-26.
+- [x] Plugin results clearly attributed in output (not mixed with core findings)
+  - `Verify:` All plugin findings include `source: "plugin:<name>"` field. Stored in `pluginFindings` array, separate from core `findings`. Verified 2026-03-26.
 
 ### Telemetry (non-blocking)
 

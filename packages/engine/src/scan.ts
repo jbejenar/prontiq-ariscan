@@ -9,6 +9,7 @@ import type {
   PillarResult,
   Finding,
   RepoProfile,
+  PluginFinding,
 } from "@prontiq/ariscan-schema";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
@@ -20,6 +21,8 @@ import { classifyProfile } from "./detection/profile.js";
 import { adjustPillarResults } from "./scoring/applicability.js";
 import { adaptPillarRemediation } from "./scoring/remediation-adapter.js";
 import { resolveLanguageProfile } from "./profiles/index.js";
+import { loadPlugins } from "./plugins/loader.js";
+import { runPlugins } from "./plugins/runner.js";
 import type { RepoContext } from "./analyzers/analyzer.interface.js";
 
 /** Progress event emitted during a scan. */
@@ -242,6 +245,39 @@ export async function scan(
   // doesn't need to reverse-infer from finding codes.
   const devcontainerDetected = await context.fileExists(".devcontainer/devcontainer.json");
 
+  // Run plugins if configured (P3.08)
+  let pluginFindings: PluginFinding[] | undefined;
+  let pluginErrors: Array<{ pluginName: string; error: string }> | undefined;
+  const pluginConfig = config.plugins;
+  if (pluginConfig && pluginConfig.enabled !== false) {
+    const loadResult = await loadPlugins(repoPath, {
+      directory: pluginConfig.directory,
+      packages: pluginConfig.packages,
+    });
+
+    // Surface loader errors
+    if (loadResult.errors.length > 0) {
+      pluginErrors = loadResult.errors.map((e) => ({
+        pluginName: e.location,
+        error: e.error,
+      }));
+    }
+
+    if (loadResult.plugins.length > 0) {
+      const pluginResult = await runPlugins(loadResult.plugins, context);
+      if (pluginResult.findings.length > 0) {
+        pluginFindings = pluginResult.findings;
+      }
+      if (pluginResult.errors.length > 0) {
+        const runErrors = pluginResult.errors.map((e) => ({
+          pluginName: e.pluginName,
+          error: e.error,
+        }));
+        pluginErrors = pluginErrors ? [...pluginErrors, ...runErrors] : runErrors;
+      }
+    }
+  }
+
   return {
     ...result,
     detection,
@@ -249,6 +285,8 @@ export async function scan(
     devcontainerDetected,
     repoProfile,
     languageProfile: languageProfileDef?.language,
+    ...(pluginFindings ? { pluginFindings } : {}),
+    ...(pluginErrors ? { pluginErrors } : {}),
   };
 }
 

@@ -61,6 +61,14 @@ export {
 export type { TelemetryPayload } from "./telemetry.js";
 
 export {
+  PLUGIN_API_VERSION,
+  PluginManifest,
+  PluginFinding,
+  PluginAnalysisResult,
+  PluginConfig,
+} from "./plugin.js";
+
+export {
   SimulationStepId,
   SimulationStepStatus,
   SimulationStepResult,
