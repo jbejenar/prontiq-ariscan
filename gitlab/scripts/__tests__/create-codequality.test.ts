@@ -4,7 +4,7 @@ import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const SCRIPT_PATH = join(__dirname, "..", "create-codequality.js");
+const SCRIPT_PATH = join(__dirname, "..", "create-codequality.mjs");
 
 function runScript(env: Record<string, string>): string {
   return execFileSync("node", [SCRIPT_PATH], {

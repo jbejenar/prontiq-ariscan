@@ -14,12 +14,23 @@ ari-scan:
   extends: .ari-scan
 ```
 
-That's it. The template will:
+This gives you scanning + policy enforcement. For MR comments and Code Quality reports, you also need the companion scripts — copy the `gitlab/` directory into your repo:
+
+```bash
+# From the prontiq/ariscan repo, copy gitlab/scripts/ into your project
+mkdir -p gitlab/scripts
+curl -sL https://raw.githubusercontent.com/prontiq/ariscan/main/gitlab/scripts/generate-mr-comment.mjs -o gitlab/scripts/generate-mr-comment.mjs
+curl -sL https://raw.githubusercontent.com/prontiq/ariscan/main/gitlab/scripts/create-codequality.mjs -o gitlab/scripts/create-codequality.mjs
+```
+
+With scripts in place, the template will:
 1. Install the ARI scanner
 2. Score your repository
 3. Post an MR comment with the score, pillar breakdown, and top recommendations
 4. Generate a Code Quality report for GitLab's MR widget
 5. Compare against the target branch and show the delta
+
+> **Note:** When using `include: remote:`, the YAML template is fetched but the companion JS scripts are not. You must copy them locally (see above) or use a local include instead.
 
 ## Prerequisites
 

@@ -113,14 +113,12 @@ variables:
       SCRIPT_DIR="$(dirname "$(readlink -f "$0")" 2>/dev/null || echo ".")"
 
       # Try to locate scripts relative to the template
-      # If included via remote, scripts must be installed alongside the CLI
-      # If included locally, scripts are in the same directory
+      # Scripts must be copied locally — remote include does not fetch them
       for SCRIPTS_PATH in \
         "${CI_PROJECT_DIR}/gitlab/scripts" \
         "${CI_PROJECT_DIR}/.gitlab/scripts" \
-        "$(npm root -g)/@prontiq/ariscan-cli/../ariscan-gitlab/scripts" \
         ; do
-        if [ -f "${SCRIPTS_PATH}/create-codequality.js" ]; then
+        if [ -f "${SCRIPTS_PATH}/create-codequality.mjs" ]; then
           break
         fi
         SCRIPTS_PATH=""
@@ -128,7 +126,7 @@ variables:
 
       if [ -n "${SCRIPTS_PATH}" ]; then
         ARI_PR_SCAN="${RESULT_DIR}/pr-scan.json" \
-          node "${SCRIPTS_PATH}/create-codequality.js" > "${RESULT_DIR}/codequality.json"
+          node "${SCRIPTS_PATH}/create-codequality.mjs" > "${RESULT_DIR}/codequality.json"
         echo "Code Quality report generated"
       else
         echo "[]" > "${RESULT_DIR}/codequality.json"
@@ -144,9 +142,8 @@ variables:
         for SCRIPTS_PATH in \
           "${CI_PROJECT_DIR}/gitlab/scripts" \
           "${CI_PROJECT_DIR}/.gitlab/scripts" \
-          "$(npm root -g)/@prontiq/ariscan-cli/../ariscan-gitlab/scripts" \
           ; do
-          if [ -f "${SCRIPTS_PATH}/generate-mr-comment.js" ]; then
+          if [ -f "${SCRIPTS_PATH}/generate-mr-comment.mjs" ]; then
             break
           fi
           SCRIPTS_PATH=""
@@ -155,13 +152,12 @@ variables:
         if [ -n "${SCRIPTS_PATH}" ]; then
           COMMENT_BODY=$(ARI_PR_SCAN="${RESULT_DIR}/pr-scan.json" \
             ARI_BASE_SCAN="${RESULT_DIR}/base-scan.json" \
-            ARI_DELTA="${ARI_DELTA_VAL:-}" \
+            ARI_DELTA_VALUE="${ARI_DELTA_VAL:-}" \
             ARI_BASE_SCORE="${ARI_BASE_SCORE:-}" \
-            node "${SCRIPTS_PATH}/generate-mr-comment.js")
+            node "${SCRIPTS_PATH}/generate-mr-comment.mjs")
 
           HEADER="<!-- ari-scan -->"
-          FULL_BODY="${HEADER}
-      ${COMMENT_BODY}"
+          FULL_BODY=$(printf '%s\n%s' "${HEADER}" "${COMMENT_BODY}")
 
           # Write body to temp file for safe JSON encoding
           BODY_FILE="${RESULT_DIR}/comment-body.txt"

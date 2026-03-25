@@ -4,7 +4,7 @@ import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const SCRIPT_PATH = join(__dirname, "..", "generate-mr-comment.js");
+const SCRIPT_PATH = join(__dirname, "..", "generate-mr-comment.mjs");
 
 function runScript(env: Record<string, string>): string {
   return execFileSync("node", [SCRIPT_PATH], {
@@ -121,7 +121,7 @@ describe("generate-mr-comment", () => {
     const output = runScript({
       ARI_PR_SCAN: prPath,
       ARI_BASE_SCAN: basePath,
-      ARI_DELTA: "10",
+      ARI_DELTA_VALUE: "10",
       ARI_BASE_SCORE: "70",
     });
 
@@ -137,7 +137,7 @@ describe("generate-mr-comment", () => {
     const output = runScript({
       ARI_PR_SCAN: prPath,
       ARI_BASE_SCAN: basePath,
-      ARI_DELTA: "-10",
+      ARI_DELTA_VALUE: "-10",
       ARI_BASE_SCORE: "70",
     });
 
@@ -152,7 +152,7 @@ describe("generate-mr-comment", () => {
     const output = runScript({
       ARI_PR_SCAN: prPath,
       ARI_BASE_SCAN: basePath,
-      ARI_DELTA: "0",
+      ARI_DELTA_VALUE: "0",
       ARI_BASE_SCORE: "75",
     });
 
