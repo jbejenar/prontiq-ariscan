@@ -8,6 +8,7 @@ import type {
   Suppression,
   PillarResult,
   Finding,
+  RepoProfile,
 } from "@prontiq/ariscan-schema";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
@@ -205,8 +206,15 @@ export async function scan(
     : pillarResults;
 
   // Classify repo profile and apply archetype-based finding applicability
-  const repoProfile = config.archetype
-    ? { ...(await classifyProfile(context, detection)), archetype: config.archetype }
+  const repoProfile: RepoProfile = config.archetype
+    ? {
+        archetype: config.archetype,
+        confidence: "high",
+        signals: ["user-override"],
+        fileCount: 0,
+        sourceFileCount: 0,
+        hasCI: false,
+      }
     : await classifyProfile(context, detection);
   const finalPillarResults = adjustPillarResults(suppressedResults, repoProfile.archetype);
 

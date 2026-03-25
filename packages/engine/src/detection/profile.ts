@@ -193,9 +193,10 @@ function classify(
     return { archetype: "api-service", confidence: "high" };
   }
 
-  // library: published exports detected
-  if (isLibrary && sourceFileCount <= 200) {
-    return { archetype: "library", confidence: "high" };
+  // library: published exports detected (size does not disqualify — monorepo check above takes precedence for large repos)
+  if (isLibrary) {
+    const confidence = sourceFileCount <= 200 ? "high" : "medium";
+    return { archetype: "library", confidence };
   }
 
   // small-team: 10-50 source files, may have CI
@@ -205,8 +206,6 @@ function classify(
 
   // Large non-monorepo with CI but no other specific signals
   if (sourceFileCount > 50 && hasCI) {
-    // Could be a large library or service without detected framework
-    if (isLibrary) return { archetype: "library", confidence: "medium" };
     return { archetype: "small-team", confidence: "low" };
   }
 

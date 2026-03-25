@@ -131,7 +131,7 @@ function formatContextFiles(contextFiles: ScanResult["contextFiles"]): string[] 
   return lines;
 }
 
-function formatRemainingFindings(findings: ScanResult["findings"]): string[] {
+function formatRemainingFindings(findings: ScanResult["findings"], archetype?: string): string[] {
   const remaining = findings.filter((f) => f.severity !== "critical" && f.severity !== "high");
   if (remaining.length === 0) return [];
   const lines: string[] = [];
@@ -157,7 +157,7 @@ function formatRemainingFindings(findings: ScanResult["findings"]): string[] {
 
   if (notApplicable.length > 0) {
     lines.push("");
-    lines.push(pc.dim(`  Not applicable to ${findings[0]?.pillar ?? "this"} profile:`));
+    lines.push(pc.dim(`  Not applicable to ${archetype ?? "this archetype's"} profile:`));
     for (const finding of notApplicable) {
       lines.push(pc.dim(`  ${"N/A".padEnd(8)} ${finding.code} ${finding.message}`));
     }
@@ -173,7 +173,7 @@ function formatVerboseSection(result: ScanResult): string[] {
     lines.push(...formatDetectionSection(result.detection));
   }
   lines.push(...formatContextFiles(result.contextFiles));
-  lines.push(...formatRemainingFindings(result.findings));
+  lines.push(...formatRemainingFindings(result.findings, result.repoProfile?.archetype));
   return lines;
 }
 
