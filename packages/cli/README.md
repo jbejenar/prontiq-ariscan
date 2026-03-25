@@ -70,8 +70,8 @@ ariscan --json-schema > ariscan.schema.json
 
 | Level | Score | Meaning |
 |---|---|---|
-| L1 Hostile | 0-25 | Agents thrash and hallucinate |
-| L2 Fragile | 26-45 | Simple edits with heavy supervision |
+| L1 Hostile | 0-25 | Agents face significant friction — missing guardrails |
+| L2 Fragile | 26-45 | Simple edits feasible with close supervision |
 | L3 Capable | 46-65 | Routine tasks with moderate supervision |
 | L4 Productive | 66-80 | Multi-file features with light supervision |
 | L5 Autonomous | 81-100 | Complex cross-service tasks, self-verified |
