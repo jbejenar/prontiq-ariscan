@@ -36,6 +36,7 @@ jobs:
 
       # Run the action against this repo (using local action definition)
       - name: Run ARI Action
+        id: ari
         uses: ./action
         with:
           version: "latest"
@@ -46,5 +47,7 @@ jobs:
 
       - name: Verify outputs
         run: |
-          echo "Score: ${{ steps.scan.outputs.score }}"
-          echo "Level: ${{ steps.scan.outputs.level }}"
+          echo "Score: ${{ steps.ari.outputs.score }}"
+          echo "Level: ${{ steps.ari.outputs.level }}"
+          [ -n "${{ steps.ari.outputs.score }}" ] || { echo "::error::Missing score output"; exit 1; }
+          [ -n "${{ steps.ari.outputs.level }}" ] || { echo "::error::Missing level output"; exit 1; }
