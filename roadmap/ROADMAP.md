@@ -3949,8 +3949,8 @@ Readiness-as-code is the bridge between awareness and enforcement. Without a dec
 
 ### Telemetry (non-blocking)
 
-- [ ] Policy file adoption rate
-- [ ] Enforcement mode distribution
+- [ ] Policy file adoption rate [DEFERRED: telemetry, non-blocking]
+- [ ] Enforcement mode distribution [DEFERRED: telemetry, non-blocking]
 
 ## Scope
 
