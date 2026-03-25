@@ -17,6 +17,7 @@ import { policyCommand } from "./commands/policy.js";
 import { generateCommand } from "./commands/generate.js";
 import { auditCommand } from "./commands/audit.js";
 import { diffCommand } from "./commands/diff.js";
+import { checkCommand } from "./commands/check.js";
 import { formatTerminal } from "./output/terminal.js";
 import {
   formatJson,
@@ -118,6 +119,12 @@ export async function dispatchCommand(args: Record<string, unknown>): Promise<vo
   if (isBareWord && rawFirstArg === "diff") {
     const { runCommand } = await import("citty");
     await runCommand(diffCommand, { rawArgs: process.argv.slice(3) });
+    return;
+  }
+
+  if (isBareWord && rawFirstArg === "check") {
+    const { runCommand } = await import("citty");
+    await runCommand(checkCommand, { rawArgs: process.argv.slice(3) });
     return;
   }
 

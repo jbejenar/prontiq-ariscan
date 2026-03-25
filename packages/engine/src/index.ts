@@ -56,4 +56,15 @@ export type {
   SegmentClass,
 } from "./context/index.js";
 export { auditAgentsMd, auditContextFile, discoverContextFiles } from "./audit/index.js";
+export {
+  getPillarsByProfile,
+  getChangedFiles,
+  getChangedFilesFromBase,
+  loadBaseline,
+  saveBaseline,
+  computeDelta,
+  getBaselineCacheDir,
+  runCheck,
+} from "./check/index.js";
+export type { PillarDelta, DeltaResult, CheckOptions, CheckResult } from "./check/index.js";
 export type { AuditResult, AuditIssue, DimensionScore, IssueSeverity } from "./audit/index.js";

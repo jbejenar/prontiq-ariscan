@@ -108,3 +108,8 @@ export const FileConfig = z
   })
   .strict();
 export type FileConfig = z.infer<typeof FileConfig>;
+
+/* ─── Check mode types (P3.04) ─── */
+
+export const CheckProfile = z.enum(["fast", "standard", "thorough"]);
+export type CheckProfile = z.infer<typeof CheckProfile>;
