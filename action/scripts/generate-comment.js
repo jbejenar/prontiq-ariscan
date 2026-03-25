@@ -26,7 +26,6 @@ const levelName = pr.levelMeta?.name ?? level;
 
 // Delta info
 const deltaStr = process.env.ARI_DELTA;
-const baseScore = process.env.ARI_BASE_SCORE;
 const baseScanPath = process.env.ARI_BASE_SCAN;
 const hasDelta = deltaStr !== undefined && deltaStr !== "";
 const delta = hasDelta ? parseInt(deltaStr, 10) : 0;

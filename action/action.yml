@@ -73,22 +73,24 @@ runs:
 
     - name: Install ariscan CLI
       shell: bash
-      run: npm install -g @prontiq/ariscan-cli@${{ inputs.version }}
+      run: npm install -g "@prontiq/ariscan-cli@${INPUT_VERSION}"
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
 
     # ── Scan PR branch ──
     - name: Scan repository
       id: scan
       shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        RESULT_PATH: ${{ runner.temp }}/ari-pr-scan.json
       run: |
-        SCAN_ARGS="${{ inputs.path }} --json"
-        if [ -n "${{ inputs.config }}" ]; then
-          SCAN_ARGS="$SCAN_ARGS --config ${{ inputs.config }}"
-        fi
-        if [ "${{ inputs.threshold }}" != "0" ]; then
-          SCAN_ARGS="$SCAN_ARGS --threshold 0"
+        SCAN_ARGS="$INPUT_PATH --json --threshold 0"
+        if [ -n "$INPUT_CONFIG" ]; then
+          SCAN_ARGS="$SCAN_ARGS --config $INPUT_CONFIG"
         fi
 
-        RESULT_PATH="${{ runner.temp }}/ari-pr-scan.json"
         ariscan $SCAN_ARGS > "$RESULT_PATH" 2>/dev/null || true
 
         if [ ! -s "$RESULT_PATH" ]; then
@@ -109,31 +111,42 @@ runs:
       id: delta
       if: inputs.delta == 'true' && github.event_name == 'pull_request'
       shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        PR_SCORE: ${{ steps.scan.outputs.score }}
       run: |
         BASE_PATH="${{ runner.temp }}/ari-base-scan.json"
-        BASE_SHA="${{ github.event.pull_request.base.sha }}"
 
-        git stash --include-untracked 2>/dev/null || true
         git fetch origin "$BASE_SHA" --depth=1 2>/dev/null || true
-        git checkout "$BASE_SHA" 2>/dev/null || {
+
+        WORKTREE_DIR="${{ runner.temp }}/ari-base-worktree"
+        if ! git worktree add "$WORKTREE_DIR" "$BASE_SHA" 2>/dev/null; then
           echo "delta=" >> "$GITHUB_OUTPUT"
           echo "base-path=" >> "$GITHUB_OUTPUT"
           exit 0
-        }
-
-        SCAN_ARGS="${{ inputs.path }} --json"
-        if [ -n "${{ inputs.config }}" ]; then
-          SCAN_ARGS="$SCAN_ARGS --config ${{ inputs.config }}"
         fi
 
-        ariscan $SCAN_ARGS > "$BASE_PATH" 2>/dev/null || echo '{"score":0,"level":"L1","pillars":[],"findings":[]}' > "$BASE_PATH"
+        SCAN_ARGS="$WORKTREE_DIR/$INPUT_PATH --json --threshold 0"
+        if [ -n "$INPUT_CONFIG" ]; then
+          SCAN_ARGS="$SCAN_ARGS --config $INPUT_CONFIG"
+        fi
 
-        git checkout "${{ github.event.pull_request.head.sha }}" 2>/dev/null || git checkout - 2>/dev/null
-        git stash pop 2>/dev/null || true
+        ariscan $SCAN_ARGS > "$BASE_PATH" 2>/dev/null
+        SCAN_EXIT=$?
 
-        PR_SCORE=${{ steps.scan.outputs.score }}
+        # Only overwrite with fallback if no valid JSON was produced
+        if [ ! -s "$BASE_PATH" ]; then
+          echo '{"score":0,"level":"L1","pillars":[],"findings":[]}' > "$BASE_PATH"
+        fi
+
+        git worktree remove "$WORKTREE_DIR" --force 2>/dev/null || true
+
+        PR_SCORE_VAL="${PR_SCORE:-0}"
         BASE_SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$BASE_PATH','utf8')).score || 0)")
-        DELTA=$((PR_SCORE - BASE_SCORE))
+        BASE_SCORE="${BASE_SCORE:-0}"
+        DELTA=$((PR_SCORE_VAL - BASE_SCORE))
 
         echo "delta=$DELTA" >> "$GITHUB_OUTPUT"
         echo "base-path=$BASE_PATH" >> "$GITHUB_OUTPUT"
@@ -153,11 +166,27 @@ runs:
 
     - name: Post or update PR comment
       if: inputs.comment == 'true' && github.event_name == 'pull_request'
-      uses: marocchino/sticky-pull-request-comment@v2
-      with:
-        header: ari-scan
-        message: ${{ steps.comment.outputs.body }}
-        GITHUB_TOKEN: ${{ inputs.token }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        COMMENT_BODY: ${{ steps.comment.outputs.body }}
+      run: |
+        HEADER="<!-- ari-scan -->"
+        BODY="${HEADER}
+        ${COMMENT_BODY}"
+
+        # Find existing comment by marker
+        EXISTING_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+          --jq ".[] | select(.body | startswith(\"$HEADER\")) | .id" 2>/dev/null | head -1)
+
+        if [ -n "$EXISTING_ID" ]; then
+          gh api "repos/${{ github.repository }}/issues/comments/${EXISTING_ID}" \
+            -X PATCH -f body="$BODY" > /dev/null
+        else
+          gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            -f body="$BODY" > /dev/null
+        fi
 
     # ── Inline annotations ──
     - name: Create finding annotations
@@ -171,20 +200,25 @@ runs:
     - name: Enforce policy
       if: inputs.fail-on-violation == 'true'
       shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_THRESHOLD: ${{ inputs.threshold }}
+        SCORE: ${{ steps.scan.outputs.score }}
       run: |
-        SCORE=${{ steps.scan.outputs.score }}
-        THRESHOLD=${{ inputs.threshold }}
+        SCORE="${SCORE:-0}"
+        INPUT_THRESHOLD="${INPUT_THRESHOLD:-0}"
 
-        if [ "$THRESHOLD" != "0" ] && [ "$SCORE" -lt "$THRESHOLD" ]; then
-          echo "::error::ARI score $SCORE is below threshold $THRESHOLD"
+        if [ "$INPUT_THRESHOLD" != "0" ] && [ "$SCORE" -lt "$INPUT_THRESHOLD" ]; then
+          echo "::error::ARI score $SCORE is below threshold $INPUT_THRESHOLD"
           exit 1
         fi
 
         # If no explicit threshold, re-run with policy enforcement
-        if [ "$THRESHOLD" = "0" ]; then
-          SCAN_ARGS="${{ inputs.path }}"
-          if [ -n "${{ inputs.config }}" ]; then
-            SCAN_ARGS="$SCAN_ARGS --config ${{ inputs.config }}"
+        if [ "$INPUT_THRESHOLD" = "0" ]; then
+          SCAN_ARGS="$INPUT_PATH"
+          if [ -n "$INPUT_CONFIG" ]; then
+            SCAN_ARGS="$SCAN_ARGS --config $INPUT_CONFIG"
           fi
           ariscan $SCAN_ARGS --quiet 2>/dev/null
         fi
