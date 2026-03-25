@@ -3878,6 +3878,302 @@ The repo ships a tool that measures agent readiness. If the repo itself doesn't 
 - External repo enforcement (this is self-dogfooding only)
 
 
+### Ticket P2.15 — Insufficient Data Handling
+
+```yaml
+id: P2.15
+title: Insufficient Data Handling
+status: todo
+priority: p0-critical
+epic: P2
+persona: Any user interpreting scan results, especially on small or single-purpose repos
+depends_on: [P1.13, P2.09]
+tech_stack: [TypeScript, Zod]
+completed: null
+```
+
+## User Story
+
+As a developer scanning a small repo, I need the tool to tell me when it doesn't have enough data to score a pillar — rather than inventing a number that undermines my trust.
+
+## Problem Statement
+
+Pillars that lack sufficient input signal (e.g., P7 Navigability with no source files, P3 Test Isolation with no test files) currently return a numeric score based on partial heuristics or default baselines. This produces misleading results: a repo with zero source files might score 50/100 on Code Navigability with a summary reading "No source files to analyze for navigability." The number contradicts the message, eroding trust in every other score.
+
+P2.09 (Confidence Weighting) added confidence labels per pillar, but confidence is about signal quality — this is about signal *absence*. A pillar with no relevant files to analyze should be marked as unscoreable and excluded from the composite, not low-confidence.
+
+## Definition of Done
+
+### Functional
+
+- [ ] `dataStatus` field added to `PillarResult` schema: `"sufficient" | "insufficient" | "partial"`
+  - `Verify:` `--json` output includes `dataStatus` field per pillar
+- [ ] Analyzers return `dataStatus: "insufficient"` when minimum input threshold is not met:
+  - [ ] P7 Navigability: 0 source files matching known extensions → insufficient
+    - `Verify:` scan a repo with only config files and confirm P7 is insufficient
+  - [ ] P3 Test Isolation: 0 test files detected → insufficient
+    - `Verify:` scan a repo with no test files and confirm P3 is insufficient
+  - [ ] P6 Build Determinism: no build config or package manager detected → insufficient
+    - `Verify:` scan a bare repo with only a README and confirm P6 is insufficient
+  - [ ] P5 Doc Machine-Readability: no structured docs beyond README → partial
+    - `Verify:` scan a repo with only README.md and confirm P5 is partial
+- [ ] Insufficient pillars excluded from composite score calculation (weight redistributed proportionally to remaining pillars)
+  - `Verify:` composite score excludes insufficient pillars; sum of effective weights = 1.0
+- [ ] Terminal output renders insufficient pillars as `--/100` with `INSUFFICIENT DATA` label
+  - `Verify:` visual inspection of terminal output for a minimal repo
+- [ ] Verbose mode shows score decomposition per pillar: `"P1 72/100 (15%) → contributes 10.8 pts"`
+  - `Verify:` verbose output includes contribution breakdown
+- [ ] JSON, SARIF, and Markdown formatters include `dataStatus` field
+  - `Verify:` all output formats include the field
+- [ ] `scoreBreakdown` added to `ScanResult`: `{ activePillars, insufficientPillars, effectiveWeightSum }`
+  - `Verify:` `--json` output includes `scoreBreakdown`
+
+### Testing
+
+- [ ] Unit tests for each analyzer's insufficient-data detection
+  - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run insufficient-data`
+- [ ] Integration test: composite score excludes insufficient pillars and redistributes weight correctly
+  - `Verify:` mock repo with 2 insufficient pillars; confirm composite = weighted average of remaining 6
+
+### Telemetry (non-blocking)
+
+- [ ] Distribution of insufficient pillar counts per scan
+
+## Scope
+
+### In
+
+- Schema addition (patch version — new optional fields only), analyzer pre-checks, composite recalculation, output formatting
+
+### Out — Do Not Implement
+
+- User-configurable insufficient thresholds, auto-remediation for insufficient pillars
+
+
+### Ticket P2.16 — Repo Profile & Adaptive Scoring
+
+```yaml
+id: P2.16
+title: Repo Profile & Adaptive Scoring
+status: todo
+priority: p0-critical
+epic: P2
+persona: Solo developers, small teams, library authors — anyone whose repo is NOT an enterprise monorepo
+depends_on: [P1.02, P1.13, P2.15]
+tech_stack: [TypeScript, Zod]
+completed: null
+```
+
+## User Story
+
+As a developer with a 2-file Docker project, I need the scanner to understand that CODEOWNERS, SECURITY.md, commitlint, Renovate, SAST, and pre-commit hooks are enterprise ceremony that would be absurd for my project — and stop penalizing me for not having them.
+
+## Problem Statement
+
+The tool detects languages, frameworks, and monorepo tools (P1.02) but this detection has zero impact on scoring — it is purely informational. Every repo, from a 2-file Docker project to a 500-engineer monorepo, is evaluated against the same criteria with the same weights. This is a credibility killer: a senior engineer who sees "add CODEOWNERS" on their personal repo stops trusting the tool entirely.
+
+The detection infrastructure already exists. What's missing is a classification layer that maps detection signals to a repo archetype, and an applicability layer that filters findings based on that archetype.
+
+**Relationship to P3.06 (Language Rubric Profiles):** P3.06 adjusts pillar weights and criteria by *language ecosystem* (Python mypy vs TypeScript strict). P2.16 adjusts finding *applicability* by *project scale and type* (solo vs enterprise). These are complementary: a solo Python project would benefit from both P2.16 (exclude enterprise ceremony) and P3.06 (Python-specific criteria).
+
+## Definition of Done
+
+### Functional
+
+- [ ] `RepoProfile` type added to schema: `{ archetype, confidence, signals[], fileCount, sourceFileCount, hasCI }`
+  - `Verify:` `--json` output includes `repoProfile` field
+- [ ] Archetype classification from existing detection signals:
+  - [ ] `solo-hobby`: <10 source files, no CI, no monorepo, no team signals (CODEOWNERS, PR template)
+    - `Verify:` scan a 2-file Docker project and confirm `solo-hobby`
+  - [ ] `small-team`: 10-50 source files, may have CI, no monorepo
+    - `Verify:` scan a small project with CI and confirm `small-team`
+  - [ ] `library`: package.json has `main`/`exports`/`types`, or pyproject.toml with `[project]`, or Cargo.toml with `[lib]`
+    - `Verify:` scan an npm library and confirm `library`
+  - [ ] `api-service`: Express/FastAPI/Django/Flask/Spring detected, or Dockerfile with EXPOSE
+    - `Verify:` scan a FastAPI project and confirm `api-service`
+  - [ ] `cli-tool`: `bin` field in package.json, or commander/yargs/clap dependency
+    - `Verify:` scan a CLI project and confirm `cli-tool`
+  - [ ] `monorepo-enterprise`: monorepo tool detected (P1.02) or >200 source files with CI
+    - `Verify:` scan this repo (ariscan itself) and confirm `monorepo-enterprise`
+- [ ] Per-archetype finding applicability map defining which finding codes are NOT_APPLICABLE:
+  - [ ] `solo-hobby` excludes: CODEOWNERS (ARI-SEC-001), SECURITY.md (ARI-SEC-002), branch protection (ARI-SEC-009), SAST (ARI-SEC-010), commitlint (ARI-FBK-005), Renovate/Dependabot (ARI-SEC-004), PR template (ARI-SEC-005), license compliance (ARI-SEC-007)
+    - `Verify:` scan a solo project and confirm these findings are excluded
+  - [ ] `library` excludes: devcontainer (reduced weight, not removed), docker-compose
+    - `Verify:` scan a library and confirm adjusted applicability
+  - [ ] `monorepo-enterprise`: all findings applicable (no exclusions)
+    - `Verify:` scan this repo and confirm no exclusions
+- [ ] `applicability` field added to Finding schema: `"applicable" | "not-applicable"`
+  - `Verify:` `--json` output includes `applicability` per finding
+- [ ] NOT_APPLICABLE findings excluded from pillar score calculation
+  - `Verify:` solo-hobby project scores higher after exclusion than before
+- [ ] NOT_APPLICABLE findings hidden in default output, visible in verbose mode (dimmed/grayed with reason)
+  - `Verify:` default output for solo-hobby shows only applicable findings; verbose shows all with labels
+- [ ] Archetype displayed in output header: `"Profile: solo-hobby (high confidence) — 8 findings not applicable"`
+  - `Verify:` visual inspection of terminal output
+- [ ] `--archetype <name>` CLI flag for manual override
+  - `Verify:` `--archetype monorepo-enterprise` forces all findings applicable
+
+### Testing
+
+- [ ] Unit tests for profile classifier with mock detection results per archetype
+  - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run repo-profile`
+- [ ] Unit tests for applicability map: each archetype's exclusion list is tested
+  - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run applicability`
+- [ ] Integration test: solo-hobby repo excludes enterprise findings and scores accordingly
+  - `Verify:` end-to-end scan of hostile-repo fixture with solo-hobby classification
+- [ ] Dogfood: ariscan repo still scores ≥70 (L4) as monorepo-enterprise (no exclusions)
+  - `Verify:` `pnpm selftest` passes
+
+### Telemetry (non-blocking)
+
+- [ ] Archetype distribution across scanned repos
+- [ ] NOT_APPLICABLE finding count per archetype
+
+## Scope
+
+### In
+
+- Profile classification, applicability mapping, score adjustment, output formatting, CLI override
+
+### Out — Do Not Implement
+
+- User-defined archetypes, per-finding applicability overrides (use suppressions in `.ariscan.yml` for that), weight adjustment per archetype (P3.06 handles weight tuning)
+
+
+### Ticket P2.17 — Impact-Ordered Findings
+
+```yaml
+id: P2.17
+title: Impact-Ordered Findings
+status: todo
+priority: p1-high
+epic: P2
+persona: Any developer interpreting scan results who wants to know what to fix first
+depends_on: [P2.15, P2.16]
+tech_stack: [TypeScript, Zod]
+completed: null
+```
+
+## User Story
+
+As a developer who just got my scan results, I want findings sorted by how much my score will improve if I fix them — not just by severity label — so I know what to work on first.
+
+## Problem Statement
+
+Default output shows top 5 findings sorted by severity (critical → high). Verbose mode shows 30+ findings, overwhelming the user. Neither mode answers the question users actually have: "what single change would improve my score the most?"
+
+Severity and impact are not the same. A "critical" finding on a pillar weighted 5% has less composite impact than a "high" finding on a pillar weighted 18%. Impact ordering makes the output actionable.
+
+## Definition of Done
+
+### Functional
+
+- [ ] `scoreImpact` field added to Finding schema: `{ pillarDelta: number, compositeDelta: number }`
+  - `Verify:` `--json` output includes `scoreImpact` per finding
+- [ ] Per-finding `pillarDelta` annotated in each analyzer (points the finding costs the pillar)
+  - `Verify:` every finding has a non-zero `pillarDelta`
+- [ ] `compositeDelta` calculated: `pillarDelta × pillarWeight / effectiveWeightSum`
+  - `Verify:` compositeDelta math is correct for edge cases (insufficient pillars excluded from weight sum)
+- [ ] Default output sorted by `compositeDelta` descending, shows top 7 findings
+  - `Verify:` visual inspection; highest-impact finding is first
+- [ ] Impact displayed inline: `[+8.2 pts]  ARI-SEC-003  No secrets scanning configured`
+  - `Verify:` visual inspection of terminal output
+- [ ] Verbose mode shows all findings sorted by impact
+  - `Verify:` verbose output is impact-sorted
+- [ ] JSON, SARIF, Markdown formatters include `scoreImpact`
+  - `Verify:` all output formats include the field
+
+### Testing
+
+- [ ] Unit tests for impact calculation with known pillar scores and weights
+  - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run impact-ordering`
+- [ ] Integration test: findings are ordered by composite delta, not severity
+  - `Verify:` mock repo where a "high" finding has more impact than a "critical" finding
+
+### Telemetry (non-blocking)
+
+- [ ] Top 10 finding codes by composite delta across all scans
+
+## Scope
+
+### In
+
+- Score impact annotation, impact calculation, sorting, output formatting
+
+### Out — Do Not Implement
+
+- Predictive modeling ("if you fix this AND that, combined impact is X"), interactive what-if mode
+
+
+### Ticket P2.18 — Context-Aware Remediation
+
+```yaml
+id: P2.18
+title: Context-Aware Remediation
+status: todo
+priority: p1-high
+epic: P2
+persona: Any developer who runs --fix or reads remediation suggestions
+depends_on: [P2.16, P2.06]
+tech_stack: [TypeScript, Zod]
+completed: null
+```
+
+## User Story
+
+As a developer with a Makefile-based project, I need remediation suggestions that reference Make targets — not Turborepo or npm scripts — so the suggestions feel like they were written for my repo, not copy-pasted from a template.
+
+## Problem Statement
+
+P2.06 (Guided Remediation Templates) built framework-aware templates: NestJS vs FastAPI vs Spring Boot DI wiring, language-specific devcontainer images, Python vs TypeScript env var schemas. This is good — but templates are not yet *project-scale* aware or *build-tool* aware.
+
+A tool that detects a Makefile and Docker Compose but suggests a Turborepo setup for incremental builds isn't reading the room. A tool that suggests CODEOWNERS to a solo developer isn't reading the room. Remediation must adapt to the detected repo profile (P2.16) and specific tooling, not just the language/framework.
+
+**Extends P2.06:** P2.06 built the template infrastructure and framework awareness. P2.18 layers project-scale and build-tool awareness on top.
+
+## Definition of Done
+
+### Functional
+
+- [ ] Remediation text adapts to detected build system:
+  - [ ] Makefile detected → suggest Make targets, not npm/pnpm scripts
+    - `Verify:` scan a Make-based project and confirm remediation references Makefile
+  - [ ] Docker Compose detected → suggest compose-based workflows, not Turborepo
+    - `Verify:` scan a Docker Compose project and confirm no Turborepo references
+  - [ ] Poetry/uv detected → suggest Python-native tooling, not Node.js equivalents
+    - `Verify:` scan a Poetry project and confirm Python-native suggestions
+- [ ] Remediation text adapts to repo profile (P2.16):
+  - [ ] Solo-hobby: governance findings reframed as "Consider when scaling" rather than "Missing required file"
+    - `Verify:` solo-hobby remediation uses growth-oriented language
+  - [ ] Library: publish-focused suggestions (API surface docs, type exports) prioritized
+    - `Verify:` library remediation emphasizes consumer-facing quality
+- [ ] `--fix` generator uses detected tooling for generated file content
+  - `Verify:` `--fix --dry-run` on a Makefile project generates Make-compatible suggestions
+- [ ] No cross-ecosystem suggestions (Turborepo for Make projects, npm for Poetry projects, etc.)
+  - `Verify:` audit all remediation output for cross-ecosystem contamination
+
+### Testing
+
+- [ ] Unit tests for build-tool-aware remediation per detected system (Make, Compose, Poetry, Cargo, Go)
+  - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run context-aware-remediation`
+- [ ] Integration test: solo-hobby project gets growth-oriented remediation language
+  - `Verify:` end-to-end --fix --dry-run on minimal repo
+
+### Telemetry (non-blocking)
+
+- [ ] Remediation acceptance rate by archetype (requires --fix usage data)
+
+## Scope
+
+### In
+
+- Build-tool awareness in remediation text, profile-aware framing, --fix generator adaptation
+
+### Out — Do Not Implement
+
+- LLM-generated remediation, interactive remediation wizards, custom template authoring
+
+
 ### P2 Exit Criteria
 
 - Context audit and budget outputs are stable across repeated runs.
@@ -3886,6 +4182,8 @@ The repo ships a tool that measures agent readiness. If the repo itself doesn't 
 - `.agentignore` spec published as RFC with parser implementation.
 - Context generator produces measurably additive content (scored by P1.04).
 - Telemetry (if shipped) is fully documented with opt-in consent flow verified.
+- Insufficient-data pillars are clearly marked and excluded from composite scoring.
+- Repo profile classification correctly filters enterprise-ceremony findings for small projects.
 
 ---
 
@@ -4257,6 +4555,8 @@ As a Python developer, I need scoring that reflects Python-specific readiness cr
 ## Problem Statement
 
 A TypeScript-heavy default rubric unfairly penalizes Python, Go, Rust, and Java repos. Research confirms language-specific differences: Veracode (2025) shows vulnerability rates vary 2x by language (Java 72% vs Python 38%). Multi-SWE-bench (Zan et al., 2025) confirms agents perform differently across languages. Language profiles adjust weights and criteria to be fair and accurate per ecosystem.
+
+**Relationship to P2.16:** P2.16 (Repo Profile & Adaptive Scoring) adjusts finding applicability by project scale and type (solo vs enterprise). P3.06 adjusts pillar weights and criteria by language ecosystem. These are complementary: a solo Python project would benefit from both P2.16 (exclude enterprise ceremony) and P3.06 (Python-specific criteria). P2.16 should ship first as it addresses the more pressing credibility concern.
 
 ## Definition of Done
 
