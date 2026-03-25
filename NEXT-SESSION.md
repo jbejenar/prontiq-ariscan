@@ -39,10 +39,11 @@ Checkboxes checked this session: 10 (P3.02 functional items)
 - **P1.18 execution:** Requires running `bash benchmarks/run.sh` outside Claude Code session (sandbox blocks git clone)
 
 ### Next Session Should Start With
-1. **Publish P3.02 to Marketplace:** Create `prontiq/ariscan-action` repo, copy action files, publish
-2. **Test P3.02 live:** Open a PR using the action, verify comment appears, annotations work, timing is <3 min
-3. **Execute P1.18 benchmark** outside sandbox if possible
-4. After P1.18 completes, unblock P1.02/P1.03/P1.06 testing items and P2.12
+1. A review of the deferred items and a look at the roadmap to decide whether newer more higher priority items nee to be done
+2. **Publish P3.02 to Marketplace:** Create `prontiq/ariscan-action` repo, copy action files, publish
+3. **Test P3.02 live:** Open a PR using the action, verify comment appears, annotations work, timing is <3 min
+4. **Execute P1.18 benchmark** outside sandbox if possible
+5. After P1.18 completes, unblock P1.02/P1.03/P1.06 testing items and P2.12
 
 ### Roadmap Progress
 - P1: ~129/132 done. Remaining: P1.18 functional items (pending execution), blocked telemetry/testing items
