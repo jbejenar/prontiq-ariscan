@@ -29,8 +29,13 @@ export interface CheckOptions {
 
 /** Result of a check run. */
 export interface CheckResult {
-  /** The full scan result (may be partial if profile != thorough). */
+  /** The full (unfiltered) scan result. Always represents the complete repo scan. */
   scanResult: ScanResult;
+  /**
+   * Pillar results filtered to changed files only.
+   * When changedFiles is non-empty, use this for display; otherwise same as scanResult.pillars.
+   */
+  filteredPillars: ScanResult["pillars"];
   /** Delta against baseline, if baseline exists and useDelta is true. */
   delta: DeltaResult | null;
   /** Which profile was used. */
@@ -71,15 +76,17 @@ export async function runCheck(repoPath: string, options: CheckOptions = {}): Pr
   // Run the scan
   const scanResult = await scan(repoPath, scanConfig, options.onProgress);
 
-  // Filter findings to changed files if provided
+  // Build a filtered view of pillar results for display (never mutate scanResult)
+  let filteredPillars = scanResult.pillars;
   if (changedFiles.length > 0) {
     const changedSet = new Set(changedFiles);
-    for (const pillar of scanResult.pillars) {
-      pillar.findings = pillar.findings.filter((f) => !f.file || changedSet.has(f.file));
-    }
+    filteredPillars = scanResult.pillars.map((p) => ({
+      ...p,
+      findings: p.findings.filter((f) => !f.file || changedSet.has(f.file)),
+    }));
   }
 
-  // Compute delta against baseline
+  // Compute delta against baseline using the full (unfiltered) scan result
   let delta: DeltaResult | null = null;
   if (useDelta) {
     const baseline = await loadBaseline(repoPath);
@@ -88,13 +95,14 @@ export async function runCheck(repoPath: string, options: CheckOptions = {}): Pr
     }
   }
 
-  // Optionally update baseline
+  // Optionally update baseline with the full (unfiltered) scan result
   if (options.updateBaseline) {
     await saveBaseline(repoPath, scanResult);
   }
 
   return {
     scanResult,
+    filteredPillars,
     delta,
     profile,
     changedFiles,

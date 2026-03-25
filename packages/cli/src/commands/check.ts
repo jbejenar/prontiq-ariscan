@@ -108,13 +108,15 @@ Examples:
 
     const elapsed = Math.round(performance.now() - startTime);
 
-    // Save baseline if requested
+    // Save baseline if requested (always uses full unfiltered scan result)
     if (args.saveBaseline) {
       await saveBaseline(repoPath, result.scanResult);
       if (!args.quiet && !args.json) {
         process.stderr.write(`\n  Baseline saved to ${getBaselineCacheDir()}/baseline.json\n`);
       }
     }
+
+    const isFiltered = result.changedFiles.length > 0;
 
     // Output
     if (args.json) {
@@ -124,9 +126,11 @@ Examples:
             profile: result.profile,
             composite: result.scanResult.score,
             level: result.scanResult.level,
+            scoreScope: isFiltered ? "full-repo" : "full-repo",
+            findingsScope: isFiltered ? "changed-files" : "full-repo",
             delta: result.delta,
             changedFiles: result.changedFiles,
-            pillars: result.scanResult.pillars.map((p) => ({
+            pillars: result.filteredPillars.map((p) => ({
               pillar: p.pillar,
               score: p.score,
               findingCount: p.findings.length,
@@ -169,7 +173,8 @@ async function validatePath(path: string): Promise<string> {
 
 function formatCheckTerminal(result: CheckResult, elapsed: number): string {
   const lines: string[] = [];
-  const { scanResult, delta } = result;
+  const { scanResult, delta, filteredPillars } = result;
+  const isFiltered = result.changedFiles.length > 0;
 
   lines.push("");
 
@@ -179,10 +184,13 @@ function formatCheckTerminal(result: CheckResult, elapsed: number): string {
   } else {
     // No baseline: show summary
     lines.push(`  ${pc.bold("Score:")} ${colorScore(scanResult.score)}/100 (${scanResult.level})`);
+    if (isFiltered) {
+      lines.push(pc.dim("  Score reflects full repo; findings scoped to changed files"));
+    }
     lines.push("");
 
-    // Show pillar scores
-    for (const pillar of scanResult.pillars) {
+    // Show pillar scores (use filtered pillars for finding counts)
+    for (const pillar of filteredPillars) {
       const name = PILLAR_NAMES[pillar.pillar] ?? pillar.pillar;
       const findingCount = pillar.findings.length;
       const findingNote =

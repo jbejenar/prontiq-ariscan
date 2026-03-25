@@ -6,6 +6,7 @@
  */
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { ScanResult as ScanResultSchema } from "@prontiq/ariscan-schema";
 import type { ScanResult, Finding, PillarId } from "@prontiq/ariscan-schema";
 
 const CACHE_DIR = ".ariscan-cache";
@@ -36,7 +37,12 @@ export async function loadBaseline(repoPath: string): Promise<ScanResult | null>
   const filePath = join(repoPath, CACHE_DIR, BASELINE_FILE);
   try {
     const content = await readFile(filePath, "utf-8");
-    return JSON.parse(content) as ScanResult;
+    const parsed = ScanResultSchema.safeParse(JSON.parse(content));
+    if (!parsed.success) {
+      // Corrupted baseline — treat as missing
+      return null;
+    }
+    return parsed.data;
   } catch {
     return null;
   }
