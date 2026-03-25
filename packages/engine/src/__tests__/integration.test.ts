@@ -253,8 +253,7 @@ describe("integration: context-aware remediation (P2.18)", () => {
 
     const proposals = await generateFixProposals(ctx, detection, profile);
     const codeowners = proposals.find((p) => p.path.includes("CODEOWNERS"));
-    if (codeowners) {
-      expect(codeowners.rationale).toContain("Consider");
-    }
+    expect(codeowners).toBeDefined();
+    expect(codeowners?.rationale).toContain("Consider");
   }, 30000);
 });

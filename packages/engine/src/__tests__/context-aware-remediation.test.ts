@@ -397,9 +397,8 @@ describe("generateFixProposals — profile-aware", () => {
     };
     const proposals = await generateFixProposals(ctx, detection, profile);
     const codeowners = proposals.find((p) => p.path.includes("CODEOWNERS"));
-    if (codeowners) {
-      expect(codeowners.rationale).toContain("Consider");
-    }
+    expect(codeowners).toBeDefined();
+    expect(codeowners?.rationale).toContain("Consider");
   });
 
   it("adapts PR template rationale for library archetype", async () => {
@@ -422,8 +421,7 @@ describe("generateFixProposals — profile-aware", () => {
     };
     const proposals = await generateFixProposals(ctx, detection, profile);
     const prTemplate = proposals.find((p) => p.path.includes("pull_request_template"));
-    if (prTemplate) {
-      expect(prTemplate.rationale).toContain("API surface");
-    }
+    expect(prTemplate).toBeDefined();
+    expect(prTemplate?.rationale).toContain("API surface");
   });
 });

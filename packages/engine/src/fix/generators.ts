@@ -182,7 +182,10 @@ function adaptProposalMetadata(
       );
       s = s.replace(
         /`npm run (\w+)`|`pnpm (\w+)`/g,
-        hasMake ? "`make $1$2`" : "`docker compose run app $1$2`",
+        (_, g1: string | undefined, g2: string | undefined) => {
+          const cmd = g1 ?? g2 ?? "";
+          return hasMake ? `\`make ${cmd}\`` : `\`docker compose run app ${cmd}\``;
+        },
       );
       return s;
     });

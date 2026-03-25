@@ -41,17 +41,18 @@ export async function detectBuildSystems(context: RepoContext): Promise<BuildSys
     for (const file of probe.files) {
       if (await context.fileExists(file)) {
         found = true;
-
-        // If a content check is required, verify it matches
-        if (probe.contentCheck && probe.contentCheck.file === file) {
-          const content = await context.readFile(file);
-          if (!content || !probe.contentCheck.pattern.test(content)) {
-            found = false;
-          }
-        }
-        if (found) break;
+        break;
       }
     }
+
+    // If a content check is required, always validate it regardless of which file was found
+    if (found && probe.contentCheck) {
+      const content = await context.readFile(probe.contentCheck.file);
+      if (!content || !probe.contentCheck.pattern.test(content)) {
+        found = false;
+      }
+    }
+
     if (found) {
       detected.push(probe.system);
     }
