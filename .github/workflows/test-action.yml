@@ -31,13 +31,20 @@ jobs:
       - run: pnpm build
 
       # Make the built CLI available on PATH — pnpm workspaces don't
-      # symlink workspace package bins to root node_modules/.bin
+      # symlink workspace package bins to root node_modules/.bin.
+      # Use a wrapper script instead of symlink to avoid Node.js
+      # module resolution issues with symlinked ESM entry points.
       - name: Add CLI to PATH
         run: |
           mkdir -p "$PWD/node_modules/.bin"
-          ln -sf "$PWD/packages/cli/dist/cli.js" "$PWD/node_modules/.bin/ariscan"
-          chmod +x "$PWD/packages/cli/dist/cli.js"
+          CLI_JS="$PWD/packages/cli/dist/cli.js"
+          chmod +x "$CLI_JS"
+          printf '#!/usr/bin/env bash\nexec node "%s" "$@"\n' "$CLI_JS" \
+            > "$PWD/node_modules/.bin/ariscan"
+          chmod +x "$PWD/node_modules/.bin/ariscan"
           echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+          # Verify the wrapper works before the action uses it
+          "$PWD/node_modules/.bin/ariscan" --version
 
       # Run the action against this repo (using local action definition)
       - name: Run ARI Action
