@@ -3883,13 +3883,13 @@ The repo ships a tool that measures agent readiness. If the repo itself doesn't 
 ```yaml
 id: P2.15
 title: Insufficient Data Handling
-status: todo
+status: done
 priority: p0-critical
 epic: P2
 persona: Any user interpreting scan results, especially on small or single-purpose repos
 depends_on: [P1.13, P2.09]
 tech_stack: [TypeScript, Zod]
-completed: null
+completed: 2026-03-26
 ```
 
 ## User Story
@@ -3906,38 +3906,50 @@ P2.09 (Confidence Weighting) added confidence labels per pillar, but confidence 
 
 ### Functional
 
-- [ ] `dataStatus` field added to `PillarResult` schema: `"sufficient" | "insufficient" | "partial"`
+- [x] `dataStatus` field added to `PillarResult` schema: `"sufficient" | "insufficient" | "partial"`
   - `Verify:` `--json` output includes `dataStatus` field per pillar
-- [ ] Analyzers return `dataStatus: "insufficient"` when minimum input threshold is not met:
-  - [ ] P7 Navigability: 0 source files matching known extensions → insufficient
+  - `Evidence:` DataStatus enum and optional `dataStatus` field on PillarResult in `packages/schema/src/scan-result.ts`
+- [x] Analyzers return `dataStatus: "insufficient"` when minimum input threshold is not met:
+  - [x] P7 Navigability: 0 source files matching known extensions → insufficient
     - `Verify:` scan a repo with only config files and confirm P7 is insufficient
-  - [ ] P3 Test Isolation: 0 test files detected → insufficient
+    - `Evidence:` `navigability.ts` early return with `buildPillarResult(..., "insufficient")` when 0 source files; emits ARI-NAV-100
+  - [x] P3 Test Isolation: 0 test files detected → insufficient
     - `Verify:` scan a repo with no test files and confirm P3 is insufficient
-  - [ ] P6 Build Determinism: no build config or package manager detected → insufficient
+    - `Evidence:` `test-isolation.ts` early return with `buildPillarResult(..., "insufficient")` when 0 test files; emits ARI-TST-006
+  - [x] P6 Build Determinism: no build config or package manager detected → insufficient
     - `Verify:` scan a bare repo with only a README and confirm P6 is insufficient
-  - [ ] P5 Doc Machine-Readability: no structured docs beyond README → partial
+    - `Evidence:` `build-determinism.ts` early return with `buildPillarResult(..., "insufficient")` when no build config or dev tooling; emits ARI-BLD-100
+  - [x] P5 Doc Machine-Readability: no structured docs beyond README → partial
     - `Verify:` scan a repo with only README.md and confirm P5 is partial
-- [ ] Insufficient pillars excluded from composite score calculation (weight redistributed proportionally to remaining pillars)
+    - `Evidence:` `doc-readability.ts` returns `"partial"` when only README present, `"insufficient"` when no docs at all
+- [x] Insufficient pillars excluded from composite score calculation (weight redistributed proportionally to remaining pillars)
   - `Verify:` composite score excludes insufficient pillars; sum of effective weights = 1.0
-- [ ] Terminal output renders insufficient pillars as `--/100` with `INSUFFICIENT DATA` label
+  - `Evidence:` `composite.ts` skips pillars where `dataStatus === "insufficient"` and renormalizes weights via `totalWeight` denominator
+- [x] Terminal output renders insufficient pillars as `--/100` with `INSUFFICIENT DATA` label
   - `Verify:` visual inspection of terminal output for a minimal repo
-- [ ] Verbose mode shows score decomposition per pillar: `"P1 72/100 (15%) → contributes 10.8 pts"`
+  - `Evidence:` `terminal.ts` formatPillar renders `--/100` with hollow bars and dim `INSUFFICIENT DATA` label
+- [x] Verbose mode shows score decomposition per pillar: `"P1 72/100 (15%) → contributes 10.8 pts"`
   - `Verify:` verbose output includes contribution breakdown
-- [ ] JSON, SARIF, and Markdown formatters include `dataStatus` field
+  - `Evidence:` `terminal.ts` verbose mode shows `score/100 (weight%) → contributes N.N pts` for active pillars
+- [x] JSON, SARIF, and Markdown formatters include `dataStatus` field
   - `Verify:` all output formats include the field
-- [ ] `scoreBreakdown` added to `ScanResult`: `{ activePillars, insufficientPillars, effectiveWeightSum }`
+  - `Evidence:` `json.ts` includes dataStatus in schema and output; `markdown.ts` shows `⚠️ Insufficient`/`Partial` labels; SARIF includes findings from insufficient pillars
+- [x] `scoreBreakdown` added to `ScanResult`: `{ activePillars, insufficientPillars, effectiveWeightSum }`
   - `Verify:` `--json` output includes `scoreBreakdown`
+  - `Evidence:` ScoreBreakdown type in schema; `computeScoreBreakdown()` in `composite.ts`; attached to ScanResult in `aggregateResults()`
 
 ### Testing
 
-- [ ] Unit tests for each analyzer's insufficient-data detection
+- [x] Unit tests for each analyzer's insufficient-data detection
   - `Verify:` `pnpm --filter @prontiq/ariscan-engine test -- --run insufficient-data`
-- [ ] Integration test: composite score excludes insufficient pillars and redistributes weight correctly
+  - `Evidence:` 16 tests in `insufficient-data.test.ts`: P7 (3), P3 (2), P6 (3), P5 (3), composite (3), breakdown (2) — all passing
+- [x] Integration test: composite score excludes insufficient pillars and redistributes weight correctly
   - `Verify:` mock repo with 2 insufficient pillars; confirm composite = weighted average of remaining 6
+  - `Evidence:` Test "excludes insufficient pillars from composite" with P3+P6 insufficient, effective weight 0.67, composite=68
 
 ### Telemetry (non-blocking)
 
-- [ ] Distribution of insufficient pillar counts per scan
+- [ ] Distribution of insufficient pillar counts per scan [DEFERRED: requires telemetry infrastructure]
 
 ## Scope
 
