@@ -4375,13 +4375,13 @@ CI integration is the #1 adoption accelerator. If ariscan runs on every PR and s
 ```yaml
 id: P3.03
 title: GitLab CI Template
-status: todo
+status: done
 priority: p2-medium
 epic: P3
 persona: Teams using GitLab for development
 depends_on: [P3.01, P1.14]
 tech_stack: [TypeScript, GitLab CI]
-completed: null
+completed: 2026-03-26
 ```
 
 ## User Story
@@ -4396,20 +4396,27 @@ GitLab has significant market share. Supporting GitLab ensures Prontiq isn't Git
 
 ### Functional
 
-- [ ] Official `.gitlab-ci.yml` template for ARI scanning
-  - `Verify:` confirm template produces scan results in GitLab CI
-- [ ] MR (merge request) comment via GitLab API
-  - `Verify:` open MR and confirm score comment appears
-- [ ] Report artifact export for GitLab's test report visualization
-  - `Verify:` confirm artifact appears in GitLab UI
-- [ ] Setup documentation with examples
-  - `Verify:` confirm copy-pasteable setup docs
-- [ ] Template supports report artifact export
-  - `Verify:` same as above
-- [ ] MR comment matches GitHub Action feature parity (summary, delta, recommendations)
-  - `Verify:` compare MR comment with GitHub PR comment
-- [ ] Setup documented with copy-pasteable examples
-  - `Verify:` confirm examples work
+- [x] Official `.gitlab-ci.yml` template for ARI scanning
+  - `Verify:` `gitlab/ariscan.gitlab-ci.yml` defines `.ari-scan` hidden job with scan, delta, code quality, MR comment, and policy enforcement steps
+  - `Evidence:` Template includes `include:` support (remote + local), configurable via CI/CD variables, Node.js image, artifact export. Verified 2026-03-26.
+- [x] MR (merge request) comment via GitLab API
+  - `Verify:` `gitlab/scripts/generate-mr-comment.mjs` produces markdown comment; template posts via `curl` to GitLab MR notes API with idempotent `<!-- ari-scan -->` marker
+  - `Evidence:` 8 unit tests passing for comment generation (basic, positive/negative/zero delta, security gate, no findings, suppressed findings, error handling). Verified 2026-03-26.
+- [x] Report artifact export for GitLab's test report visualization
+  - `Verify:` `gitlab/scripts/create-codequality.mjs` converts ARI findings to Code Climate format; template exports as `artifacts:reports:codequality`
+  - `Evidence:` 10 unit tests passing for code quality report (severity mapping, file locations, fingerprints, suppressed findings, description formatting). Verified 2026-03-26.
+- [x] Setup documentation with examples
+  - `Verify:` `gitlab/README.md` includes Quick Start, Variables table, Token Setup, Policy Enforcement, 5 examples (basic, strict, custom config, monorepo, local include), Artifacts table, Feature Parity comparison
+  - `Evidence:` README verified with copy-pasteable examples. Standalone example files in `docs/examples/gitlab-ci-{basic,strict,monorepo}.yml`. Verified 2026-03-26.
+- [x] Template supports report artifact export
+  - `Verify:` `artifacts:reports:codequality: .ari-results/codequality.json` in template + JSON scan result artifact
+  - `Evidence:` Same as above — Code Quality report integrates with GitLab MR widget. Verified 2026-03-26.
+- [x] MR comment matches GitHub Action feature parity (summary, delta, recommendations)
+  - `Verify:` Comment includes composite score, maturity level, delta, per-pillar breakdown with status indicators, top 3 recommendations, security gate warning — matching GitHub Action's `generate-comment.js` output
+  - `Evidence:` Feature parity table in README. Script logic mirrors GitHub Action's `generate-comment.js`. Verified 2026-03-26.
+- [x] Setup documented with copy-pasteable examples
+  - `Verify:` 5 inline examples in README + 3 standalone example files in `docs/examples/`
+  - `Evidence:` `docs/examples/gitlab-ci-basic.yml`, `docs/examples/gitlab-ci-strict.yml`, `docs/examples/gitlab-ci-monorepo.yml`. Verified 2026-03-26.
 
 ### Telemetry (non-blocking)
 

@@ -1,0 +1,12 @@
+# Basic ARI scoring on every merge request.
+# Copy this file to .gitlab-ci.yml in your repository.
+#
+# Prerequisites:
+#   1. Set GITLAB_TOKEN in CI/CD Settings (api scope) for MR comments
+#   2. Copy gitlab/scripts/ into your repo for MR comment + Code Quality support
+#      (see gitlab/README.md for details)
+include:
+  - remote: "https://raw.githubusercontent.com/prontiq/ariscan/main/gitlab/ariscan.gitlab-ci.yml"
+
+ari-scan:
+  extends: .ari-scan
