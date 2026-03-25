@@ -69,21 +69,15 @@ echo ""
 PASS_COUNT=0
 FAIL_COUNT=0
 
-# Collect resolved SHAs for --pin-refs
+# Collect resolved SHAs for --pin-refs (SKIP = clone failed)
 declare -a PINNED_SHAS=()
 
-for i in $(seq 0 $((REPO_COUNT - 1))); do
-  # Parse repo fields once (single node invocation per repo)
-  REPO_LINE=$(node "$HELPERS_DIR/parse-revisions.js" "$REVISIONS_FILE" repo "$i")
-  NAME=$(echo "$REPO_LINE" | cut -f1)
-  REPO=$(echo "$REPO_LINE" | cut -f2)
-  REF=$(echo "$REPO_LINE" | cut -f3)
-  LANG=$(echo "$REPO_LINE" | cut -f4)
-  DESC=$(echo "$REPO_LINE" | cut -f5)
-
+# Parse all repos in a single node invocation (eliminates N per-repo spawns)
+REPO_INDEX=0
+while IFS=$'\t' read -r NAME REPO REF LANG DESC; do
   CLONE_PATH="$CLONE_DIR/$NAME"
 
-  echo "[$((i + 1))/$REPO_COUNT] $NAME ($REPO @ $REF)"
+  echo "[$((REPO_INDEX + 1))/$REPO_COUNT] $NAME ($REPO @ $REF)"
 
   # Clone if not already present
   if [ ! -d "$CLONE_PATH" ]; then
@@ -91,9 +85,9 @@ for i in $(seq 0 $((REPO_COUNT - 1))); do
     git clone --depth 1 --branch "$REF" "https://github.com/$REPO.git" "$CLONE_PATH" 2>/dev/null || {
       echo "  WARNING: Failed to clone $REPO. Skipping."
       FAIL_COUNT=$((FAIL_COUNT + 1))
-      # Write error metadata for build-summary.js
-      echo "{\"commit\":null,\"error\":\"clone failed\"}" > "$RESULTS_DIR/$NAME.meta.json"
-      PINNED_SHAS+=("")
+      node "$HELPERS_DIR/write-meta.js" "$RESULTS_DIR/$NAME.meta.json" "" "clone failed"
+      PINNED_SHAS+=("SKIP")
+      REPO_INDEX=$((REPO_INDEX + 1))
       continue
     }
   else
@@ -108,23 +102,23 @@ for i in $(seq 0 $((REPO_COUNT - 1))); do
   echo "  Scanning..."
   RESULT_FILE="$RESULTS_DIR/$NAME.json"
   if node "$ARISCAN" "$CLONE_PATH" --format json > "$RESULT_FILE" 2>/dev/null; then
-    # Read score/level from result file (single node invocation)
-    SCORE=$(node -e "const r=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(r.composite.score)" "$RESULT_FILE")
-    LEVEL=$(node -e "const r=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(r.composite.level)" "$RESULT_FILE")
+    # Read score and level in a single node invocation
+    SCORE_LEVEL=$(node -e "const r=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(r.composite.score+'\t'+r.composite.level)" "$RESULT_FILE")
+    SCORE=$(echo "$SCORE_LEVEL" | cut -f1)
+    LEVEL=$(echo "$SCORE_LEVEL" | cut -f2)
     echo "  Score: $SCORE/100 ($LEVEL)"
     PASS_COUNT=$((PASS_COUNT + 1))
-    # Write success metadata
-    echo "{\"commit\":\"$COMMIT_SHA\"}" > "$RESULTS_DIR/$NAME.meta.json"
+    node "$HELPERS_DIR/write-meta.js" "$RESULTS_DIR/$NAME.meta.json" "$COMMIT_SHA"
   else
     echo "  WARNING: Scan failed for $NAME."
     FAIL_COUNT=$((FAIL_COUNT + 1))
-    # Write error metadata
-    echo "{\"commit\":\"$COMMIT_SHA\",\"error\":\"scan failed\"}" > "$RESULTS_DIR/$NAME.meta.json"
+    node "$HELPERS_DIR/write-meta.js" "$RESULTS_DIR/$NAME.meta.json" "$COMMIT_SHA" "scan failed"
     rm -f "$RESULT_FILE"
   fi
 
   echo ""
-done
+  REPO_INDEX=$((REPO_INDEX + 1))
+done < <(node "$HELPERS_DIR/parse-revisions.js" "$REVISIONS_FILE" all)
 
 # Build summary.json using Node.js (proper JSON.stringify, no bash interpolation)
 node "$HELPERS_DIR/build-summary.js" "$REVISIONS_FILE" "$RESULTS_DIR" "$RESULTS_DIR/summary.json"
@@ -144,12 +138,34 @@ if [ "$PIN_REFS" = true ]; then
     const filePath = process.argv[1];
     const shas = process.argv.slice(2);
     const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    if (shas.length !== data.repos.length) {
+      console.error('ERROR: SHA count (' + shas.length + ') does not match repo count (' + data.repos.length + '). Aborting pin-refs.');
+      process.exit(1);
+    }
+    let pinned = 0;
     data.repos.forEach((repo, i) => {
-      if (shas[i] && shas[i] !== '') {
+      if (shas[i] && shas[i] !== 'SKIP') {
         repo.ref = shas[i];
+        pinned++;
       }
     });
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
-    console.log('Updated ' + shas.filter(s => s !== '').length + ' refs in ' + filePath);
+    console.log('Updated ' + pinned + '/' + data.repos.length + ' refs in ' + filePath);
   " "$REVISIONS_FILE" "${PINNED_SHAS[@]}"
+fi
+
+# Warn if revisions.json contains non-SHA refs (branch names)
+SHA_RE='^[0-9a-f]{40}$'
+HAS_BRANCH_REFS=false
+while IFS=$'\t' read -r _ _ REF _ _; do
+  if ! [[ "$REF" =~ $SHA_RE ]]; then
+    HAS_BRANCH_REFS=true
+    break
+  fi
+done < <(node "$HELPERS_DIR/parse-revisions.js" "$REVISIONS_FILE" all)
+
+if [ "$HAS_BRANCH_REFS" = true ]; then
+  echo ""
+  echo "WARNING: revisions.json contains branch-name refs (not pinned commit SHAs)."
+  echo "For reproducible results, re-run with --pin-refs."
 fi
