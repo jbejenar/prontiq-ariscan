@@ -47,8 +47,8 @@ export async function getDevcontainerImage(repoPath: string): Promise<string | n
   for (const configPath of paths) {
     try {
       const raw = await readFile(configPath, "utf-8");
-      // devcontainer.json may have comments — strip them
-      const cleaned = raw.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+      // devcontainer.json may have JSONC comments — strip them safely
+      const cleaned = stripJsoncComments(raw);
       const config = JSON.parse(cleaned) as { image?: string };
       if (config.image) return config.image;
     } catch {
@@ -118,4 +118,65 @@ export async function resolveIsolationMode(
   }
 
   return { mode: "native", dockerImage: null, devcontainerDetected };
+}
+
+/**
+ * Strip JSONC comments (line and block) without corrupting string values.
+ * Uses a simple state machine to track whether we're inside a quoted string.
+ */
+function stripJsoncComments(text: string): string {
+  let result = "";
+  let i = 0;
+  let inString = false;
+
+  while (i < text.length) {
+    const ch = text[i] as string;
+
+    if (inString) {
+      result += ch;
+      if (ch === "\\" && i + 1 < text.length) {
+        // Skip escaped character
+        result += text[i + 1];
+        i += 2;
+        continue;
+      }
+      if (ch === '"') {
+        inString = false;
+      }
+      i++;
+      continue;
+    }
+
+    // Not in a string
+    if (ch === '"') {
+      inString = true;
+      result += ch;
+      i++;
+      continue;
+    }
+
+    // Check for // line comment
+    if (ch === "/" && i + 1 < text.length && text[i + 1] === "/") {
+      // Skip until end of line
+      while (i < text.length && text[i] !== "\n") {
+        i++;
+      }
+      continue;
+    }
+
+    // Check for /* block comment */
+    if (ch === "/" && i + 1 < text.length && text[i + 1] === "*") {
+      i += 2;
+      while (i + 1 < text.length && !(text[i] === "*" && text[i + 1] === "/")) {
+        i++;
+      }
+      i += 2; // skip */
+      continue;
+    }
+
+    result += ch;
+    i++;
+  }
+
+  return result;
 }

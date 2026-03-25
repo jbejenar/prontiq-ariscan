@@ -86,8 +86,8 @@ export class DockerExecutor implements StepExecutor {
   ) {}
 
   async execute(config: StepConfig): Promise<SimulationStepResult> {
-    // Wrap the command to run inside Docker
-    const dockerCmd = `docker exec -w ${config.cwd} ${this.containerName} sh -c ${shellEscape(config.command)}`;
+    // Wrap the command to run inside Docker — escape all interpolated values
+    const dockerCmd = `docker exec -w ${shellEscape(config.cwd)} ${shellEscape(this.containerName)} sh -c ${shellEscape(config.command)}`;
     const nativeConfig: StepConfig = {
       ...config,
       command: dockerCmd,
@@ -99,43 +99,43 @@ export class DockerExecutor implements StepExecutor {
 
   /** Start the Docker container for simulation. */
   async start(repoPath: string, workDir: string): Promise<void> {
-    const cmd = [
+    const start = performance.now();
+
+    const result = await spawnArgs(
       "docker",
-      "run",
-      "-d",
-      "--name",
-      this.containerName,
-      "-v",
-      `${repoPath}:${workDir}`,
-      "-w",
-      workDir,
-      this.image,
-      "sleep",
-      "infinity",
-    ].join(" ");
+      [
+        "run",
+        "-d",
+        "--name",
+        this.containerName,
+        "-v",
+        `${repoPath}:${workDir}`,
+        "-w",
+        workDir,
+        this.image,
+        "sleep",
+        "infinity",
+      ],
+      process.cwd(),
+      AbortSignal.timeout(120_000),
+    );
 
-    const native = new NativeExecutor();
-    const result = await native.execute({
-      id: "clone",
-      command: cmd,
-      cwd: process.cwd(),
-      timeoutMs: 120_000,
-    });
-
-    if (result.status !== "pass") {
-      throw new Error(`Failed to start Docker container: ${result.stderr || result.stdout}`);
+    const durationMs = Math.round(performance.now() - start);
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `Failed to start Docker container (${durationMs}ms): ${result.stderr || result.stdout}`,
+      );
     }
   }
 
   /** Stop and remove the Docker container. */
   async cleanup(): Promise<void> {
-    const native = new NativeExecutor();
-    await native.execute({
-      id: "clone",
-      command: `docker rm -f ${this.containerName}`,
-      cwd: process.cwd(),
-      timeoutMs: 30_000,
-    });
+    await spawnArgs(
+      "docker",
+      ["rm", "-f", this.containerName],
+      process.cwd(),
+      AbortSignal.timeout(30_000),
+    );
   }
 }
 
@@ -152,7 +152,11 @@ function isAbortError(error: unknown): boolean {
   );
 }
 
-/** Spawn a shell command and collect output. */
+/**
+ * Spawn a shell command and collect output.
+ * Note: `cwd` is passed as a Node.js spawn option (handled at OS level),
+ * not interpolated into the shell command string — safe from injection.
+ */
 function spawnCommand(
   command: string,
   cwd: string,
@@ -160,6 +164,43 @@ function spawnCommand(
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn("sh", ["-c", command], {
+      cwd,
+      signal,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (err) => {
+      reject(err);
+    });
+
+    child.on("close", (code) => {
+      resolve({ exitCode: code ?? 1, stdout, stderr });
+    });
+  });
+}
+
+/**
+ * Spawn a command with an explicit argument array (no shell interpretation).
+ * Used for Docker commands where arguments may contain special characters.
+ */
+function spawnArgs(
+  command: string,
+  args: string[],
+  cwd: string,
+  signal: AbortSignal,
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
       cwd,
       signal,
       stdio: ["ignore", "pipe", "pipe"],
@@ -203,27 +244,62 @@ export async function detectCommands(repoPath: string): Promise<DetectedCommands
   }
 
   // Try package.json scripts first
-  const bootstrap = detectBootstrapCommand(scripts, repoPath);
+  const bootstrap = await detectBootstrapCommand(scripts, repoPath);
   const typecheck = detectTypecheckCommand(scripts);
   const test = detectTestCommand(scripts);
 
   return { bootstrap, typecheck, test };
 }
 
-function detectBootstrapCommand(scripts: Record<string, string>, _repoPath: string): string | null {
-  // Check for common bootstrap scripts
-  if (scripts["install"] || scripts["postinstall"]) {
-    return "npm install";
+async function detectBootstrapCommand(
+  scripts: Record<string, string>,
+  repoPath: string,
+): Promise<string | null> {
+  const { access: fsAccess } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+
+  // Detect package manager from lockfiles
+  const pm = await detectPackageManager(repoPath, fsAccess, join);
+
+  const install = `${pm} install`;
+  const hasBuild = Boolean(scripts["prepare"] || scripts["build"]);
+
+  if (hasBuild) {
+    return `${install} && ${pm} run build`;
   }
-  // Check for pnpm
-  if (scripts["prepare"] || scripts["build"]) {
-    return "pnpm install && pnpm build";
+
+  // If package.json has any scripts, at least run install
+  if (Object.keys(scripts).length > 0 || scripts["install"] || scripts["postinstall"]) {
+    return install;
   }
-  // Generic fallback — if package.json exists, try npm install
-  if (Object.keys(scripts).length > 0) {
-    return "npm install";
-  }
+
   return null;
+}
+
+/** Detect the package manager by checking for lockfiles. */
+async function detectPackageManager(
+  repoPath: string,
+  fsAccess: typeof import("node:fs/promises").access,
+  join: typeof import("node:path").join,
+): Promise<string> {
+  const lockfiles: Array<[string, string]> = [
+    ["pnpm-lock.yaml", "pnpm"],
+    ["yarn.lock", "yarn"],
+    ["bun.lockb", "bun"],
+    ["bun.lock", "bun"],
+    ["package-lock.json", "npm"],
+  ];
+
+  for (const [file, pm] of lockfiles) {
+    try {
+      await fsAccess(join(repoPath, file));
+      return pm;
+    } catch {
+      continue;
+    }
+  }
+
+  return "npm";
 }
 
 function detectTypecheckCommand(scripts: Record<string, string>): string | null {
