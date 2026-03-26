@@ -16,6 +16,11 @@ export const nextjsPreset: ScaffolderPreset = {
 
   generate(options: ScaffoldOptions): FileEntry[] {
     const { name } = options;
+    if (!/^[a-z0-9][a-z0-9._-]*$/.test(name)) {
+      throw new Error(
+        `Invalid project name "${name}": must start with a lowercase letter or digit and contain only lowercase alphanumeric characters, dots, hyphens, or underscores.`,
+      );
+    }
     return [
       packageJson(name),
       tsconfigJson(),
@@ -172,7 +177,7 @@ function vitestConfig(): FileEntry {
   return {
     path: "vitest.config.ts",
     content: `import { defineConfig } from "vitest/config";
-import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   test: {
@@ -182,7 +187,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": resolve(__dirname, "./src"),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
 });
