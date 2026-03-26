@@ -53,14 +53,17 @@ for (let i = 0; i < repos.length; i++) {
     try {
       execSync(
         `git clone --depth 1 --branch "${ref}" "https://github.com/${repo}.git" "${clonePath}"`,
-        { stdio: "pipe", timeout: 120000 }
+        { stdio: "pipe", timeout: 120000 },
       );
     } catch (e) {
       console.log(`  WARNING: Failed to clone ${repo}. Skipping.`);
       failCount++;
       pinnedShas.push("SKIP");
       const meta = { name, repo, ref, clonedAt: null, error: "clone failed" };
-      fs.writeFileSync(path.join(RESULTS_DIR, `${name}.meta.json`), JSON.stringify(meta, null, 2) + "\n");
+      fs.writeFileSync(
+        path.join(RESULTS_DIR, `${name}.meta.json`),
+        JSON.stringify(meta, null, 2) + "\n",
+      );
       console.log("");
       continue;
     }
@@ -97,12 +100,18 @@ for (let i = 0; i < repos.length; i++) {
     results.push({ name, repo, ref, language, commitSha, score, level, description });
 
     const meta = { name, repo, ref, commitSha, scannedAt: new Date().toISOString() };
-    fs.writeFileSync(path.join(RESULTS_DIR, `${name}.meta.json`), JSON.stringify(meta, null, 2) + "\n");
+    fs.writeFileSync(
+      path.join(RESULTS_DIR, `${name}.meta.json`),
+      JSON.stringify(meta, null, 2) + "\n",
+    );
   } catch (e) {
     console.log(`  WARNING: Scan failed for ${name}. ${e.message?.slice(0, 200)}`);
     failCount++;
     const meta = { name, repo, ref, commitSha, error: "scan failed" };
-    fs.writeFileSync(path.join(RESULTS_DIR, `${name}.meta.json`), JSON.stringify(meta, null, 2) + "\n");
+    fs.writeFileSync(
+      path.join(RESULTS_DIR, `${name}.meta.json`),
+      JSON.stringify(meta, null, 2) + "\n",
+    );
     if (fs.existsSync(resultFile)) fs.unlinkSync(resultFile);
   }
 
