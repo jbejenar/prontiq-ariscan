@@ -65,8 +65,7 @@ function packageJson(name: string): FileEntry {
       typescript: "^5.7.0",
       vitest: "^3.0.0",
       eslint: "^9.18.0",
-      "@typescript-eslint/eslint-plugin": "^8.0.0",
-      "@typescript-eslint/parser": "^8.0.0",
+      "typescript-eslint": "^8.0.0",
       prettier: "^3.4.0",
       "@types/node": "^22.0.0",
     },
@@ -119,22 +118,12 @@ export default defineConfig({
 function eslintConfig(): FileEntry {
   return {
     path: "eslint.config.js",
-    content: `import tseslint from "@typescript-eslint/eslint-plugin";
-import tsparser from "@typescript-eslint/parser";
+    content: `import tseslint from "typescript-eslint";
 
-export default [
+export default tseslint.config(
   {
     files: ["src/**/*.ts"],
-    languageOptions: {
-      parser: tsparser,
-      parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-      },
-    },
-    plugins: {
-      "@typescript-eslint": tseslint,
-    },
+    extends: [...tseslint.configs.strict],
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [
@@ -143,7 +132,7 @@ export default [
       ],
     },
   },
-];
+);
 `,
   };
 }
