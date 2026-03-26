@@ -7,7 +7,7 @@
  */
 import { defineCommand } from "citty";
 import { resolve } from "node:path";
-import { mkdir } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { scan } from "@prontiq/ariscan-engine";
 import { scaffold } from "../scaffolder/engine.js";
 import { listPresets, getPreset } from "../scaffolder/presets/index.js";
@@ -116,6 +116,10 @@ Examples:
         await mkdir(resolve(outputDir, ".git"), { recursive: true });
 
         const scanResult = await scan(outputDir);
+
+        // Clean up .git stub — it is not a real git repo and confuses tools
+        await rm(resolve(outputDir, ".git"), { recursive: true, force: true });
+
         const score = Math.round(scanResult.score);
         const level = scanResult.level;
 
@@ -130,6 +134,8 @@ Examples:
         }
 
         process.stderr.write(`Scaffold dogfood gate passed (${score} >= ${DOGFOOD_FLOOR})\n`);
+      } else {
+        process.stderr.write("Warning: dogfood scan skipped — scaffold quality not verified.\n");
       }
 
       process.stderr.write("\nNext steps:\n");
