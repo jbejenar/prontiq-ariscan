@@ -1,6 +1,6 @@
 {
   "name": "@prontiq/ariscan-engine",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "private": false,
   "type": "module",
   "license": "Elastic-2.0",
