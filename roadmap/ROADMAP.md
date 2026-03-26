@@ -3618,9 +3618,9 @@ A continuously updated public leaderboard serves multiple purposes: brand awaren
 - [x] Leaderboard generation process is fully reproducible from source data
   - `Verify:` re-run generation and confirm identical output
   - `Evidence:` Re-running `node benchmarks/generate-leaderboard.cjs` on same result files produces identical entries (excluding generatedAt timestamp). Scanner is deterministic; refs pinned in revisions.json. Verified 2026-03-26.
-- [x] Filterable by language, framework, repo size, maturity level
+- [x] Filterable by language, score, maturity level, and pillar scores (framework and repo size not yet implemented)
   - `Verify:` confirm filter parameters work
-  - `Evidence:` `leaderboard.json` entries include `language`, `level`, `score`, and per-pillar breakdowns. Consumers can filter by `entries[].language`, `entries[].level`, `entries[].score`, and `entries[].pillars.P*.score`. Verified 2026-03-26.
+  - `Evidence:` `leaderboard.json` entries include `language`, `level`, `score`, and per-pillar breakdowns. Consumers can filter by `entries[].language`, `entries[].level`, `entries[].score`, and `entries[].pillars.P*.score`. Framework and repo-size filtering deferred — requires upstream data in revisions.json. Verified 2026-03-26.
 - [x] "State of Agent Readiness" summary statistics
   - `Verify:` confirm summary statistics in output
   - `Evidence:` `leaderboard.json` includes `summary.overall` (mean: 40, median: 36, stddev: 9.3, range: 28-65), `summary.byLevel` (L2: 18, L3: 3), `summary.byLanguage`, and `summary.byPillar` (averages per pillar). LEADERBOARD.md renders all as tables. Verified 2026-03-26.

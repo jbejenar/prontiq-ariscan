@@ -32,7 +32,7 @@ The process is fully reproducible:
 - **Deterministic scanner:** No network calls, no randomness, no time-dependent logic. Same input → same scores.
 - **Pinned refs:** All repos scanned at specific commit SHAs. Re-cloning the same SHA produces identical filesystem state.
 - **Scripted pipeline:** `benchmarks/run.sh` or `node benchmarks/run-benchmark.cjs` automate the full pipeline.
-- **Verification:** Re-running the leaderboard generator (`node benchmarks/generate-leaderboard.cjs`) on the same result files produces identical output.
+- **Verification:** Re-running the leaderboard generator (`node benchmarks/generate-leaderboard.cjs`) on the same result files produces identical output (the `generatedAt` timestamp will differ between runs; all other fields are deterministic).
 
 ## Scoring Rubric
 

@@ -39,25 +39,18 @@ const PILLAR_NAMES = {
   P8: "Security & Governance",
 };
 
-// Size categories based on typical repo sizes
-function categorizeSize(fileCount) {
-  if (fileCount === undefined || fileCount === null) return "unknown";
-  if (fileCount < 500) return "small";
-  if (fileCount < 5000) return "medium";
-  return "large";
-}
-
 function computeStats(scores) {
   if (scores.length === 0) return { mean: 0, median: 0, min: 0, max: 0, stddev: 0 };
   const sorted = [...scores].sort((a, b) => a - b);
-  const mean = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length);
+  const rawMean = scores.reduce((s, v) => s + v, 0) / scores.length;
+  const mean = Math.round(rawMean);
   const median =
     sorted.length % 2 === 0
       ? Math.round((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)
       : sorted[Math.floor(sorted.length / 2)];
   const min = sorted[0];
   const max = sorted[sorted.length - 1];
-  const variance = scores.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / scores.length;
+  const variance = scores.reduce((s, v) => s + Math.pow(v - rawMean, 2), 0) / scores.length;
   const stddev = Math.round(Math.sqrt(variance) * 10) / 10;
   return { mean, median, min, max, stddev };
 }
