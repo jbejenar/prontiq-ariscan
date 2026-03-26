@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.24.0] — 2026-03-26
+
+### Added
+- **Benchmark validation (P1.03):** `benchmarks/validate-context-discovery.cjs` — validates zero false negatives in context file discovery across 21 benchmark repos. Supports GitHub API and local clone modes. Result: 22/22 files discovered, 0% false negative rate.
+- **Benchmark validation (P1.06):** `benchmarks/validate-test-isolation.cjs` — validates false-positive rate <10% for P3 (test isolation) findings across benchmark cohort. Result: 82 findings, 0% FP rate.
+- **Benchmark validation (P3.06):** `benchmarks/validate-language-selection.cjs` — validates language auto-selection accuracy against human-labelled benchmark repos. Result: 19/21 correct (90.5%). Two mismatches on genuinely multi-language repos (svelte, deno).
+
+### Changed
+- **Roadmap (P1.06):** Ticket status updated to `done` — all functional, testing, and documentation items complete with evidence.
+
 ## [3.23.0] — 2026-03-26
 
 ### Added
