@@ -1,110 +1,136 @@
-# Prontiq ARI — `@prontiq/ariscan-cli`
+<!-- UPDATE-STATS: When test count, version, finding count, or self-scan score changes,
+     update these locations in sync:
+     1. shields.io badge URLs (below)
+     2. "By the Numbers" HTML table
+     3. docs/assets/banner-dark.svg  (feature pills + version pill + score bar)
+     4. docs/assets/banner-light.svg (feature pills + version pill + score bar)
+-->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/banner-light.svg">
+  <img alt="Prontiq ARI — Agent Readiness Index" src="docs/assets/banner-light.svg" width="100%">
+</picture>
 
-[![CI](https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml/badge.svg)](https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml)
+<p align="center">
+  <a href="https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml"><img src="https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.npmjs.com/package/@prontiq/ariscan-cli"><img src="https://img.shields.io/npm/v/@prontiq/ariscan-cli?color=blue&label=npm" alt="npm version"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-ELv2-blue" alt="License"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A522-brightgreen" alt="Node">
+  <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/tests-841_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/ARI_self--scan-92%2F100_%E2%80%94_L5-44cc11" alt="ARI Self-Scan">
+</p>
 
-> Measure and improve how ready your codebase is for AI coding agents.
+<p align="center">
+  <strong>Measure and improve how ready your codebase is for AI coding agents.</strong><br>
+  <sub>8 research-calibrated pillars &middot; 117 actionable findings &middot; one-command remediation</sub>
+</p>
 
-**ARI** (Agent Readiness Index) is a composite score (0-100) derived from 8 research-calibrated pillars. Run `npx @prontiq/ariscan-cli .` to get an actionable readiness report in under 10 minutes.
-
-> **Naming note:** historical research and draft materials may refer to **Tide Conform**. Current naming is **Prontiq ARI**.
-
----
-
-## What Is This?
-
-Prontiq is a platform that measures and improves repository readiness for AI coding agents.
-
-### Product Layers
-
-1. **Scoring engine** — 8-pillar readiness scoring with maturity tiers.
-2. **Remediation engine** — practical fixes for context quality, testability, environment parity, and governance controls.
-
----
-
-## The ARI Score
-
-| Pillar | Weight | What It Measures |
-|---|---|---|
-| Agent Context Quality | 15% | AGENTS.md quality, information additionality, conciseness |
-| Feedback Loop Speed | 15% | Local test/lint/typecheck speed, CI duration |
-| Test Isolation | 18% | Cloud credential independence, DI patterns, determinism |
-| Dev Environment | 10% | Devcontainer, bootstrap scripts, time-to-first-test |
-| Doc Machine-Readability | 10% | OpenAPI schemas, error taxonomy, env var validation |
-| Build Determinism & Type Safety | 15% | TypeScript strict, lockfiles, reproducible builds |
-| Code Navigability | 12% | Module boundaries, import graph, dead code, complexity |
-| Security & Governance | 5% (gate) | Branch protection, CODEOWNERS, secrets scanning, SAST |
-
-### Maturity Levels
-
-| Level | Name | Score | What Agents Can Achieve |
-|---|---|---|---|
-| L1 | Hostile | 0-25 | Agents face significant friction — missing context, absent guardrails, high rework risk |
-| L2 | Fragile | 26-45 | Simple single-file edits feasible with close supervision |
-| L3 | Capable | 46-65 | Routine tasks with moderate supervision |
-| L4 | Productive | 66-80 | Multi-file features and refactoring with light supervision |
-| L5 | Autonomous | 81-100 | Complex cross-service tasks, agent self-verifies |
-
-Security acts as a **gate**: below 40% on Pillar 8 caps the overall level at L2 regardless of other scores.
-
-> Maturity levels are directional indicators informed by [cited research](./docs/research/EVIDENCE-BASE.md), not empirically validated predictions of agent performance. See the [evidence base methodology](./docs/research/EVIDENCE-BASE.md#validation-status--methodology-transparency) for details.
+<p align="center">
+  <a href="#quick-start">Quick Start</a>&ensp;&bull;&ensp;
+  <a href="#the-ari-score">How Scoring Works</a>&ensp;&bull;&ensp;
+  <a href="#scaffold-a-new-repo-to-l3-in-one-command">Auto-Fix</a>&ensp;&bull;&ensp;
+  <a href="#architecture">Architecture</a>&ensp;&bull;&ensp;
+  <a href="#documentation">Docs</a>
+</p>
 
 ---
 
 ## Quick Start
 
 ```bash
-# Scan the current directory
 npx @prontiq/ariscan-cli .
+```
 
-# JSON output for CI
-npx @prontiq/ariscan-cli . --json
+That's it. You'll get a full readiness report with scores, maturity level, and prioritized recommendations.
 
-# SARIF output for GitHub Code Scanning
-npx @prontiq/ariscan-cli . --format sarif
+```
+ Prontiq ARI — Agent Readiness Index
 
-# Markdown report (includes "Quick Start: Top 3 Actions")
-npx @prontiq/ariscan-cli . --format markdown
+ Overall Score:  72 / 100  ━━━━━━━━━━━━━━━━━━━━░░░░░░  L4 Productive
 
-# With threshold (exit code 1 if score below)
-npx @prontiq/ariscan-cli . --threshold 50
+ Pillar Breakdown:
+  P1  Agent Context Quality     85/100  ████████░░  15%
+  P2  Feedback Loop Speed       68/100  ██████░░░░  15%
+  P3  Test Isolation            70/100  ███████░░░  18%
+  P4  Dev Environment           60/100  ██████░░░░  10%
+  P5  Doc Machine-Readability   55/100  █████░░░░░  10%
+  P6  Build Determinism         90/100  █████████░  15%
+  P7  Code Navigability         75/100  ███████░░░  12%
+  P8  Security & Governance     80/100  ████████░░   5%
 
-# Token budget analysis
-npx @prontiq/ariscan-cli . --budget
+ Top 3 Actions:
+  1. Add OpenAPI schema for /api routes             +8 pts
+  2. Add .devcontainer/devcontainer.json             +5 pts
+  3. Reduce avg cyclomatic complexity (12 → 8)       +4 pts
 
-# Safe fix generation — scaffold a new repo to L3 Capable (61/100)
-npx @prontiq/ariscan-cli . --fix --dry-run   # preview changes
-npx @prontiq/ariscan-cli . --fix              # apply changes
+ 3 actions could raise your score to 89/100 (L5 Autonomous)
+```
 
-# Generate badge SVG
-npx @prontiq/ariscan-cli . --badge badge.svg
+### More Output Formats
 
-# Export JSON Schema
-npx @prontiq/ariscan-cli --json-schema > ariscan.schema.json
-
-# From source (after pnpm build)
-pnpm selftest
+```bash
+npx @prontiq/ariscan-cli . --json               # JSON for CI pipelines
+npx @prontiq/ariscan-cli . --format sarif        # SARIF for GitHub Code Scanning
+npx @prontiq/ariscan-cli . --format markdown     # Markdown report
+npx @prontiq/ariscan-cli . --badge badge.svg     # Generate score badge
+npx @prontiq/ariscan-cli . --threshold 50        # Exit code 1 if below threshold
+npx @prontiq/ariscan-cli . --budget              # Token budget analysis
+npx @prontiq/ariscan-cli --json-schema           # Export JSON Schema
 ```
 
 **Exit codes:** `0` = pass, `1` = below threshold, `2` = runtime error.
 
 ---
 
+## The ARI Score
+
+**ARI** (Agent Readiness Index) is a composite score (0-100) derived from 8 weighted pillars:
+
+| | Pillar | Weight | What It Measures |
+|:---:|---|:---:|---|
+| **P1** | Agent Context Quality | 15% | AGENTS.md quality, information additionality, conciseness |
+| **P2** | Feedback Loop Speed | 15% | Local test/lint/typecheck speed, CI duration |
+| **P3** | Test Isolation | 18% | Cloud credential independence, DI patterns, determinism |
+| **P4** | Dev Environment | 10% | Devcontainer, bootstrap scripts, time-to-first-test |
+| **P5** | Doc Machine-Readability | 10% | OpenAPI schemas, error taxonomy, env var validation |
+| **P6** | Build Determinism & Type Safety | 15% | TypeScript strict, lockfiles, reproducible builds |
+| **P7** | Code Navigability | 12% | Module boundaries, import graph, dead code, complexity |
+| **P8** | Security & Governance | 5% | Branch protection, CODEOWNERS, secrets scanning, SAST |
+
+### Maturity Levels
+
+Scores map to five maturity levels that describe what AI agents can realistically achieve:
+
+| | Level | Score | What Agents Can Achieve |
+|:---:|---|:---:|---|
+| ![L1](https://img.shields.io/badge/L1-Hostile-e05d44) | Hostile | 0-25 | Agents face significant friction — missing context, absent guardrails, high rework risk |
+| ![L2](https://img.shields.io/badge/L2-Fragile-fe7d37) | Fragile | 26-45 | Simple single-file edits feasible with close supervision |
+| ![L3](https://img.shields.io/badge/L3-Capable-dfb317) | Capable | 46-65 | Routine tasks with moderate supervision |
+| ![L4](https://img.shields.io/badge/L4-Productive-97ca00) | Productive | 66-80 | Multi-file features and refactoring with light supervision |
+| ![L5](https://img.shields.io/badge/L5-Autonomous-44cc11) | Autonomous | 81-100 | Complex cross-service tasks, agent self-verifies |
+
+> **Security gate:** P8 score below 40% caps the overall level at **L2** regardless of other scores.
+
+> Maturity levels are directional indicators informed by [cited research](./docs/research/EVIDENCE-BASE.md), not empirically validated predictions of agent performance. See the [evidence base methodology](./docs/research/EVIDENCE-BASE.md#validation-status--methodology-transparency) for details.
+
+---
+
 ## Scaffold a New Repo to L3 in One Command
 
-Running `--fix` on any project generates up to 15 best-practice files — enough to jump from L2 Fragile (~35) to **L3 Capable (61/100)** in a single pass, even on an empty TypeScript project with just a `package.json` and one source file. (A typical TypeScript project gets 12 files; the remaining 3 are conditional on framework/dependency detection.)
+Running `--fix` generates up to **15 best-practice files** — enough to jump from L2 Fragile (~35) to **L3 Capable (61/100)** in a single pass:
 
 ```bash
-# Start with a fresh project
 mkdir my-project && cd my-project
 npm init -y
-# Run the scaffold
-npx @prontiq/ariscan-cli . --fix
-# Verify the score
-npx @prontiq/ariscan-cli .
-#  → Score: 61/100 — L3 Capable
+npx @prontiq/ariscan-cli . --fix        # scaffold best practices
+npx @prontiq/ariscan-cli .              # verify: 61/100 — L3 Capable
 ```
 
-**What gets generated:**
+All generated files are **additive-only** — existing files are never overwritten. Running `--fix` twice is idempotent.
+
+<details>
+<summary><strong>View all 15 generated files</strong></summary>
 
 | File | Pillar | Purpose |
 |---|---|---|
@@ -124,7 +150,50 @@ npx @prontiq/ariscan-cli .
 | DI wiring example | P3 Isolation | Framework-specific DI example (NestJS, FastAPI, Spring Boot, Go) |
 | `.gitleaks.toml` | P8 Security | Secrets scanning config |
 
-All generated files are **additive-only** — existing files are never overwritten. Running `--fix` twice is idempotent. Review the generated files and customize for your project; the TODO comments indicate where project-specific details should be added.
+A typical TypeScript project gets 12 files; the remaining 3 are conditional on framework/dependency detection. Review the generated files and customize for your project; the TODO comments indicate where project-specific details should be added.
+
+</details>
+
+---
+
+## Architecture
+
+```mermaid
+graph LR
+    CLI["@prontiq/ariscan-cli<br/><sub>Terminal &bull; JSON &bull; SARIF &bull; Markdown &bull; Badge</sub>"]
+    MCP["@prontiq/ariscan-mcp<br/><sub>Model Context Protocol server</sub>"]
+    Engine["@prontiq/ariscan-engine<br/><sub>8 analyzers &bull; scoring &bull; --fix generators</sub>"]
+    Schema["@prontiq/ariscan-schema<br/><sub>Zod types &bull; PillarId &bull; Finding &bull; ScanResult</sub>"]
+
+    CLI --> Engine
+    MCP --> Engine
+    Engine --> Schema
+
+    style CLI fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style MCP fill:#8250df,stroke:#a371f7,color:#fff
+    style Engine fill:#238636,stroke:#3fb950,color:#fff
+    style Schema fill:#9e6a03,stroke:#d29922,color:#fff
+```
+
+### Product Layers
+
+1. **Scoring engine** — 8-pillar readiness scoring with maturity tiers.
+2. **Remediation engine** — practical fixes for context quality, testability, environment parity, and governance controls.
+
+---
+
+## By the Numbers
+
+<table>
+<tr>
+<td align="center"><h3>8</h3><sub>Pillars</sub></td>
+<td align="center"><h3>117</h3><sub>Finding Codes</sub></td>
+<td align="center"><h3>841</h3><sub>Tests</sub></td>
+<td align="center"><h3>92/100</h3><sub>Self-Scan Score</sub></td>
+<td align="center"><h3>15</h3><sub>Auto-Fix Files</sub></td>
+<td align="center"><h3>5</h3><sub>Output Formats</sub></td>
+</tr>
+</table>
 
 ---
 
@@ -141,9 +210,34 @@ The core scanning engine is functional. What's built:
 - **JSON Schema** — `ariscan.schema.json` in repo root for output validation
 - **Dogfooding** — Self-scan: 92/100 (L5 Autonomous)
 
+> **Naming note:** historical research and draft materials may refer to **Tide Conform**. Current naming is **Prontiq ARI**.
+
 ---
 
-## Versioning Policy
+## Packages
+
+| Package | Status | Purpose |
+|---|---|---|
+| `@prontiq/ariscan-cli` | Built | CLI scan, scoring, reporting, threshold exit codes |
+| `@prontiq/ariscan-schema` | Built | Zod schemas for scan results, config, findings |
+| `@prontiq/ariscan-engine` | Built | 8-pillar analyzers, composite scoring, security gate |
+| `@prontiq/sdk` | Planned | Programmatic integration for reporting/workflow automation |
+| `@prontiq/agentignore` | Built (in engine) | `.agentignore` parser — gitignore-compatible patterns, negation, default patterns |
+
+---
+
+## Current Program Snapshot
+
+| Track | Status | Target |
+|---|---|---|
+| P1 — MVP CLI | In Progress | May 2026 |
+| P2 — Context intelligence | In Progress | Jul 2026 |
+| P3 — Readiness-as-Code | Planned | Sep 2026 |
+
+---
+
+<details>
+<summary><strong>Versioning Policy</strong></summary>
 
 ARI output follows [Semantic Versioning](https://semver.org/). The JSON schema file (`ariscan.schema.json`) and the `--json-schema` flag document the current output contract.
 
@@ -154,7 +248,7 @@ ARI output follows [Semantic Versioning](https://semver.org/). The JSON schema f
 | **Schema URI** | `$schema` / `$id` field | `.../v1.json` | Schema format revision. Bumps only on breaking structural changes (field removals, type changes). Consumers use this to select the correct parser. |
 | **Output version** | `metadata.version` | `0.2.0` | Authoritative semver of the scan output contract. Tracks all changes per the table below. **This is the version consumers should target for feature detection.** |
 
-The schema URI uses major-only versioning (`v1`, `v2`, …) as a structural stability contract — any consumer built for `v1.json` can parse all output where `metadata.version` is within the `v1` schema generation. The `metadata.version` field is the precise semver that indicates which optional fields, pillars, and finding codes are available.
+The schema URI uses major-only versioning (`v1`, `v2`, ...) as a structural stability contract — any consumer built for `v1.json` can parse all output where `metadata.version` is within the `v1` schema generation. The `metadata.version` field is the precise semver that indicates which optional fields, pillars, and finding codes are available.
 
 | Change Type | Semver Impact | Examples |
 |---|---|---|
@@ -179,28 +273,7 @@ The `.ariscan.yml` policy file uses a `version` field to indicate the policy sch
 - Expired suppressions are automatically filtered at scan time and flagged by `ariscan policy validate`.
 - Permanent suppressions require explicit `expiry: "no-expiry"`.
 
----
-
-## Documentation
-
-| Document | Purpose |
-|---|---|
-| [roadmap/ROADMAP.md](./roadmap/ROADMAP.md) | Roadmap phases, deliverables, and exit criteria |
-| [milestones/MILESTONES.md](./milestones/MILESTONES.md) | Milestone-level acceptance criteria |
-| [rfcs/](./rfcs/) | RFC process and architecture/product decisions |
-| [docs/research/](./docs/research/) | Evidence base and calibration references |
-| [docs/architecture/](./docs/architecture/) | System architecture overview |
-| [CHANGELOG.md](./CHANGELOG.md) | Documentation and roadmap revision history |
-
----
-
-## Current Program Snapshot
-
-| Track | Status | Target |
-|---|---|---|
-| P1 — MVP CLI | In Progress | May 2026 |
-| P2 — Context intelligence | In Progress | Jul 2026 |
-| P3 — Readiness-as-Code | Planned | Sep 2026 |
+</details>
 
 ---
 
@@ -214,7 +287,8 @@ The `.ariscan.yml` policy file uses a `version` field to indicate the policy sch
 
 ---
 
-## Known Limitations
+<details>
+<summary><strong>Known Limitations</strong></summary>
 
 - **Structural proxies, not outcome measurement.** ARI measures codebase signals (config presence, code patterns, documentation quality) as readiness proxies. It does not execute agents or measure actual agent performance.
 - **No project-scale adaptation (yet).** A 2-file Docker project is currently evaluated against the same criteria as a 500-engineer monorepo. Enterprise-ceremony findings (CODEOWNERS, SECURITY.md, commitlint) may not be applicable to small projects. Planned: [P2.16 Repo Profile & Adaptive Scoring](./roadmap/ROADMAP.md).
@@ -222,17 +296,20 @@ The `.ariscan.yml` policy file uses a `version` field to indicate the policy sch
 - **Weights are expert-informed, not regression-derived.** Pillar weights reflect research priorities and expert judgment, not a statistical model fit to outcome data. See [EVIDENCE-BASE.md](./docs/research/EVIDENCE-BASE.md).
 - **Remediation is template-based.** Fix suggestions are pre-written templates adapted to detected language and framework, not generated per-repo. They may not fit every project's conventions.
 
+</details>
+
 ---
 
-## Packages
+## Documentation
 
-| Package | Status | Purpose |
-|---|---|---|
-| `@prontiq/ariscan-cli` | Built | CLI scan, scoring, reporting, threshold exit codes |
-| `@prontiq/ariscan-schema` | Built | Zod schemas for scan results, config, findings |
-| `@prontiq/ariscan-engine` | Built | 8-pillar analyzers, composite scoring, security gate |
-| `@prontiq/sdk` | Planned | Programmatic integration for reporting/workflow automation |
-| `@prontiq/agentignore` | Built (in engine) | `.agentignore` parser — gitignore-compatible patterns, negation, default patterns. Currently in `@prontiq/ariscan-engine`. |
+| Document | Purpose |
+|---|---|
+| [roadmap/ROADMAP.md](./roadmap/ROADMAP.md) | Roadmap phases, deliverables, and exit criteria |
+| [milestones/MILESTONES.md](./milestones/MILESTONES.md) | Milestone-level acceptance criteria |
+| [rfcs/](./rfcs/) | RFC process and architecture/product decisions |
+| [docs/research/](./docs/research/) | Evidence base and calibration references |
+| [docs/architecture/](./docs/architecture/) | System architecture overview |
+| [CHANGELOG.md](./CHANGELOG.md) | Documentation and roadmap revision history |
 
 ---
 
