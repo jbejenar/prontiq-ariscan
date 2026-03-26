@@ -3,12 +3,18 @@
  *
  * Interactive: `ariscan init`
  * Non-interactive (S.10): `ariscan init --preset bare --name my-app`
+ * Dogfood gate (S.04): scans output and fails if score < L3 (46).
  */
 import { defineCommand } from "citty";
 import { resolve } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { scan } from "@prontiq/ariscan-engine";
 import { scaffold } from "../scaffolder/engine.js";
 import { listPresets, getPreset } from "../scaffolder/presets/index.js";
 import { promptProjectName, promptPreset, validateProjectName } from "../scaffolder/prompts.js";
+
+/** Minimum ARI score for scaffolded projects (L3 Capable). */
+const DOGFOOD_FLOOR = 46;
 
 export const initCommand = defineCommand({
   meta: {
@@ -31,6 +37,11 @@ Examples:
       description: "Preset to use (e.g., bare)",
       required: false,
     },
+    "skip-scan": {
+      type: "boolean",
+      description: "Skip the dogfood scan after scaffolding",
+      required: false,
+    },
     name: {
       type: "string",
       description: "Project name",
@@ -41,6 +52,7 @@ Examples:
     const presetArg = args.preset as string | undefined;
     const nameArg = args.name as string | undefined;
     const pathArg = args.path as string | undefined;
+    const skipScan = Boolean(args["skip-scan"]);
 
     const isNonInteractive = Boolean(presetArg && nameArg);
     const isTTY = Boolean(process.stdin.isTTY);
@@ -94,8 +106,33 @@ Examples:
         outputDir,
       });
 
-      process.stderr.write(`\nCreated ${result.filesWritten} files in ${result.outputDir}\n\n`);
-      process.stderr.write("Next steps:\n");
+      process.stderr.write(`\nCreated ${result.filesWritten} files in ${result.outputDir}\n`);
+
+      // S.04 — Dogfood gate: scan the scaffolded output
+      if (!skipScan) {
+        process.stderr.write("Running ARI scan on scaffolded project...\n");
+
+        // Ensure .git directory exists so the scanner recognises it as a repo
+        await mkdir(resolve(outputDir, ".git"), { recursive: true });
+
+        const scanResult = await scan(outputDir);
+        const score = Math.round(scanResult.score);
+        const level = scanResult.level;
+
+        process.stderr.write(`ARI score: ${score}/100 (${level})\n`);
+
+        if (score < DOGFOOD_FLOOR) {
+          process.stderr.write(
+            `Error: Scaffolded project scored ${score}, below L3 floor (${DOGFOOD_FLOOR}).\n` +
+              "This is a bug in the preset — please report it.\n",
+          );
+          process.exit(2);
+        }
+
+        process.stderr.write(`Scaffold dogfood gate passed (${score} >= ${DOGFOOD_FLOOR})\n`);
+      }
+
+      process.stderr.write("\nNext steps:\n");
       process.stderr.write(`  cd ${projectName}\n`);
       process.stderr.write("  npm install\n");
       process.stderr.write("  npm test\n\n");
