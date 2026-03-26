@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { scan } from "@prontiq/ariscan-engine";
 import { scaffold } from "../scaffolder/engine.js";
 import { getPreset, listPresets } from "../scaffolder/presets/index.js";
 import { validateProjectName } from "../scaffolder/prompts.js";
@@ -314,4 +315,25 @@ describe("validateProjectName", () => {
   it("rejects names starting with hyphen", () => {
     expect(validateProjectName("-my-app")).not.toBeNull();
   });
+});
+
+describe("dogfood gate (S.04)", () => {
+  it("bare preset scores L3+ (>= 46)", async () => {
+    const outputDir = join(tempDir, "dogfood-bare");
+    await scaffold({ name: "dogfood-bare", preset: "bare", outputDir });
+    // Scanner needs .git to recognise directory as a repo
+    await mkdir(join(outputDir, ".git"), { recursive: true });
+
+    const result = await scan(outputDir);
+    expect(result.score).toBeGreaterThanOrEqual(46);
+  }, 30_000);
+
+  it("nextjs preset scores L3+ (>= 46)", async () => {
+    const outputDir = join(tempDir, "dogfood-nextjs");
+    await scaffold({ name: "dogfood-nextjs", preset: "nextjs", outputDir });
+    await mkdir(join(outputDir, ".git"), { recursive: true });
+
+    const result = await scan(outputDir);
+    expect(result.score).toBeGreaterThanOrEqual(46);
+  }, 30_000);
 });
