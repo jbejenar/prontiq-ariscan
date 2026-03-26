@@ -3629,7 +3629,7 @@ A continuously updated public leaderboard serves multiple purposes: brand awaren
   - `Evidence:` `benchmarks/METHODOLOGY.md` documents repo selection criteria, scanning process, reproducibility, scoring rubric (8 pillars with weights), maturity levels, update cadence, caveats, and versioning policy. Verified 2026-03-26.
 - [x] At least 50 repos included at launch, growing to 200+ within 3 months
   - `Verify:` confirm repo count at launch
-  - `Evidence:` Cohort expanded from 21 to 53 repos across 10 languages (JavaScript 5, TypeScript 8, Python 9, Go 9, Rust 7, Java 5, C# 3, Ruby 2, PHP 2, Kotlin 0). All 53 scanned successfully. Leaderboard regenerated with full per-pillar breakdowns. Refs pinned to commit SHAs for reproducibility. Verified 2026-03-26.
+  - `Evidence:` Cohort expanded from 21 to 53 repos across 9 languages (JavaScript 5, TypeScript 11, Python 9, Go 9, Rust 7, Java 5, C# 3, Ruby 2, PHP 2). All 53 scanned successfully. Leaderboard regenerated with full per-pillar breakdowns. Refs pinned to commit SHAs for reproducibility. Verified 2026-03-26.
 - [x] Update cadence documented (monthly minimum)
   - `Verify:` confirm cadence documentation
   - `Evidence:` `benchmarks/METHODOLOGY.md` section "Update Cadence" documents monthly minimum re-scan, ad-hoc on rubric changes, expansion plan. `leaderboard.json` methodology field includes `updateCadence: "Monthly minimum"`. Verified 2026-03-26.
