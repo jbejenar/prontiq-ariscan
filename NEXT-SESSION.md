@@ -1,63 +1,66 @@
 # Next Session Guide
 
 ## Session: 2026-03-26
-Phase: P3 (Readiness-as-Code and Ecosystem)
-Checkboxes checked this session: 11 (P3.10 functional items)
+Phase: P3.5 (Scaffolder: `ariscan init`)
+Checkboxes checked this session: ~35 (S.01–S.10 scaffolder items)
 
 ### Completed
-- **P3.10 — MCP Read-only Server (functional):** Full implementation:
-  - New `@prontiq/ariscan-mcp` package with MCP SDK integration
-  - 5 read-only resources: score, pillars, recommendations, context-files, budget
-  - Safety constraints: read-only (no tools), no file content exposure, configurable cache TTL and scan timeout
-  - CLI entry point: `ariscan-mcp` with `--path`, `--cache-ttl`, `--timeout` flags
-  - Example MCP configurations for Claude Code and Cursor
-  - 13 tests (resource extractors: 10, server: 3)
-  - Selftest: 86/100 (L5 Autonomous) — baseline maintained
+- **S.01 — `ariscan init` Command:** Interactive + non-interactive modes fully working
+- **S.02 — Bare TypeScript Preset:** 20 files generated, strict TS, providers, CI, devcontainer
+- **S.03 — Next.js Preset:** 30 files generated — App Router, Tailwind CSS, server actions, providers
+- **S.05 — Provider Pattern Scaffolding:** storage, queue, email interfaces + memory test doubles
+- **S.06 — AGENTS.md Generation:** Generated from scaffold choices with architecture, module map, commands
+- **S.07 — `.agentignore` Generation:** Stack-tuned patterns for both bare and Next.js presets
+- **S.08 — Devcontainer Scaffolding:** devcontainer.json with postCreateCommand
+- **S.09 — CI Pipeline Scaffolding:** GitHub Actions with lint/typecheck/test (+ build for Next.js)
+- **S.10 — Non-interactive Mode:** `--preset` + `--name` flags, TTY detection, exit codes
 
 ### Ticket Status Changes
-- P3.10: todo → in-progress (11/11 functional items checked, docs/benchmarks/telemetry remain)
+- S.01: todo → done
+- S.02: todo → done (3 sub-items deferred: pre-commit hooks, error taxonomy stub, lockfile)
+- S.03: todo → done
+- S.05: todo → done
+- S.06: todo → done (error taxonomy reference deferred)
+- S.07: todo → done
+- S.08: todo → done (Dockerfile, docker-compose deferred — using pre-built images)
+- S.09: todo → done (ariscan score check in CI deferred — requires npm publish)
+- S.10: todo → done
 
 ### In Progress
-- **P3.10 — MCP Read-only Server:** Remaining items:
-  1. Protocol documentation (requires npm publish + docs site)
-  2. Works with Claude Code and Cursor (requires npm publish)
-  3. Startup time benchmark (requires end-to-end testing)
-  4. Telemetry items (non-blocking)
-- **P3.08 — Plugin Architecture:** Remaining: telemetry items (non-blocking)
-- **P3.07 — AST/Graph Navigability Analysis:** Remaining: performance benchmark, telemetry
-- **P3.05 — Agent Simulation Hooks:** Remaining: research docs, telemetry
-- **P3.06 — Language Rubric Profiles:** Remaining: score comparability, auto-selection accuracy
-- **P3.02 — GitHub Action GA:** Two items remain (Marketplace publication, runtime timing)
+- **S.04 — Dogfood Gate:** Not yet implemented — init doesn't run ariscan on its output
+- **S.11 — Preset API:** Types exist but community preset loading not implemented
+- **P3.10 — MCP Server:** Remaining docs/benchmarks/telemetry items (deferred)
+- **P3.02 — GitHub Action:** 2 items remain (Marketplace publication, runtime timing)
+- **P3.09 — VS Code Extension:** Not started
 
 ### Deferred
-- P3.10 protocol docs: requires npm publish and docs site
-- P3.10 client testing: requires npm publish for npx to work
-- P3.10 startup benchmark: requires end-to-end benchmarking with published package
-- P3.10 telemetry: MCP server connections, query frequency — non-blocking
-- P3.08 telemetry: plugin count, usage distribution — non-blocking
-- P3.07 performance benchmark: requires P1.18 benchmark cohort
-- P3.05 research documentation: deferred for documentation pass
-- P3.06 score comparability: requires P1.18 benchmark cohort
-- P1.18: Benchmark execution (blocked by sandbox/npm publish)
+- S.02: pre-commit hooks (husky requires npm install), error taxonomy stub, lockfile generation
+- S.06: error taxonomy reference file
+- S.08: custom Dockerfiles, docker-compose for local services
+- S.09: ariscan score check in generated CI (requires npm publish)
+- S.04: dogfood gate integration (init doesn't self-scan output yet)
+- S.11: community preset loading, preset development docs
 
 ### Key Decisions
-- MCP server uses `readiness://` URI scheme for resource identification
-- Scan results cached with configurable TTL (default 5 min) to avoid re-scanning on every resource query
-- Budget resource triggers a separate `analyzeTokenBudget()` call since it's not part of ScanResult
-- Resources expose finding codes and messages but strip file paths from finding data (safety constraint)
-- Server uses deprecated `server.resource()` API (stable) rather than `registerResource()` (newer) for broader SDK version compatibility
+- Next.js preset duplicates shared generators from bare rather than inheriting at runtime (simpler, no preset composition engine needed)
+- Used Tailwind v4 with `@tailwindcss/postcss` plugin (current best practice)
+- Server actions demonstrated via `app/actions.ts` with `"use server"` directive
+- Devcontainers use pre-built MS images rather than custom Dockerfiles
+- Circular dependency finding from scanner on preset registry is false positive (index imports presets, not vice versa)
 
 ### Blockers
-- None for core MCP server implementation
+- None for core scaffolder implementation
 
 ### Next Session Should Start With
-1. **P3.09 (VS Code Extension Preview)** — p2-medium, separate toolchain (VS Code Extension API)
-2. **P3.02 remaining items** — GitHub Marketplace publication, runtime timing
-3. **Scaffolder (P3.5/S.01)** — p0-critical, `ariscan init` command
+1. **S.04 (Dogfood Gate)** — p0-critical, wire self-scan into init command
+2. **S.11 (Preset API)** — p1-high, community preset loading and docs
+3. **P3.09 (VS Code Extension Preview)** — p2-medium, separate toolchain
+4. **P3.02 remaining items** — GitHub Marketplace publication, runtime timing
 
 ### Roadmap Progress
 - P1: ~129/132 done. Remaining: blocked/deferred items
 - P2: 15/15 done. P2.12 blocked on P1.18
-- P3: P3.01 done, P3.02 in-progress (10/12), P3.03 done, P3.04 done, P3.05 in-progress (8/9 non-telemetry), P3.06 in-progress (11/13), P3.07 in-progress (11/12 non-telemetry), P3.08 in-progress (7/7 functional), P3.10 in-progress (11/11 functional)
+- P3: P3.01 done, P3.02 in-progress, P3.03 done, P3.04 done, P3.05 in-progress, P3.06 in-progress, P3.07 in-progress, P3.08 in-progress, P3.10 in-progress
+- P3.5 Scaffolder: S.01 done, S.02 done, S.03 done, S.04 todo, S.05 done, S.06 done, S.07 done, S.08 done, S.09 done, S.10 done, S.11 todo
 - CI: 9.67/10 done
-- Selftest: 86/100 (L5 Autonomous) — baseline maintained
+- Selftest: 85/100 (L5 Autonomous) — baseline maintained

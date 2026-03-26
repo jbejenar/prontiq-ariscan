@@ -4,7 +4,7 @@
 import { mkdir, writeFile, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import type { ScaffoldOptions, ScaffoldResult } from "./types.js";
-import { getPreset } from "./presets/index.js";
+import { getPreset, listPresets } from "./presets/index.js";
 
 /**
  * Scaffold a new project from a preset.
@@ -15,7 +15,10 @@ import { getPreset } from "./presets/index.js";
 export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult> {
   const preset = getPreset(options.preset);
   if (!preset) {
-    throw new Error(`Unknown preset: "${options.preset}". Available: bare`);
+    const available = listPresets()
+      .map((p) => p.manifest.id)
+      .join(", ");
+    throw new Error(`Unknown preset: "${options.preset}". Available: ${available}`);
   }
 
   // Ensure output directory exists

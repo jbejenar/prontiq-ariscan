@@ -6,6 +6,7 @@ import { scaffold } from "../scaffolder/engine.js";
 import { getPreset, listPresets } from "../scaffolder/presets/index.js";
 import { validateProjectName } from "../scaffolder/prompts.js";
 import { barePreset } from "../scaffolder/presets/bare.js";
+import { nextjsPreset } from "../scaffolder/presets/nextjs.js";
 
 let tempDir: string;
 
@@ -114,6 +115,117 @@ describe("bare preset", () => {
     expect(agents.content).toContain("cool-project");
     expect(agents.content).toContain("Key Commands");
     expect(agents.content).toContain("providers/");
+  });
+});
+
+describe("nextjs preset", () => {
+  it("is listed in preset registry", () => {
+    const presets = listPresets();
+    const ids = presets.map((p) => p.manifest.id);
+    expect(ids).toContain("nextjs");
+  });
+
+  it("generates Next.js-specific files", () => {
+    const files = nextjsPreset.generate({
+      name: "my-next-app",
+      preset: "nextjs",
+      outputDir: "/tmp/test",
+    });
+
+    const paths = files.map((f) => f.path);
+
+    // Next.js-specific files
+    expect(paths).toContain("next.config.ts");
+    expect(paths).toContain("tailwind.config.ts");
+    expect(paths).toContain("postcss.config.js");
+    expect(paths).toContain("app/layout.tsx");
+    expect(paths).toContain("app/page.tsx");
+    expect(paths).toContain("app/globals.css");
+    expect(paths).toContain("app/loading.tsx");
+    expect(paths).toContain("app/not-found.tsx");
+    expect(paths).toContain("app/actions.ts");
+
+    // Shared agent readiness files
+    expect(paths).toContain("AGENTS.md");
+    expect(paths).toContain(".agentignore");
+    expect(paths).toContain(".devcontainer/devcontainer.json");
+    expect(paths).toContain(".github/workflows/ci.yml");
+
+    // Provider interfaces
+    expect(paths).toContain("src/providers/storage.ts");
+    expect(paths).toContain("src/providers/queue.ts");
+    expect(paths).toContain("src/providers/email.ts");
+  });
+
+  it("includes Next.js dependencies in package.json", () => {
+    const files = nextjsPreset.generate({
+      name: "my-next-app",
+      preset: "nextjs",
+      outputDir: "/tmp/test",
+    });
+
+    const pkgEntry = files.find((f) => f.path === "package.json");
+    if (!pkgEntry) throw new Error("package.json not found");
+    const pkg = JSON.parse(pkgEntry.content) as Record<string, Record<string, unknown>>;
+    expect(pkg.dependencies).toHaveProperty("next");
+    expect(pkg.dependencies).toHaveProperty("react");
+    expect(pkg.dependencies).toHaveProperty("react-dom");
+    expect(pkg.devDependencies).toHaveProperty("tailwindcss");
+  });
+
+  it("generates AGENTS.md with Next.js context", () => {
+    const files = nextjsPreset.generate({
+      name: "my-next-app",
+      preset: "nextjs",
+      outputDir: "/tmp/test",
+    });
+
+    const agents = files.find((f) => f.path === "AGENTS.md");
+    if (!agents) throw new Error("AGENTS.md not found");
+    expect(agents.content).toContain("my-next-app");
+    expect(agents.content).toContain("Next.js");
+    expect(agents.content).toContain("App Router");
+    expect(agents.content).toContain("Server Actions");
+    expect(agents.content).toContain("Tailwind");
+  });
+
+  it("includes .next/ in agentignore", () => {
+    const files = nextjsPreset.generate({
+      name: "my-next-app",
+      preset: "nextjs",
+      outputDir: "/tmp/test",
+    });
+
+    const agentignore = files.find((f) => f.path === ".agentignore");
+    if (!agentignore) throw new Error(".agentignore not found");
+    expect(agentignore.content).toContain(".next/");
+  });
+
+  it("includes build step in CI workflow", () => {
+    const files = nextjsPreset.generate({
+      name: "my-next-app",
+      preset: "nextjs",
+      outputDir: "/tmp/test",
+    });
+
+    const ci = files.find((f) => f.path === ".github/workflows/ci.yml");
+    if (!ci) throw new Error("ci.yml not found");
+    expect(ci.content).toContain("npm run build");
+  });
+
+  it("uses strict TypeScript config", () => {
+    const files = nextjsPreset.generate({
+      name: "my-next-app",
+      preset: "nextjs",
+      outputDir: "/tmp/test",
+    });
+
+    const tsconfig = files.find((f) => f.path === "tsconfig.json");
+    if (!tsconfig) throw new Error("tsconfig.json not found");
+    const config = JSON.parse(tsconfig.content) as Record<string, unknown>;
+    const opts = config.compilerOptions as Record<string, unknown>;
+    expect(opts.strict).toBe(true);
+    expect(opts.jsx).toBe("preserve");
   });
 });
 
