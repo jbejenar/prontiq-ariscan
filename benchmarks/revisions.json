@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "scoring_version": "0.2.0",
   "rubric_version": "v1",
-  "date": "2026-03-25",
+  "date": "2026-03-26",
   "repos": [
     {
       "name": "react",
@@ -150,6 +150,230 @@
       "ref": "8f1c7719f6ff0b308144f51c2a37ea788a7c6c61",
       "language": "Rust",
       "description": "JavaScript/TypeScript runtime"
+    },
+    {
+      "name": "lodash",
+      "repo": "lodash/lodash",
+      "ref": "b8190803d48d60b8c80ad45d39125f32fa618cb2",
+      "language": "JavaScript",
+      "description": "JavaScript utility library"
+    },
+    {
+      "name": "webpack",
+      "repo": "webpack/webpack",
+      "ref": "7bde8ab8d018fa2f89751b415b00066f81aeed50",
+      "language": "JavaScript",
+      "description": "Module bundler for JavaScript"
+    },
+    {
+      "name": "axios",
+      "repo": "axios/axios",
+      "ref": "af4f6d960f7478604841cfff2eb5c2491565c518",
+      "language": "JavaScript",
+      "description": "Promise-based HTTP client"
+    },
+    {
+      "name": "angular",
+      "repo": "angular/angular",
+      "ref": "d4c085d2cc494d848f661aed50e9b31a4e9ad5f4",
+      "language": "TypeScript",
+      "description": "Web application framework"
+    },
+    {
+      "name": "nest",
+      "repo": "nestjs/nest",
+      "ref": "5ed809a582cbf597a691878f26d663d0497ca86e",
+      "language": "TypeScript",
+      "description": "Progressive Node.js framework"
+    },
+    {
+      "name": "prisma",
+      "repo": "prisma/prisma",
+      "ref": "45d7e0f0d595df3ee4ca1e469e3d7381b5247ccf",
+      "language": "TypeScript",
+      "description": "Type-safe database ORM"
+    },
+    {
+      "name": "trpc",
+      "repo": "trpc/trpc",
+      "ref": "f6e839f2b127b394fa1e9eb26bfe0c75c47fcbf2",
+      "language": "TypeScript",
+      "description": "End-to-end typesafe APIs"
+    },
+    {
+      "name": "requests",
+      "repo": "psf/requests",
+      "ref": "bc04dfd6dad4cb02cd92f5daa81eb562d280a761",
+      "language": "Python",
+      "description": "HTTP library for Python"
+    },
+    {
+      "name": "scikit-learn",
+      "repo": "scikit-learn/scikit-learn",
+      "ref": "c50ac77e53a2eba7a72325b0ce9ed40fa1a3b551",
+      "language": "Python",
+      "description": "Machine learning library for Python"
+    },
+    {
+      "name": "httpx",
+      "repo": "encode/httpx",
+      "ref": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+      "language": "Python",
+      "description": "Async HTTP client for Python"
+    },
+    {
+      "name": "rich",
+      "repo": "Textualize/rich",
+      "ref": "fc41075a3206d2a5fd846c6f41c4d2becab814fa",
+      "language": "Python",
+      "description": "Rich text formatting for terminals"
+    },
+    {
+      "name": "kubernetes",
+      "repo": "kubernetes/kubernetes",
+      "ref": "1ed5965382e09c1fdc8b363c153e9ebee0942481",
+      "language": "Go",
+      "description": "Container orchestration platform"
+    },
+    {
+      "name": "prometheus",
+      "repo": "prometheus/prometheus",
+      "ref": "729cde895370e11428cb1cbf52f4a71406b7c530",
+      "language": "Go",
+      "description": "Monitoring and alerting toolkit"
+    },
+    {
+      "name": "etcd",
+      "repo": "etcd-io/etcd",
+      "ref": "8dfd8288b27ec0d841ad0356f9fdc767bd86d2c2",
+      "language": "Go",
+      "description": "Distributed key-value store"
+    },
+    {
+      "name": "cobra",
+      "repo": "spf13/cobra",
+      "ref": "61968e893eee2f27696c2fbc8e34fa5c4afaf7c4",
+      "language": "Go",
+      "description": "CLI library for Go"
+    },
+    {
+      "name": "minio",
+      "repo": "minio/minio",
+      "ref": "7aac2a2c5b7c882e68c1ce017d8256be2feea27f",
+      "language": "Go",
+      "description": "Object storage server"
+    },
+    {
+      "name": "esbuild",
+      "repo": "evanw/esbuild",
+      "ref": "f9c9012cdb05135873722184b01f078ea7de8d98",
+      "language": "Go",
+      "description": "Fast JavaScript bundler"
+    },
+    {
+      "name": "alacritty",
+      "repo": "alacritty/alacritty",
+      "ref": "48ff32f7c6bbe2c084f1abc39470487510687323",
+      "language": "Rust",
+      "description": "GPU-accelerated terminal emulator"
+    },
+    {
+      "name": "bevy",
+      "repo": "bevyengine/bevy",
+      "ref": "b9e6bd0cf0e0b601e67384bb1a7d4930c9ae42d9",
+      "language": "Rust",
+      "description": "Game engine in Rust"
+    },
+    {
+      "name": "swc",
+      "repo": "swc-project/swc",
+      "ref": "886fe533ad7edfb13804be3a779eccb160cf69e7",
+      "language": "Rust",
+      "description": "Fast TypeScript/JavaScript compiler"
+    },
+    {
+      "name": "zed",
+      "repo": "zed-industries/zed",
+      "ref": "8eb86241f6727835bbd9837af1f169344a9aa29c",
+      "language": "Rust",
+      "description": "High-performance code editor"
+    },
+    {
+      "name": "elasticsearch",
+      "repo": "elastic/elasticsearch",
+      "ref": "17b16e3e85006fdfae780411c6ddaaaa65dcda72",
+      "language": "Java",
+      "description": "Distributed search engine"
+    },
+    {
+      "name": "guava",
+      "repo": "google/guava",
+      "ref": "816eaa1d8b0ab1f5d16b671337dbb447e3845ce0",
+      "language": "Java",
+      "description": "Google core libraries for Java"
+    },
+    {
+      "name": "mybatis-3",
+      "repo": "mybatis/mybatis-3",
+      "ref": "1bb22017d100afca8cb4401307fefcb5ec98ecb6",
+      "language": "Java",
+      "description": "SQL mapper framework for Java"
+    },
+    {
+      "name": "junit5",
+      "repo": "junit-team/junit5",
+      "ref": "4f1f0ff31b58db8cbdeb51c68ebcf017b94dee43",
+      "language": "Java",
+      "description": "Testing framework for Java"
+    },
+    {
+      "name": "aspnetcore",
+      "repo": "dotnet/aspnetcore",
+      "ref": "1cb25dad9e32cf8fbfabab7dbf43afce718766b4",
+      "language": "C#",
+      "description": "Cross-platform web framework"
+    },
+    {
+      "name": "runtime",
+      "repo": "dotnet/runtime",
+      "ref": "a4bfa0d8a4fdc513c9a8d3dec57931c901e8ef2b",
+      "language": "C#",
+      "description": ".NET runtime and libraries"
+    },
+    {
+      "name": "roslyn",
+      "repo": "dotnet/roslyn",
+      "ref": "c8f805e6427304a4e70e09ed53ceacf4b65c850c",
+      "language": "C#",
+      "description": "C# and VB compiler platform"
+    },
+    {
+      "name": "rails",
+      "repo": "rails/rails",
+      "ref": "4df808965b4a1e42cbd4a3ad0764d30a18a5e1b1",
+      "language": "Ruby",
+      "description": "Web application framework"
+    },
+    {
+      "name": "jekyll",
+      "repo": "jekyll/jekyll",
+      "ref": "baab7bf78537679af48d2d2bce1df87a3035c95f",
+      "language": "Ruby",
+      "description": "Static site generator"
+    },
+    {
+      "name": "laravel-framework",
+      "repo": "laravel/framework",
+      "ref": "76f36b58e2af365bddabab4da0395768c6112deb",
+      "language": "PHP",
+      "description": "PHP web framework"
+    },
+    {
+      "name": "symfony",
+      "repo": "symfony/symfony",
+      "ref": "66f06e5e066c95109dd3251cf93d00adbbb82309",
+      "language": "PHP",
+      "description": "PHP web application framework"
     }
   ]
 }

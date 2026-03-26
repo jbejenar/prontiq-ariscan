@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.26.0] — 2026-03-26
+
+### Added
+- **Benchmark cohort expansion (P2.12):** Expanded from 21 to 53 repos across 10 languages. Added 32 new repos: lodash, webpack, axios (JavaScript); angular, nest, prisma, trpc (TypeScript); requests, scikit-learn, httpx, rich (Python); kubernetes, prometheus, etcd, cobra, minio, esbuild (Go); alacritty, bevy, swc, zed (Rust); elasticsearch, guava, mybatis-3, junit5 (Java); aspnetcore, runtime, roslyn (C#); rails, jekyll (Ruby); laravel-framework, symfony (PHP). All refs pinned to commit SHAs.
+
+### Changed
+- **Roadmap (P2.12):** Ticket status `in-progress` → `done`. All 8 functional items complete. 53 repos scanned, leaderboard regenerated. FP rate: 1.8% (274 findings, 5 FPs). Language selection accuracy: 94.3% (50/53).
+- **Benchmark validation:** FP rate improved from 3.7% to 1.8% with expanded cohort. Language selection accuracy improved from 90.5% to 94.3%.
+
 ## [3.25.0] — 2026-03-26
 
 ### Added
