@@ -4363,8 +4363,8 @@ CI integration is the #1 adoption accelerator. If ariscan runs on every PR and s
 ### Telemetry (non-blocking)
 
 - [x] Action installations
-- [x] Runs per week
-- [x] Fail rate
+- [ ] Runs per week [DEFERRED: requires server-side aggregation across scans]
+- [ ] Fail rate [DEFERRED: requires server-side aggregation across scans]
 
 ## Scope
 
@@ -4574,7 +4574,7 @@ Static analysis can detect the presence of `.devcontainer` or test scripts, but 
 ### Telemetry (non-blocking)
 
 - [x] Simulation run count
-- [x] Time-to-green distribution
+- [x] Pass rate distribution (bucketed step pass rate)
 - [x] Prediction accuracy
 
 ## Scope
@@ -4789,7 +4789,7 @@ No single team can anticipate every scoring criterion for every ecosystem. A plu
 ### Telemetry (non-blocking)
 
 - [x] Plugin count
-- [x] Plugin usage distribution
+- [ ] Plugin usage distribution [DEFERRED: requires per-plugin telemetry beyond count]
 
 ## Scope
 
@@ -4920,7 +4920,7 @@ MCP (Model Context Protocol) is emerging as the standard for providing context t
 ### Telemetry (non-blocking)
 
 - [x] MCP server connections
-- [x] Query frequency by resource
+- [ ] Query frequency by resource [DEFERRED: requires per-resource telemetry beyond count]
 
 ## Scope
 
