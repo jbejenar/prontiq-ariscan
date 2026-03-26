@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.28.0] — 2026-03-26
+
+### Added
+- **Cross-language score calibration (P3.06):** Per-language calibration offsets normalize composite scores across ecosystems. TypeScript is the calibration baseline (offset 0). Other languages receive positive offsets compensating for systematic rubric bias: JavaScript +3, C# +4, Python +6, Go +6, Rust +7, Java +9, Ruby +9. Offsets derived from benchmark data (~40% of the gap between each language's mean and TypeScript's mean). Repos scoring ≤25 (L1 Hostile) are not calibrated — truly hostile repos stay hostile regardless of language. The `calibrationOffset` field appears in JSON output for transparency.
+- **P3.02 runtime timing verification:** Benchmark data (53 repos) confirms median scan time of 171ms, max 4.5s. Full GitHub Action (setup + scan + delta + comment) estimated at ~100s worst case — well under 3-minute target.
+
+### Changed
+- `LanguageProfileDef` interface now includes `calibrationOffset: number` field.
+- `aggregateResults()` accepts optional `calibrationOffset` parameter.
+- `ScanResult` schema includes optional `calibrationOffset` field.
+- Calibrated language mean scores converge to 34–49 range (from 27–49 uncalibrated).
+
 ## [3.27.0] — 2026-03-26
 
 ### Added

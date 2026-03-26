@@ -269,6 +269,8 @@ export const ScanResult = z.object({
   repoProfile: RepoProfile.optional(),
   /** Language profile applied for weight adjustment (P3.06). */
   languageProfile: z.string().optional(),
+  /** Calibration offset applied for cross-language score comparability (P3.06). */
+  calibrationOffset: z.number().optional(),
   /** Findings from plugins, attributed separately from core findings (P3.08). */
   pluginFindings: z.array(PluginFinding).optional(),
   /** Errors from plugin loading/execution, surfaced for observability (P3.08). */

@@ -226,9 +226,10 @@ export async function scan(
   // Adapt remediation text to detected build systems and repo archetype (P2.18)
   const finalPillarResults = adaptPillarRemediation(applicabilityResults, detection, repoProfile);
 
-  // Resolve language profile for weight adjustment (P3.06)
+  // Resolve language profile for weight adjustment and calibration (P3.06)
   const languageProfileDef = resolveLanguageProfile(detection, config.language);
   const customWeights = languageProfileDef?.weights;
+  const calibrationOffset = languageProfileDef?.calibrationOffset;
 
   // Merge user-specified pillar weights on top of language profile weights
   const effectiveWeights = mergeWeights(customWeights, config.pillars);
@@ -239,6 +240,7 @@ export async function scan(
     finalPillarResults,
     { version: VERSION, repoPath, duration },
     effectiveWeights,
+    calibrationOffset,
   );
 
   // Explicit devcontainer detection — propagated into ScanResult so telemetry

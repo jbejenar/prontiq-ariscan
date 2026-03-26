@@ -176,17 +176,39 @@ export function annotateCompositeDelta(
 }
 
 /**
+ * Minimum raw score required before calibration offset is applied.
+ * Repos scoring at or below this threshold are genuinely hostile/fragile
+ * regardless of language — calibration should not inflate them.
+ */
+const CALIBRATION_FLOOR = 25;
+
+/**
+ * Apply a language profile calibration offset to a raw composite score.
+ * Compensates for systematic ecosystem bias in the rubric (calibrated on TypeScript).
+ * Only applied when rawScore > CALIBRATION_FLOOR (L1 threshold) — truly hostile
+ * repos should not benefit from calibration. Score is clamped to [0, 100].
+ */
+export function applyCalibrationOffset(rawScore: number, offset: number): number {
+  if (offset === 0 || rawScore <= CALIBRATION_FLOOR) return rawScore;
+  return Math.min(100, Math.max(0, rawScore + offset));
+}
+
+/**
  * Aggregate all pillar results into a final ScanResult.
  *
  * @param customWeights — optional per-pillar weight overrides (e.g. from language profiles)
+ * @param calibrationOffset — optional score offset for cross-language comparability (P3.06)
  */
 export function aggregateResults(
   pillars: PillarResult[],
   metadata: { version: string; repoPath: string; duration: number },
   customWeights?: Partial<Record<PillarId, number>>,
+  calibrationOffset?: number,
 ): ScanResult {
   const adjustedPillars = applyCrossPillarTypeBonus(pillars);
-  const score = calculateCompositeScore(adjustedPillars, customWeights);
+  const rawScore = calculateCompositeScore(adjustedPillars, customWeights);
+  const score =
+    calibrationOffset != null ? applyCalibrationOffset(rawScore, calibrationOffset) : rawScore;
   const rawLevel = classifyMaturityLevel(score);
   const { level, gateTriggered } = applySecurityGate(adjustedPillars, rawLevel);
   const scoreBreakdown = computeScoreBreakdown(adjustedPillars, customWeights);
@@ -233,5 +255,6 @@ export function aggregateResults(
     pillars: annotatedPillars,
     findings: allFindings,
     scoreBreakdown,
+    ...(calibrationOffset != null && calibrationOffset !== 0 ? { calibrationOffset } : {}),
   };
 }
