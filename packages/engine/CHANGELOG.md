@@ -1,5 +1,21 @@
 # @prontiq/ariscan-engine
 
+## 0.40.0
+
+### Minor Changes
+
+- - feat: adhoc-task (#129)
+  - feat: adhoc-task (#127)
+  - feat: adhoc-task (#125)
+  - feat: adhoc-task (#123)
+  - feat: adhoc-task (#121)
+  - feat: adhoc-task (#119)
+
+### Patch Changes
+
+- Updated dependencies
+  - @prontiq/ariscan-schema@0.40.0
+
 ## 0.39.0
 
 ### Minor Changes
