@@ -4333,7 +4333,7 @@ CI integration is the #1 adoption accelerator. If ariscan runs on every PR and s
 
 ### Functional
 
-- [ ] Official `prontiq/ariscan-action` GitHub Action
+- [ ] Official `prontiq/ariscan-action` GitHub Action [DEFERRED: requires separate prontiq/ariscan-action repo + GitHub Marketplace submission]
   - `Verify:` confirm action published to GitHub Marketplace
   - _Implementation complete in `action/action.yml`. Publishing to Marketplace requires separate `prontiq/ariscan-action` repo._
 - [x] Score on every PR, comment with summary report
@@ -6138,7 +6138,7 @@ As a contributor using GitHub Copilot, I want ARI findings to appear as GitHub c
 - [x] Upload SARIF to GitHub Code Scanning in CI
   - `Verify:` confirm SARIF upload step in CI workflow
   - `Evidence:` Added "Generate SARIF report" and "Upload ARI SARIF to Code Scanning" steps to `.github/workflows/ci.yml` using `github/codeql-action/upload-sarif@v3` with `category: ariscan`. Added `security-events: write` permission. Added 2026-03-17.
-- [ ] ARI findings appear as GitHub code scanning alerts
+- [ ] ARI findings appear as GitHub code scanning alerts [DEFERRED: requires push to main; currently unverifiable in local/CI context]
   - `Verify:` confirm alerts visible in GitHub Security tab (requires push to main)
 
 ### Meta
