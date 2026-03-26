@@ -101,6 +101,13 @@ const TEST_DIR_SEGMENTS = new Set([
 /** Weight applied to files in test-like directories (vs 1.0 for core files). */
 const TEST_PATH_WEIGHT = 0.5;
 
+/**
+ * When more than this fraction of a language's files are in test/peripheral
+ * directories, its confidence is penalised. This prevents languages that exist
+ * almost entirely as test infrastructure from being detected as primary.
+ */
+const DOMINANCE_THRESHOLD = 0.7;
+
 function isTestPath(filePath: string): boolean {
   const segments = filePath.split("/");
   // Check all directory segments (not the filename)
@@ -160,8 +167,11 @@ function getExtension(filePath: string): string {
 export async function detectLanguages(context: RepoContext): Promise<DetectedLanguage[]> {
   const { files } = context;
 
-  // Count files per language with test-path down-weighting
+  // Count files per language with test-path down-weighting.
+  // Also track raw core vs test counts for dominance penalty.
   const counts = new Map<string, number>();
+  const rawCoreCount = new Map<string, number>();
+  const rawTestCount = new Map<string, number>();
   let totalSourceFiles = 0;
 
   for (const file of files) {
@@ -170,9 +180,15 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
 
     for (const spec of LANGUAGE_SPECS) {
       if (spec.extensions.includes(ext)) {
-        const weight = isTestPath(file) ? TEST_PATH_WEIGHT : 1;
+        const isTest = isTestPath(file);
+        const weight = isTest ? TEST_PATH_WEIGHT : 1;
         counts.set(spec.name, (counts.get(spec.name) ?? 0) + weight);
         totalSourceFiles += weight;
+        if (isTest) {
+          rawTestCount.set(spec.name, (rawTestCount.get(spec.name) ?? 0) + 1);
+        } else {
+          rawCoreCount.set(spec.name, (rawCoreCount.get(spec.name) ?? 0) + 1);
+        }
         break; // Each file counts once
       }
     }
@@ -230,6 +246,23 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
           confidence = Math.min(1, confidence + spec.markerBoost);
           break;
         }
+      }
+    }
+
+    // Test-dominance penalty: if a language exists almost entirely in test/
+    // peripheral directories, it is likely tooling infrastructure rather than
+    // the primary implementation language. Penalise its confidence.
+    const core = rawCoreCount.get(spec.name) ?? 0;
+    const test = rawTestCount.get(spec.name) ?? 0;
+    const rawTotal = core + test;
+    if (rawTotal > 0) {
+      const testRatio = test / rawTotal;
+      if (testRatio > DOMINANCE_THRESHOLD) {
+        // Defensive clamp: with the current linear formula the minimum penalty
+        // is 0.7x (at testRatio = 1.0), so the 0.5 floor is not reachable today.
+        // Kept as a safety net in case the formula is later adjusted.
+        const penalty = Math.max(0.5, 1 - (testRatio - DOMINANCE_THRESHOLD));
+        confidence *= penalty;
       }
     }
 

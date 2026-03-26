@@ -196,6 +196,39 @@ describe("detectLanguages", () => {
     expect(ts?.confidence).toBeGreaterThan(js?.confidence ?? 0);
   });
 
+  it("prefers Rust over JavaScript in Rust-core + massive JS fixture repo (SWC-like)", async () => {
+    // Simulates a Rust project with a large JS/TS test fixture suite.
+    // Without the test-dominance penalty, JS would win even after down-weighting
+    // because the sheer volume of JS test fixtures overwhelms Rust source files.
+    const files: Record<string, string> = {
+      "Cargo.toml": '[workspace]\nmembers = ["crates/*"]',
+      "Cargo.lock": "# lock",
+    };
+    // 20 Rust source files in crates/ (core code)
+    for (let i = 0; i < 20; i++) {
+      files[`crates/parser/src/file${i}.rs`] = "";
+    }
+    // 5 Rust test files
+    for (let i = 0; i < 5; i++) {
+      files[`crates/parser/tests/test${i}.rs`] = "";
+    }
+    // 60 JS files almost entirely in test/fixture directories
+    for (let i = 0; i < 55; i++) {
+      files[`crates/parser/tests/fixture/case${i}.js`] = "";
+    }
+    files["bindings/node/index.js"] = "";
+    files["bindings/node/utils.js"] = "";
+    files["bindings/wasm/index.js"] = "";
+    files["bindings/wasm/utils.js"] = "";
+    files["bindings/node/test.js"] = "";
+
+    const ctx = createMockContext(files);
+    const result = await detectLanguages(ctx);
+    const primary = result.find((l) => l.primary);
+    expect(primary).toBeDefined();
+    expect(primary?.language).toBe("Rust");
+  });
+
   it("detects language from marker only when no source files exist", async () => {
     const ctx = createMockContext({
       "tsconfig.json": "{}",
