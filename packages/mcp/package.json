@@ -1,6 +1,6 @@
 {
   "name": "@prontiq/ariscan-mcp",
-  "version": "0.35.15",
+  "version": "0.35.16",
   "description": "MCP server exposing read-only ARI readiness data",
   "type": "module",
   "license": "Elastic-2.0",
