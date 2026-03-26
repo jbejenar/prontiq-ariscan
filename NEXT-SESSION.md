@@ -5,7 +5,7 @@ Phase: P3 active
 Checkboxes checked this session: 4 (P3.06 auto-selection, P3.09 VS Code Extension, P3.06 score comparability, P3.02 runtime timing)
 
 ### Completed
-- **P3.06 score comparability:** Per-language calibration offsets normalize composite scores across ecosystems. Calibrated means converge to 34-49 range (from 27-49). 15 new unit tests. All 1086 engine tests pass.
+- **P3.06 score comparability:** Per-language calibration offsets normalize composite scores across ecosystems. Calibrated means converge to 36-49 range (from 27-49). 15 new unit tests. All 1086 engine tests pass.
 - **P3.02 runtime timing:** Benchmark data verifies median scan 171ms, max 4.5s. Full Action estimated ~100s worst case.
 - **P3.06 auto-selection >95%:** Benchmark validation shows 51/53 correct (96.2%, PASS). Build-system authority heuristic (commit 8838f0f) improved accuracy above 95% threshold.
 - **P3.09 VS Code Extension Preview:** New `packages/vscode/` with CodeLens, diagnostics, status bar, commands, local report import. 21 unit tests pass.

@@ -10,7 +10,7 @@
 - `LanguageProfileDef` interface now includes `calibrationOffset: number` field.
 - `aggregateResults()` accepts optional `calibrationOffset` parameter.
 - `ScanResult` schema includes optional `calibrationOffset` field.
-- Calibrated language mean scores converge to 34–49 range (from 27–49 uncalibrated).
+- Calibrated language mean scores converge to 36–49 range (from 27–49 uncalibrated).
 
 ## [3.27.0] — 2026-03-26
 
