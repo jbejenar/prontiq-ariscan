@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.25.0] — 2026-03-26
+
+### Added
+- **Open Benchmark Leaderboard (P2.12):** `benchmarks/generate-leaderboard.cjs` — generates ranked leaderboard from benchmark scan results. Outputs machine-readable `leaderboard.json` (with per-pillar breakdowns, language/level filtering, summary statistics) and human-readable `LEADERBOARD.md` (with GitHub links, level emojis, by-language/by-pillar tables).
+- **Benchmark methodology (P2.12):** `benchmarks/METHODOLOGY.md` — documents repo selection, scanning process, reproducibility, scoring rubric, maturity levels, update cadence, caveats, and versioning policy.
+- **Performance benchmark (P3.07):** VS Code scanned in 719ms, Spring Boot in 699ms — both well under 30s threshold.
+
+### Changed
+- **Roadmap (P1.06):** Ticket status `in-progress` → `done`. False-positive rate validated at 3.7% (82 findings, 3 FPs — all Rust inline test module edge cases).
+- **Roadmap (P2.12):** Ticket status `todo` → `in-progress`. 7/8 functional items complete; remaining: expand cohort to 50+ repos.
+- **Roadmap (P3.07):** Performance benchmark checkbox completed with evidence from P1.18 cohort.
+
 ## [3.24.0] — 2026-03-26
 
 ### Added

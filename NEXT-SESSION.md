@@ -1,20 +1,22 @@
 # Next Session Guide
 
 ## Session: 2026-03-26
-Phase: P1 (completing final REVIEW items) → P3 active
-Checkboxes checked this session: 1 (P1.03 testing)
+Phase: P1 (complete) → P2 (nearly complete) → P3 active
+Checkboxes checked this session: 9 (P1.06 testing, P2.12 ×7, P3.07 performance)
 
 ### Completed
-- **P1.03 testing: Zero false negatives** — Validated via `benchmarks/validate-context-discovery.cjs` using GitHub API. 22 ground-truth context files across 21 repos, 22 discovered, 0 missed. False negative rate: 0.0%.
-- **P3.06 auto-selection accuracy validation** — Tested via `benchmarks/validate-language-selection.cjs`. 19/21 correct (90.5%), below 95% target. Mismatches on multi-language repos (svelte: JS vs TS, deno: TS vs Rust).
+- **P1.06 testing: False-positive rate <10%** — `node benchmarks/validate-test-isolation.cjs` validates 82 P3 findings across 21 repos. FP rate: 3.7% (3/82). All 3 FPs are ripgrep ARI-TST-008 on non-test files (Rust inline test modules). Ticket P1.06 now `done`.
+- **P2.12: Open Benchmark Leaderboard** (7/8 items) — `benchmarks/generate-leaderboard.cjs` produces ranked leaderboard with language/level filtering, summary statistics, per-pillar breakdowns. Methodology documented in `benchmarks/METHODOLOGY.md`. Reproducibility verified.
+- **P3.07: Performance <30s** — VS Code: 719ms, Spring Boot: 699ms. Well under 30s threshold.
 
 ### Ticket Status Changes
-- P1.03: unchecked → done
+- P1.06: in-progress → done (FP validation passed)
+- P2.12: todo → in-progress (7/8 functional items done, 50+ repos remaining)
+- P3.07: performance checkbox completed
 
 ### In Progress
-- **P1.06 testing: False-positive rate <10%** — Script rewritten with semantic file-scoping validation via `isTestFile()` (3.7% FP rate per rewritten script). Needs formal re-run and roadmap evidence update. Ticket status reverted to `in-progress`.
-- **P3.06 — Language Profiles:** Auto-selection accuracy at 90.5% (target 95%). Svelte and Deno mismatches are multi-language edge cases requiring multi-language detection or heuristic tuning.
-- **P3.06 — Score comparability:** TS repos score significantly higher than other ecosystems. Further weight calibration needed.
+- **P2.12 — 50+ repos:** Current cohort has 21 repos. Need 50+ for full DoD. Requires expanding `revisions.json` with more repos.
+- **P3.06 — Language Profiles:** Auto-selection accuracy at 90.5% (target 95%). Score comparability across languages not yet achieved.
 - **P3.02 — GitHub Action:** 2 items remain (Marketplace publication, runtime timing)
 - **P3.09 — VS Code Extension:** Not started
 
@@ -25,29 +27,28 @@ Checkboxes checked this session: 1 (P1.03 testing)
 - All telemetry items requiring server-side infrastructure
 
 ### Discovered
-- Multi-language repo detection is a gap: repos like Deno (Rust + TypeScript) and Svelte (JS + TypeScript) need better primary language heuristics or multi-language support
-- P3 (test isolation) findings have good precision (3.7% FP rate — 3/82 findings on non-test files). Script rewritten with semantic `isTestFile()` validation; needs formal re-run for roadmap evidence.
+- Leaderboard JSON format (`leaderboard.json`) provides full pillar-level data for downstream consumers
 
 ### Key Decisions
-- Conservative FP methodology: only clearly malformed findings classified as false positives. Scanner's test-file scoping prevents most FP sources.
-- Multi-language mismatches documented as partial evidence rather than adjusting revisions.json ground truth.
+- Leaderboard uses default rubric weights (not language profiles) for consistent cross-language comparison
+- Methodology versioning: scores only comparable within same rubric version
 
 ### Blockers
-- P3.06 auto-selection accuracy needs multi-language detection improvement to reach 95% target
+- P2.12 cohort expansion (21 → 50+) is a separate effort — need to identify and add 29+ more repos
+- P3.06 auto-selection accuracy needs multi-language detection improvement
 - P3.02 Marketplace publication requires separate `prontiq/ariscan-action` repo
 - P3.09 VS Code Extension requires separate toolchain
 
 ### Next Session Should Start With
-1. **P1.06 testing re-run** — re-run `benchmarks/validate-test-isolation.cjs` with semantic `isTestFile()` validation and update roadmap with evidence. Script already rewritten; just needs formal execution and evidence recording.
-2. **P3.06 multi-language detection** — improve auto-selection for repos with multiple significant languages (svelte, deno). Consider returning top-2 languages or using framework detection as tiebreaker.
-2. **P2.12 (Open Benchmark Leaderboard)** — fully unblocked by P1.18
-3. **P3.07 performance <30s benchmark** — use P1.18 large repos to verify
-4. **P3.09 (VS Code Extension Preview)** — p2-medium, largest remaining P3 item
+1. **P2.12 cohort expansion** — add 29+ repos to reach 50+ for leaderboard launch criterion. Expand revisions.json, run benchmarks, regenerate leaderboard.
+2. **P3.06 multi-language detection** — improve auto-selection for repos with multiple significant languages (svelte, deno)
+3. **P3.09 (VS Code Extension Preview)** — p2-medium, largest remaining P3 item
+4. **P3.02 GitHub Action** — complete remaining items
 
 ### Roadmap Progress
-- P1: ~131/132 done (P1.06 in-progress — semantic FP validation rewritten, pending re-run; remaining items all BLOCKED/DEFERRED/telemetry)
-- P2: 14/15 done. P2.12 still todo
-- P3: P3.01 done, P3.02 in-progress (2 items), P3.03 done, P3.04 done, P3.05 done, P3.06 in-progress, P3.07 in-progress, P3.08 in-progress, P3.09 todo, P3.10 in-progress
+- P1: ~132/132 done (all actionable items complete; remaining are BLOCKED/DEFERRED/telemetry)
+- P2: 14/15 done. P2.12 in-progress (7/8 items, needs cohort expansion)
+- P3: P3.01 done, P3.02 in-progress (2 items), P3.03 done, P3.04 done, P3.05 done, P3.06 in-progress, P3.07 in-progress (performance done, cross-boundary deferred), P3.08 in-progress, P3.09 todo, P3.10 in-progress
 - P3.5 Scaffolder: S.01–S.11 all done
 - CI: 9/10 done
 - Selftest: 85/100 (L5 Autonomous) baseline

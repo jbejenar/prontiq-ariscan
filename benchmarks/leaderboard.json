@@ -1,0 +1,1544 @@
+{
+  "$schema": "https://prontiq.dev/schemas/ari-leaderboard/v1.json",
+  "version": "1.0.0",
+  "scoringVersion": "0.2.0",
+  "rubricVersion": "v1",
+  "generatedAt": "2026-03-26T04:00:47.725Z",
+  "methodology": {
+    "description": "ARI (Agent Readiness Index) scores for open-source repositories. Each repo is scanned at a pinned commit SHA using the ariscan CLI with default rubric weights.",
+    "rubricPillars": [
+      {
+        "id": "P1",
+        "name": "Agent Context Quality"
+      },
+      {
+        "id": "P2",
+        "name": "Feedback Loop Speed"
+      },
+      {
+        "id": "P3",
+        "name": "Test Isolation"
+      },
+      {
+        "id": "P4",
+        "name": "Dev Environment"
+      },
+      {
+        "id": "P5",
+        "name": "Doc Machine-Readability"
+      },
+      {
+        "id": "P6",
+        "name": "Build Determinism & Type Safety"
+      },
+      {
+        "id": "P7",
+        "name": "Code Navigability"
+      },
+      {
+        "id": "P8",
+        "name": "Security & Governance"
+      }
+    ],
+    "reproducibility": "All refs pinned to commit SHAs in revisions.json. Scanner is deterministic (no network, no randomness). Re-running produces identical scores.",
+    "updateCadence": "Monthly minimum, with ad-hoc updates for rubric changes.",
+    "versionPolicy": "Scores are only comparable within the same rubric version."
+  },
+  "summary": {
+    "totalRepos": 21,
+    "overall": {
+      "mean": 40,
+      "median": 36,
+      "min": 28,
+      "max": 65,
+      "stddev": 9.3
+    },
+    "byLevel": {
+      "L3 Capable": 3,
+      "L2 Fragile": 18
+    },
+    "byLanguage": {
+      "TypeScript": {
+        "mean": 49,
+        "median": 48,
+        "min": 36,
+        "max": 65,
+        "stddev": 8.5,
+        "count": 7
+      },
+      "JavaScript": {
+        "mean": 40,
+        "median": 40,
+        "min": 31,
+        "max": 48,
+        "stddev": 8.5,
+        "count": 2
+      },
+      "Go": {
+        "mean": 36,
+        "median": 34,
+        "min": 33,
+        "max": 42,
+        "stddev": 4,
+        "count": 3
+      },
+      "Python": {
+        "mean": 36,
+        "median": 36,
+        "min": 32,
+        "max": 42,
+        "stddev": 3.7,
+        "count": 5
+      },
+      "Rust": {
+        "mean": 31,
+        "median": 30,
+        "min": 28,
+        "max": 35,
+        "stddev": 2.9,
+        "count": 3
+      },
+      "Java": {
+        "mean": 29,
+        "median": 29,
+        "min": 29,
+        "max": 29,
+        "stddev": 0,
+        "count": 1
+      }
+    },
+    "byPillar": {
+      "P1": {
+        "name": "Agent Context Quality",
+        "mean": 47,
+        "median": 25,
+        "min": 20,
+        "max": 100,
+        "stddev": 29.4
+      },
+      "P2": {
+        "name": "Feedback Loop Speed",
+        "mean": 42,
+        "median": 33,
+        "min": 8,
+        "max": 89,
+        "stddev": 28.2
+      },
+      "P3": {
+        "name": "Test Isolation",
+        "mean": 50,
+        "median": 50,
+        "min": 0,
+        "max": 75,
+        "stddev": 16.7
+      },
+      "P4": {
+        "name": "Dev Environment",
+        "mean": 33,
+        "median": 29,
+        "min": 0,
+        "max": 72,
+        "stddev": 18.8
+      },
+      "P5": {
+        "name": "Doc Machine-Readability",
+        "mean": 30,
+        "median": 30,
+        "min": 0,
+        "max": 65,
+        "stddev": 14.9
+      },
+      "P6": {
+        "name": "Build Determinism & Type Safety",
+        "mean": 33,
+        "median": 35,
+        "min": 3,
+        "max": 75,
+        "stddev": 17.9
+      },
+      "P7": {
+        "name": "Code Navigability",
+        "mean": 25,
+        "median": 30,
+        "min": 0,
+        "max": 55,
+        "stddev": 16.4
+      },
+      "P8": {
+        "name": "Security & Governance",
+        "mean": 48,
+        "median": 50,
+        "min": 15,
+        "max": 85,
+        "stddev": 17.9
+      }
+    }
+  },
+  "entries": [
+    {
+      "rank": 1,
+      "name": "next.js",
+      "repo": "vercel/next.js",
+      "ref": "56993a6c3b2dbb090312628097bcb180a60a993a",
+      "language": "TypeScript",
+      "description": "React framework for production",
+      "score": 65,
+      "level": "L3",
+      "levelName": "Capable",
+      "securityGateTriggered": false,
+      "duration": 2829,
+      "pillars": {
+        "P1": {
+          "score": 87,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P2": {
+          "score": 89,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 6
+        },
+        "P3": {
+          "score": 70,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 2
+        },
+        "P4": {
+          "score": 72,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 10
+        },
+        "P5": {
+          "score": 65,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 55,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 7
+        },
+        "P7": {
+          "score": 15,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 8
+        },
+        "P8": {
+          "score": 50,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 7
+        }
+      },
+      "findingCount": 46,
+      "scannedAt": "2026-03-26T01:33:18.563Z"
+    },
+    {
+      "rank": 2,
+      "name": "astro",
+      "repo": "withastro/astro",
+      "ref": "87fd6a4fcb075efa10a518aa8b92a11dd3284964",
+      "language": "TypeScript",
+      "description": "Web framework for content-driven websites",
+      "score": 54,
+      "level": "L3",
+      "levelName": "Capable",
+      "securityGateTriggered": false,
+      "duration": 325,
+      "pillars": {
+        "P1": {
+          "score": 77,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P2": {
+          "score": 86,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 5
+        },
+        "P3": {
+          "score": 49,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 6
+        },
+        "P4": {
+          "score": 59,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 40,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 55,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P7": {
+          "score": 4,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P8": {
+          "score": 40,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 8
+        }
+      },
+      "findingCount": 52,
+      "scannedAt": "2026-03-26T01:33:21.436Z"
+    },
+    {
+      "rank": 3,
+      "name": "vue",
+      "repo": "vuejs/core",
+      "ref": "81615d398a89beeccfe56a4a96fd2fba0c6fb37b",
+      "language": "TypeScript",
+      "description": "Progressive JavaScript framework",
+      "score": 50,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": true,
+      "duration": 77,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 71,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 6
+        },
+        "P3": {
+          "score": 70,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 1
+        },
+        "P4": {
+          "score": 40,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 10
+        },
+        "P5": {
+          "score": 25,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P6": {
+          "score": 75,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 4
+        },
+        "P7": {
+          "score": 31,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 10
+        },
+        "P8": {
+          "score": 30,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 8
+        }
+      },
+      "findingCount": 45,
+      "scannedAt": "2026-03-26T01:33:18.746Z"
+    },
+    {
+      "rank": 4,
+      "name": "react",
+      "repo": "facebook/react",
+      "ref": "3cb2c42013eda273ac449126ab9fcc115a09d39d",
+      "language": "JavaScript",
+      "description": "React UI library",
+      "score": 48,
+      "level": "L3",
+      "levelName": "Capable",
+      "securityGateTriggered": false,
+      "duration": 349,
+      "pillars": {
+        "P1": {
+          "score": 52,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P2": {
+          "score": 69,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 4
+        },
+        "P3": {
+          "score": 53,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 6
+        },
+        "P4": {
+          "score": 44,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 60,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 40,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P7": {
+          "score": 5,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 12
+        },
+        "P8": {
+          "score": 55,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 6
+        }
+      },
+      "findingCount": 47,
+      "scannedAt": "2026-03-26T01:33:15.626Z"
+    },
+    {
+      "rank": 5,
+      "name": "remix",
+      "repo": "remix-run/remix",
+      "ref": "690199187712258736d082a73bbde0f5b03247ea",
+      "language": "TypeScript",
+      "description": "Full-stack React framework",
+      "score": 48,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": true,
+      "duration": 735,
+      "pillars": {
+        "P1": {
+          "score": 92,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P2": {
+          "score": 78,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 5
+        },
+        "P3": {
+          "score": 30,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 21
+        },
+        "P4": {
+          "score": 57,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 35,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P6": {
+          "score": 35,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 14,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 9
+        },
+        "P8": {
+          "score": 25,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 9
+        }
+      },
+      "findingCount": 66,
+      "scannedAt": "2026-03-26T01:33:21.007Z"
+    },
+    {
+      "rank": 6,
+      "name": "vscode",
+      "repo": "microsoft/vscode",
+      "ref": "2ce238e7e5e1892eb28e177e839c4cd5a3041ede",
+      "language": "TypeScript",
+      "description": "Code editor",
+      "score": 45,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 719,
+      "pillars": {
+        "P1": {
+          "score": 95,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P2": {
+          "score": 33,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 6
+        },
+        "P3": {
+          "score": 57,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 6
+        },
+        "P4": {
+          "score": 62,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 9
+        },
+        "P5": {
+          "score": 25,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P6": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 5
+        },
+        "P7": {
+          "score": 0,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 15
+        },
+        "P8": {
+          "score": 70,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 5
+        }
+      },
+      "findingCount": 53,
+      "scannedAt": "2026-03-26T01:33:25.779Z"
+    },
+    {
+      "rank": 7,
+      "name": "nuxt",
+      "repo": "nuxt/nuxt",
+      "ref": "79d08580b5df81c55d81b7f2904d293081326bea",
+      "language": "TypeScript",
+      "description": "Vue framework",
+      "score": 43,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 86,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 80,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 5
+        },
+        "P3": {
+          "score": 59,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 3
+        },
+        "P4": {
+          "score": 47,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 12
+        },
+        "P5": {
+          "score": 30,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 35,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 0,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 15
+        },
+        "P8": {
+          "score": 80,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 5
+        }
+      },
+      "findingCount": 48,
+      "scannedAt": "2026-03-26T01:33:18.938Z"
+    },
+    {
+      "rank": 8,
+      "name": "hugo",
+      "repo": "gohugoio/hugo",
+      "ref": "0c013c2326be1bbebba9a9f89d27072074fc6cc4",
+      "language": "Go",
+      "description": "Static site generator",
+      "score": 42,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 154,
+      "pillars": {
+        "P1": {
+          "score": 92,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P2": {
+          "score": 8,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 7
+        },
+        "P3": {
+          "score": 65,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 0
+        },
+        "P4": {
+          "score": 25,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 12
+        },
+        "P5": {
+          "score": 25,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P6": {
+          "score": 40,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 25,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P8": {
+          "score": 35,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 7
+        }
+      },
+      "findingCount": 40,
+      "scannedAt": "2026-03-26T01:33:23.394Z"
+    },
+    {
+      "rank": 9,
+      "name": "langchain",
+      "repo": "langchain-ai/langchain",
+      "ref": "90d015c841e76396b077b04aaeaa57bc388b2118",
+      "language": "Python",
+      "description": "LLM application framework",
+      "score": 42,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 740,
+      "pillars": {
+        "P1": {
+          "score": 100,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P2": {
+          "score": 22,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 7
+        },
+        "P3": {
+          "score": 47,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 2
+        },
+        "P4": {
+          "score": 27,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 30,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 3,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 40,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P8": {
+          "score": 85,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 4
+        }
+      },
+      "findingCount": 36,
+      "scannedAt": "2026-03-26T01:33:23.136Z"
+    },
+    {
+      "rank": 10,
+      "name": "fastapi",
+      "repo": "fastapi/fastapi",
+      "ref": "937d3075f9456dfcdfe2e1f6bc3b8b7b9a6c6cad",
+      "language": "Python",
+      "description": "Modern Python web framework",
+      "score": 37,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 126,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 33,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 6
+        },
+        "P3": {
+          "score": 60,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 0
+        },
+        "P4": {
+          "score": 27,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 25,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P6": {
+          "score": 23,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 46,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P8": {
+          "score": 60,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 6
+        }
+      },
+      "findingCount": 36,
+      "scannedAt": "2026-03-26T01:33:21.665Z"
+    },
+    {
+      "rank": 11,
+      "name": "flask",
+      "repo": "pallets/flask",
+      "ref": "7ef2946fb5151b745df30201b8c27790cac53875",
+      "language": "Python",
+      "description": "Lightweight Python web framework",
+      "score": 36,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 36,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 33,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 6
+        },
+        "P3": {
+          "score": 75,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 0
+        },
+        "P4": {
+          "score": 29,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 15,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 23,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 35,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 7
+        },
+        "P8": {
+          "score": 25,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 9
+        }
+      },
+      "findingCount": 41,
+      "scannedAt": "2026-03-26T01:33:22.092Z"
+    },
+    {
+      "rank": 12,
+      "name": "svelte",
+      "repo": "sveltejs/svelte",
+      "ref": "669f6b45a3d02aa55b4011576b8d4ded2b5b7135",
+      "language": "TypeScript",
+      "description": "Cybernetically enhanced web apps",
+      "score": 36,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 488,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 72,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 4
+        },
+        "P3": {
+          "score": 42,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 4
+        },
+        "P4": {
+          "score": 17,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 40,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 40,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 12,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 9
+        },
+        "P8": {
+          "score": 30,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 9
+        }
+      },
+      "findingCount": 45,
+      "scannedAt": "2026-03-26T01:33:26.373Z"
+    },
+    {
+      "rank": 13,
+      "name": "deno",
+      "repo": "denoland/deno",
+      "ref": "8f1c7719f6ff0b308144f51c2a37ea788a7c6c61",
+      "language": "Rust",
+      "description": "JavaScript/TypeScript runtime",
+      "score": 35,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 2050,
+      "pillars": {
+        "P1": {
+          "score": 65,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 11,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 7
+        },
+        "P3": {
+          "score": 35,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 14
+        },
+        "P4": {
+          "score": 41,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 40,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 45,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P7": {
+          "score": 0,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 10
+        },
+        "P8": {
+          "score": 50,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 6
+        }
+      },
+      "findingCount": 57,
+      "scannedAt": "2026-03-26T01:33:28.528Z"
+    },
+    {
+      "rank": 14,
+      "name": "gin",
+      "repo": "gin-gonic/gin",
+      "ref": "d3ffc9985281dcf4d3bef604cce4e662b1a327a6",
+      "language": "Go",
+      "description": "HTTP web framework for Go",
+      "score": 34,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 41,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 21,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 6
+        },
+        "P3": {
+          "score": 40,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 3
+        },
+        "P4": {
+          "score": 40,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 20,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 40,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 35,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P8": {
+          "score": 60,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 7
+        }
+      },
+      "findingCount": 39,
+      "scannedAt": "2026-03-26T01:33:23.815Z"
+    },
+    {
+      "rank": 15,
+      "name": "terraform",
+      "repo": "hashicorp/terraform",
+      "ref": "6bb021838800f5fce838708cf3ff0a0e8184c96f",
+      "language": "Go",
+      "description": "Infrastructure as code",
+      "score": 33,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 171,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 19,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 6
+        },
+        "P3": {
+          "score": 45,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 2
+        },
+        "P4": {
+          "score": 30,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 25,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 40,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 30,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P8": {
+          "score": 55,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 7
+        }
+      },
+      "findingCount": 38,
+      "scannedAt": "2026-03-26T01:33:23.669Z"
+    },
+    {
+      "rank": 16,
+      "name": "django",
+      "repo": "django/django",
+      "ref": "f6167b8bc881babd19b67c004e8f37954afc192e",
+      "language": "Python",
+      "description": "Python web framework",
+      "score": 32,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 183,
+      "pillars": {
+        "P1": {
+          "score": 40,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P2": {
+          "score": 44,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 6
+        },
+        "P3": {
+          "score": 39,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 4
+        },
+        "P4": {
+          "score": 15,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 0,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P6": {
+          "score": 3,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 35,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 6
+        },
+        "P8": {
+          "score": 60,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 5
+        }
+      },
+      "findingCount": 42,
+      "scannedAt": "2026-03-26T01:33:21.952Z"
+    },
+    {
+      "rank": 17,
+      "name": "pydantic",
+      "repo": "pydantic/pydantic",
+      "ref": "1a37a3d479dea9b21c7379e882bf5ec56fb94fc2",
+      "language": "Python",
+      "description": "Data validation using Python type hints",
+      "score": 32,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 97,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 33,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 6
+        },
+        "P3": {
+          "score": 50,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 1
+        },
+        "P4": {
+          "score": 25,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P5": {
+          "score": 35,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P6": {
+          "score": 18,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P7": {
+          "score": 26,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 11
+        },
+        "P8": {
+          "score": 55,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 7
+        }
+      },
+      "findingCount": 46,
+      "scannedAt": "2026-03-26T01:33:22.293Z"
+    },
+    {
+      "rank": 18,
+      "name": "express",
+      "repo": "expressjs/express",
+      "ref": "6c4249feec8ab40631817c8e7001baf2ed022224",
+      "language": "JavaScript",
+      "description": "Fast web framework for Node.js",
+      "score": 31,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 31,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 49,
+          "weight": 0.15,
+          "confidence": "high",
+          "findingCount": 5
+        },
+        "P3": {
+          "score": 0,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 1
+        },
+        "P4": {
+          "score": 22,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 12
+        },
+        "P5": {
+          "score": 30,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P6": {
+          "score": 5,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 45,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P8": {
+          "score": 40,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 8
+        }
+      },
+      "findingCount": 37,
+      "scannedAt": "2026-03-26T01:33:20.170Z"
+    },
+    {
+      "rank": 19,
+      "name": "tokio",
+      "repo": "tokio-rs/tokio",
+      "ref": "467d614267ce422206d8acbccf957eb49a597467",
+      "language": "Rust",
+      "description": "Async runtime for Rust",
+      "score": 30,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 82,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 8,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 7
+        },
+        "P3": {
+          "score": 65,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 0
+        },
+        "P4": {
+          "score": 7,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 12
+        },
+        "P5": {
+          "score": 15,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P6": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 4
+        },
+        "P7": {
+          "score": 35,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P8": {
+          "score": 35,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 8
+        }
+      },
+      "findingCount": 37,
+      "scannedAt": "2026-03-26T01:33:24.153Z"
+    },
+    {
+      "rank": 20,
+      "name": "spring-boot",
+      "repo": "spring-projects/spring-boot",
+      "ref": "5b6d346c602bc76f0fc982a9a75077d7a4806fba",
+      "language": "Java",
+      "description": "Java application framework",
+      "score": 29,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 699,
+      "pillars": {
+        "P1": {
+          "score": 20,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P2": {
+          "score": 8,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 7
+        },
+        "P3": {
+          "score": 65,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 3
+        },
+        "P4": {
+          "score": 0,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 12
+        },
+        "P5": {
+          "score": 45,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P6": {
+          "score": 15,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 34,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 5
+        },
+        "P8": {
+          "score": 45,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 8
+        }
+      },
+      "findingCount": 43,
+      "scannedAt": "2026-03-26T01:33:24.954Z"
+    },
+    {
+      "rank": 21,
+      "name": "ripgrep",
+      "repo": "BurntSushi/ripgrep",
+      "ref": "4519153e5e461527f4bca45b042fff45c4ec6fb9",
+      "language": "Rust",
+      "description": "Fast line-oriented search tool",
+      "score": 28,
+      "level": "L2",
+      "levelName": "Fragile",
+      "securityGateTriggered": false,
+      "duration": 49,
+      "pillars": {
+        "P1": {
+          "score": 25,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P2": {
+          "score": 8,
+          "weight": 0.15,
+          "confidence": "low",
+          "findingCount": 7
+        },
+        "P3": {
+          "score": 40,
+          "weight": 0.18,
+          "confidence": "high",
+          "findingCount": 3
+        },
+        "P4": {
+          "score": 7,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 12
+        },
+        "P5": {
+          "score": 10,
+          "weight": 0.1,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P6": {
+          "score": 45,
+          "weight": 0.15,
+          "confidence": "medium",
+          "findingCount": 3
+        },
+        "P7": {
+          "score": 55,
+          "weight": 0.12,
+          "confidence": "medium",
+          "findingCount": 2
+        },
+        "P8": {
+          "score": 15,
+          "weight": 0.05,
+          "confidence": "medium",
+          "findingCount": 9
+        }
+      },
+      "findingCount": 41,
+      "scannedAt": "2026-03-26T01:33:23.967Z"
+    }
+  ]
+}
