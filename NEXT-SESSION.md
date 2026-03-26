@@ -1,12 +1,12 @@
 # Next Session Guide
 
-## Session: 2026-03-26 (verification-only)
+## Session: 2026-03-26 (roadmap hygiene)
 Phase: All phases complete (all remaining items DEFERRED on external dependencies)
 Checkboxes checked this session: 0 (no actionable roadmap items)
 
 ### Completed
+- **Roadmap hygiene:** Added explicit `[DEFERRED]` annotations to 20 telemetry items that were missing them. All 62 unchecked items now have `[DEFERRED]` or `[BLOCKED]` labels.
 - **Full verification pass:** All golden commands pass — install, build, lint, typecheck, test (1330 tests, 0 failures), selftest (87/100, L5 Autonomous).
-- **Roadmap audit:** Confirmed all 61 remaining unchecked items are DEFERRED/BLOCKED on external dependencies or are non-blocking telemetry metrics requiring server-side infrastructure.
 
 ### Ticket Status Changes
 - None — all tickets remain `status: done`
@@ -15,12 +15,13 @@ Checkboxes checked this session: 0 (no actionable roadmap items)
 - None — all tickets are `status: done` or have only DEFERRED items
 
 ### Deferred
-- All 61 remaining unchecked items are DEFERRED across all phases
+- All 62 remaining unchecked items are DEFERRED/BLOCKED across all phases
 - Major blockers: npm publish (P3.10, P3.02 Marketplace), separate repo (P3.02 Action), AST-level analysis (P1.07), benchmark cohort expansion (P1.02), end-to-end perf benchmarks (P1.03)
-- Telemetry items deferred across P3.01-P3.10 (non-blocking, require server-side aggregation)
+- Telemetry items deferred across all phases (non-blocking, require server-side aggregation infrastructure)
 
 ### Key Decisions
 - No code changes this session — roadmap is feature-complete from a code perspective.
+- All previously unannotated telemetry items now carry explicit `[DEFERRED]` annotations for agent clarity.
 
 ### Blockers
 - npm publish required for: P3.10 MCP integration, P3.02 Marketplace listing
@@ -29,7 +30,7 @@ Checkboxes checked this session: 0 (no actionable roadmap items)
 - Tree-sitter AST integration required for: P1.07 order-sensitive assertion detection
 
 ### Next Session Should Start With
-1. **npm publish** — merge to main triggers the publish workflow (`publish.yml` with changesets). This is the single highest-impact unblock. Pre-publish checklist is fully complete (see roadmap §NPM Package Publication Strategy). Requires a changeset + merge to main.
+1. **npm publish** — merge to main triggers the publish workflow (`publish.yml` with changesets). This is the single highest-impact unblock. Requires a changeset + merge to main.
 2. **Post-publish verification** — after npm publish, verify `npx @prontiq/ariscan-cli .` works, MCP server works via `npx`, GitHub Action Marketplace listing.
 3. **Benchmark cohort expansion** — expand from 21 to 50+ repos for P1.02 false-language detection validation.
 
@@ -43,8 +44,8 @@ Checkboxes checked this session: 0 (no actionable roadmap items)
 
 ### Verification Evidence (2026-03-26)
 - `pnpm install` — up to date
-- `pnpm build` — 5/5 tasks successful
-- `pnpm lint` — 5/5 tasks successful, 0 warnings
-- `pnpm typecheck` — 7/7 tasks successful
-- `pnpm test` — 1330 tests passed, 1 skipped, 0 failures (engine: 1099, cli: 231)
-- `pnpm selftest` — 87/100, L5 Autonomous (matches baseline)
+- `pnpm build` — 5/5 tasks successful (cached)
+- `pnpm lint` — 5/5 tasks successful (cached)
+- `pnpm typecheck` — 7/7 tasks successful (cached)
+- `pnpm test` — 1330 tests passed, 0 failures (cached)
+- `pnpm selftest` — 87/100, L5 Autonomous
