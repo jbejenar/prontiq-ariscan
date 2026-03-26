@@ -29,6 +29,14 @@ describe("schema barrel exports", () => {
     expect(typeof schema.scoreToBucket).toBe("function");
   });
 
+  it("exports fileCountToBucket function", () => {
+    expect(typeof schema.fileCountToBucket).toBe("function");
+  });
+
+  it("exports RepoSizeBucket schema", () => {
+    expect(schema.RepoSizeBucket).toBeDefined();
+  });
+
   it("exports Severity Zod schema", () => {
     expect(schema.Severity).toBeDefined();
   });

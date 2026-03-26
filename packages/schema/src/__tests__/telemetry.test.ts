@@ -1,9 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { ScoreBucket, scoreToBucket, telemetryPayloadSchema } from "../telemetry.js";
+import {
+  ScoreBucket,
+  scoreToBucket,
+  RepoSizeBucket,
+  fileCountToBucket,
+  telemetryPayloadSchema,
+} from "../telemetry.js";
 
 describe("ScoreBucket", () => {
   it("accepts valid bucket values", () => {
-    for (const bucket of ["0-25", "26-45", "46-65", "66-80", "81-100"]) {
+    for (const bucket of ["0-20", "21-40", "41-60", "61-80", "81-100"]) {
       expect(ScoreBucket.parse(bucket)).toBe(bucket);
     }
   });
@@ -14,45 +20,38 @@ describe("ScoreBucket", () => {
 });
 
 describe("scoreToBucket", () => {
-  it("maps 0 to 0-25", () => {
-    expect(scoreToBucket(0)).toBe("0-25");
+  it("maps 0 to 0-20", () => expect(scoreToBucket(0)).toBe("0-20"));
+  it("maps 20 to 0-20", () => expect(scoreToBucket(20)).toBe("0-20"));
+  it("maps 21 to 21-40", () => expect(scoreToBucket(21)).toBe("21-40"));
+  it("maps 40 to 21-40", () => expect(scoreToBucket(40)).toBe("21-40"));
+  it("maps 41 to 41-60", () => expect(scoreToBucket(41)).toBe("41-60"));
+  it("maps 60 to 41-60", () => expect(scoreToBucket(60)).toBe("41-60"));
+  it("maps 61 to 61-80", () => expect(scoreToBucket(61)).toBe("61-80"));
+  it("maps 80 to 61-80", () => expect(scoreToBucket(80)).toBe("61-80"));
+  it("maps 81 to 81-100", () => expect(scoreToBucket(81)).toBe("81-100"));
+  it("maps 100 to 81-100", () => expect(scoreToBucket(100)).toBe("81-100"));
+});
+
+describe("RepoSizeBucket", () => {
+  it("accepts valid bucket values", () => {
+    for (const bucket of ["small", "medium", "large", "xlarge"]) {
+      expect(RepoSizeBucket.parse(bucket)).toBe(bucket);
+    }
   });
 
-  it("maps 25 to 0-25", () => {
-    expect(scoreToBucket(25)).toBe("0-25");
+  it("rejects invalid bucket", () => {
+    expect(() => RepoSizeBucket.parse("tiny")).toThrow();
   });
+});
 
-  it("maps 26 to 26-45", () => {
-    expect(scoreToBucket(26)).toBe("26-45");
-  });
-
-  it("maps 45 to 26-45", () => {
-    expect(scoreToBucket(45)).toBe("26-45");
-  });
-
-  it("maps 46 to 46-65", () => {
-    expect(scoreToBucket(46)).toBe("46-65");
-  });
-
-  it("maps 65 to 46-65", () => {
-    expect(scoreToBucket(65)).toBe("46-65");
-  });
-
-  it("maps 66 to 66-80", () => {
-    expect(scoreToBucket(66)).toBe("66-80");
-  });
-
-  it("maps 80 to 66-80", () => {
-    expect(scoreToBucket(80)).toBe("66-80");
-  });
-
-  it("maps 81 to 81-100", () => {
-    expect(scoreToBucket(81)).toBe("81-100");
-  });
-
-  it("maps 100 to 81-100", () => {
-    expect(scoreToBucket(100)).toBe("81-100");
-  });
+describe("fileCountToBucket", () => {
+  it("maps 0 to small", () => expect(fileCountToBucket(0)).toBe("small"));
+  it("maps 50 to small", () => expect(fileCountToBucket(50)).toBe("small"));
+  it("maps 51 to medium", () => expect(fileCountToBucket(51)).toBe("medium"));
+  it("maps 500 to medium", () => expect(fileCountToBucket(500)).toBe("medium"));
+  it("maps 501 to large", () => expect(fileCountToBucket(501)).toBe("large"));
+  it("maps 5000 to large", () => expect(fileCountToBucket(5000)).toBe("large"));
+  it("maps 5001 to xlarge", () => expect(fileCountToBucket(5001)).toBe("xlarge"));
 });
 
 describe("telemetryPayloadSchema", () => {
@@ -61,7 +60,10 @@ describe("telemetryPayloadSchema", () => {
     version: "0.1.0",
     platform: "darwin",
     language: "typescript",
-    score_bucket: "66-80" as const,
+    framework: "react",
+    repo_size_bucket: "medium" as const,
+    timestamp: "2026-03-26",
+    score_bucket: "61-80" as const,
     duration_ms: 1234,
     pillar_count: 8,
     finding_count: 5,
@@ -70,7 +72,7 @@ describe("telemetryPayloadSchema", () => {
   it("accepts a valid payload", () => {
     const result = telemetryPayloadSchema.parse(validPayload);
     expect(result.scan_id).toBe(validPayload.scan_id);
-    expect(result.score_bucket).toBe("66-80");
+    expect(result.score_bucket).toBe("61-80");
   });
 
   it("rejects missing required fields", () => {
@@ -91,5 +93,10 @@ describe("telemetryPayloadSchema", () => {
 
   it("rejects invalid score bucket", () => {
     expect(() => telemetryPayloadSchema.parse({ ...validPayload, score_bucket: "0-50" })).toThrow();
+  });
+
+  it("accepts optional fix_applied field", () => {
+    const result = telemetryPayloadSchema.parse({ ...validPayload, fix_applied: true });
+    expect(result.fix_applied).toBe(true);
   });
 });

@@ -1,19 +1,31 @@
 import { z } from "zod";
 
 /**
- * Score bucket for anonymous telemetry — maps to maturity level ranges.
+ * Score bucket for anonymous telemetry — 5-band bucketing per P2.13 spec.
  * No raw scores are transmitted, only the bucket.
  */
-export const ScoreBucket = z.enum(["0-25", "26-45", "46-65", "66-80", "81-100"]);
+export const ScoreBucket = z.enum(["0-20", "21-40", "41-60", "61-80", "81-100"]);
 export type ScoreBucket = z.infer<typeof ScoreBucket>;
 
-/** Map a numeric score to its telemetry bucket. */
+/** Map a numeric score to its telemetry bucket (P2.13 spec bands). */
 export function scoreToBucket(score: number): ScoreBucket {
-  if (score <= 25) return "0-25";
-  if (score <= 45) return "26-45";
-  if (score <= 65) return "46-65";
-  if (score <= 80) return "66-80";
+  if (score <= 20) return "0-20";
+  if (score <= 40) return "21-40";
+  if (score <= 60) return "41-60";
+  if (score <= 80) return "61-80";
   return "81-100";
+}
+
+/** Repo size bucket — bucketed file count, never exact. */
+export const RepoSizeBucket = z.enum(["small", "medium", "large", "xlarge"]);
+export type RepoSizeBucket = z.infer<typeof RepoSizeBucket>;
+
+/** Map a file count to a size bucket (P2.13 spec). */
+export function fileCountToBucket(count: number): RepoSizeBucket {
+  if (count <= 50) return "small";
+  if (count <= 500) return "medium";
+  if (count <= 5000) return "large";
+  return "xlarge";
 }
 
 /** Per-pillar score bucket entry for telemetry. */
@@ -36,6 +48,12 @@ export const telemetryPayloadSchema = z.object({
   platform: z.string(),
   /** Primary detected language (e.g. "typescript", "python"). */
   language: z.string(),
+  /** Primary detected framework (e.g. "react", "express"). */
+  framework: z.string(),
+  /** Repo size bucket — file count bucketed as small/medium/large/xlarge, never exact. */
+  repo_size_bucket: RepoSizeBucket,
+  /** ISO 8601 date at day precision only — no time, no timezone (e.g. "2026-03-26"). */
+  timestamp: z.string(),
   /** Bucketed score — never the raw numeric score. */
   score_bucket: ScoreBucket,
   /** Scan wall-clock duration in milliseconds. */
@@ -50,6 +68,8 @@ export const telemetryPayloadSchema = z.object({
   format: z.string().optional(),
   /** Whether a badge was generated. */
   badge_generated: z.boolean().optional(),
+  /** Whether the user ran with --fix. */
+  fix_applied: z.boolean().optional(),
   /** Number of detected languages. */
   language_count: z.number().int().nonnegative().optional(),
   /** Number of detected frameworks. */

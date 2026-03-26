@@ -1,13 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { platform } from "node:os";
 import type { ScanResult, TelemetryPayload } from "@prontiq/ariscan-schema";
-import { scoreToBucket } from "@prontiq/ariscan-schema";
+import { scoreToBucket, fileCountToBucket } from "@prontiq/ariscan-schema";
 
 export interface TelemetryOptions {
   /** Output format used (e.g. "terminal", "json"). */
   format?: string;
   /** Whether a badge was generated. */
   badgeGenerated?: boolean;
+  /** Whether the user ran with --fix. */
+  fixApplied?: boolean;
 }
 
 /**
@@ -23,6 +25,8 @@ export function buildTelemetryPayload(
 ): TelemetryPayload {
   const primaryLangEntry = result.detection?.languages.find((l) => l.primary);
   const primaryLang = primaryLangEntry?.language ?? "unknown";
+  const primaryFramework = result.detection?.frameworks[0]?.framework ?? "none";
+  const fileCount = result.repoProfile?.fileCount ?? 0;
 
   // Aggregate finding counts by severity
   const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
@@ -48,6 +52,9 @@ export function buildTelemetryPayload(
     version: result.metadata.version,
     platform: platform(),
     language: primaryLang,
+    framework: primaryFramework,
+    repo_size_bucket: fileCountToBucket(fileCount),
+    timestamp: new Date().toISOString().slice(0, 10),
     score_bucket: scoreToBucket(result.score),
     duration_ms: Math.round(durationMs),
     pillar_count: result.pillars.length,
@@ -58,6 +65,7 @@ export function buildTelemetryPayload(
     })),
     format: options?.format,
     badge_generated: options?.badgeGenerated,
+    fix_applied: options?.fixApplied,
     language_count: result.detection?.languages.length,
     framework_count: result.detection?.frameworks.length,
     context_file_count: result.contextFiles?.length,
