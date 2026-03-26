@@ -19,6 +19,21 @@ export interface PresetManifest {
   readonly extends?: string;
 }
 
+/**
+ * Community preset manifest (S.11).
+ *
+ * Extends the core manifest with author/version metadata required
+ * for community-contributed presets.
+ */
+export interface CommunityPresetManifest extends PresetManifest {
+  /** Preset version (semver). */
+  readonly version: string;
+  /** Preset author or organisation. */
+  readonly author?: string;
+  /** Repository URL for the preset source. */
+  readonly repository?: string;
+}
+
 /** A scaffolder preset that can generate project files. */
 export interface ScaffolderPreset {
   readonly manifest: PresetManifest;
@@ -34,6 +49,8 @@ export interface ScaffoldOptions {
   readonly preset: string;
   /** Absolute path to the output directory. */
   readonly outputDir: string;
+  /** Pre-resolved preset object — skips re-resolution in the engine. */
+  readonly resolvedPreset?: ScaffolderPreset;
 }
 
 /** Result of a scaffold operation. */

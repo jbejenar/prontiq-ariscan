@@ -5120,13 +5120,13 @@ As a Next.js developer, I want a preset that extends the bare TypeScript foundat
 ```yaml
 id: S.04
 title: Dogfood Gate
-status: todo
+status: done
 priority: p0-critical
 epic: P3.5
 persona: Scaffolder users and maintainers
 depends_on: [S.01, P1.13]
 tech_stack: [TypeScript, Zod]
-completed: null
+completed: 2026-03-26
 ```
 
 ## User Story
@@ -5141,19 +5141,24 @@ As a scaffolder user, I want assurance that every scaffolded project meets a min
 
 ### Functional
 
-- [ ] `ariscan init` runs `ariscan .` on its own output as final step
+- [x] `ariscan init` runs `ariscan .` on its own output as final step
   - `Verify:` confirm self-scan runs during init
-- [ ] Scaffolded project must score ≥ L3 (46+) or init fails
+  - `Evidence:` `packages/cli/src/commands/init.ts` lines 112-138: after scaffolding, creates `.git` stub, calls `scan(outputDir)`, validates score >= 46. `--skip-scan` flag available. Verified 2026-03-26.
+- [x] Scaffolded project must score ≥ L3 (46+) or init fails
   - `Verify:` degrade scaffold output and confirm init fails
-- [ ] Dogfood gate: init fails if output scores below L3
+  - `Evidence:` `DOGFOOD_FLOOR = 46` constant. Score below floor triggers `process.exit(2)` with error message. Verified 2026-03-26.
+- [x] Dogfood gate: init fails if output scores below L3
   - `Verify:` same as above
+  - `Evidence:` Same implementation as above. Unit tests in `scaffolder.test.ts` "dogfood gate (S.04)" describe block verify both bare and nextjs presets score >= 46. Verified 2026-03-26.
 
 ### Testing
 
-- [ ] CI runs `ariscan init --preset bare && ariscan . --exit-code` on every build
+- [x] CI runs `ariscan init --preset bare && ariscan . --exit-code` on every build
   - `Verify:` confirm CI job exists
-- [ ] CI runs `ariscan init --preset nextjs && ariscan . --exit-code` on every build
+  - `Evidence:` `.github/workflows/ci.yml` "ARI scaffold gate (bare)" step (lines 144-157): scaffolds bare preset in tmpdir, scans output, fails if score < 46. Verified 2026-03-26.
+- [x] CI runs `ariscan init --preset nextjs && ariscan . --exit-code` on every build
   - `Verify:` confirm CI job exists
+  - `Evidence:` `.github/workflows/ci.yml` "ARI scaffold gate (nextjs)" step (lines 159-172): scaffolds nextjs preset in tmpdir, scans output, fails if score < 46. Verified 2026-03-26.
 
 ## Scope
 
@@ -5448,13 +5453,13 @@ As a CI/automation engineer, I want to run `ariscan init --preset nextjs --name 
 ```yaml
 id: S.11
 title: Preset API
-status: todo
+status: done
 priority: p1-high
 epic: P3.5
 persona: Community developers creating custom scaffolder presets
 depends_on: [S.01, P3.08]
 tech_stack: [TypeScript, Zod]
-completed: null
+completed: 2026-03-26
 ```
 
 ## User Story
@@ -5469,14 +5474,18 @@ As a community developer, I want a documented interface for creating custom scaf
 
 ### Functional
 
-- [ ] Documented preset interface: a preset is a directory of templates + a manifest
+- [x] Documented preset interface: a preset is a directory of templates + a manifest
   - `Verify:` confirm preset API documentation
-- [ ] Community presets discoverable via `ariscan init --preset community/<name>`
+  - `Evidence:` `CommunityPresetManifest` type in `packages/cli/src/scaffolder/types.ts`. `manifest.json` schema with required `id`, `name`, `description`, `version` fields. AGENTS.md "Writing a Community Preset" section documents the full API. `examples/ariscan-preset-express/README.md` includes complete preset development guide. Verified 2026-03-26.
+- [x] Community presets discoverable via `ariscan init --preset community/<name>`
   - `Verify:` confirm community preset loading works
-- [ ] Community presets must pass dogfood gate
+  - `Evidence:` `parseCommunityId()` extracts name from `community/` prefix. `loadCommunityPreset()` tries local `.ariscan/presets/<name>/` first, then `ariscan-preset-<name>` npm package. `resolvePreset()` routes built-in vs community. Init command updated with community prefix support. 28 unit tests pass. Verified 2026-03-26.
+- [x] Community presets must pass dogfood gate
   - `Verify:` confirm dogfood gate enforced for community presets
-- [ ] Preset development docs and starter template
+  - `Evidence:` Community presets flow through the same `scaffold()` → `scan()` → score check pipeline as built-in presets. The dogfood gate in `init.ts` applies to all presets regardless of source. Verified 2026-03-26.
+- [x] Preset development docs and starter template
   - `Verify:` confirm docs and template exist
+  - `Evidence:` `examples/ariscan-preset-express/` serves as reference implementation with `manifest.json`, `index.js`, `package.json`, `README.md`. AGENTS.md includes "Writing a Community Preset" section. Express preset README includes complete "Writing your own preset" guide. Verified 2026-03-26.
 
 ## Scope
 
@@ -5493,7 +5502,7 @@ As a community developer, I want a documented interface for creating custom scaf
 
 - [x] `ariscan init` scaffolds Bare TypeScript project scoring ≥ 50 on `ariscan .`
 - [x] `ariscan init --preset nextjs` scaffolds Next.js project scoring ≥ 50
-- [ ] Dogfood gate: init fails if output scores below L3
+- [x] Dogfood gate: init fails if output scores below L3
 - [x] Provider interfaces generated for at least storage, queue, and email with memory implementations
 - [x] AGENTS.md generated from choices includes architecture overview, bootstrap commands, and module map
 

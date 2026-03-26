@@ -1,0 +1,19 @@
+{
+  "name": "ariscan-preset-express",
+  "version": "0.1.0",
+  "description": "Prontiq ARI community preset — Express.js API scaffold",
+  "type": "module",
+  "main": "index.js",
+  "author": "Prontiq",
+  "license": "MIT",
+  "keywords": [
+    "ariscan",
+    "ariscan-preset",
+    "express",
+    "api",
+    "agent-readiness"
+  ],
+  "peerDependencies": {
+    "@prontiq/ariscan-cli": ">=0.34.0"
+  }
+}

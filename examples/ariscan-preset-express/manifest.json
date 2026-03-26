@@ -1,0 +1,8 @@
+{
+  "id": "express",
+  "name": "Express API",
+  "description": "Express.js API with TypeScript, provider pattern, and agent readiness essentials",
+  "version": "0.1.0",
+  "author": "Prontiq",
+  "repository": "https://github.com/prontiq/ariscan"
+}

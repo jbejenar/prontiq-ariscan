@@ -4,21 +4,24 @@
 import { mkdir, writeFile, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import type { ScaffoldOptions, ScaffoldResult } from "./types.js";
-import { getPreset, listPresets } from "./presets/index.js";
+import { resolvePreset, listPresets } from "./presets/index.js";
 
 /**
  * Scaffold a new project from a preset.
  *
  * Creates the output directory and writes all preset files.
  * Refuses to write into a non-empty directory.
+ * Supports both built-in and community presets (S.11).
  */
 export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult> {
-  const preset = getPreset(options.preset);
+  const preset = options.resolvedPreset ?? (await resolvePreset(options.preset));
   if (!preset) {
     const available = listPresets()
       .map((p) => p.manifest.id)
       .join(", ");
-    throw new Error(`Unknown preset: "${options.preset}". Available: ${available}`);
+    throw new Error(
+      `Unknown preset: "${options.preset}". Available: ${available}, community/<name>`,
+    );
   }
 
   // Ensure output directory exists
