@@ -51,7 +51,7 @@ function makeScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
       monorepo: null,
     },
     repoProfile: {
-      archetype: "web-app",
+      archetype: "small-team",
       confidence: "high",
       signals: ["package.json"],
       fileCount: 120,
@@ -263,7 +263,7 @@ describe("buildTelemetryPayload", () => {
   it("buckets repo size from repoProfile.fileCount", () => {
     const result = makeScanResult({
       repoProfile: {
-        archetype: "web-app",
+        archetype: "small-team",
         confidence: "high",
         signals: [],
         fileCount: 10,

@@ -72,7 +72,7 @@ export async function handleTelemetryShow(): Promise<void> {
       monorepo: null,
     },
     repoProfile: {
-      archetype: "web-app",
+      archetype: "small-team",
       confidence: "high",
       signals: ["package.json"],
       fileCount: 120,
