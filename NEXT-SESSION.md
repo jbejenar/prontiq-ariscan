@@ -5,7 +5,7 @@ Phase: P2 (complete) → P3 active
 Checkboxes checked this session: 1 (P2.12 cohort expansion to 53 repos)
 
 ### Completed
-- **P2.12: 50+ repos** — Expanded benchmark cohort from 21 to 53 repos across 10 languages. All scanned successfully. Leaderboard regenerated. Refs pinned. P2.12 ticket now `done`.
+- **P2.12: 50+ repos** — Expanded benchmark cohort from 21 to 53 repos across 9 languages. All scanned successfully. Leaderboard regenerated. Refs pinned. P2.12 ticket now `done`.
 
 ### Ticket Status Changes
 - P2.12: in-progress → done (all 8 functional items complete)
@@ -26,7 +26,7 @@ Checkboxes checked this session: 1 (P2.12 cohort expansion to 53 repos)
 - swc (Rust runtime with JS tests) joins svelte/deno as genuinely multi-language repos that challenge auto-detection
 
 ### Key Decisions
-- Included 10 languages in cohort (added C#, Ruby, PHP, Kotlin-candidate repos)
+- Included 9 languages in cohort (added C#, Ruby, PHP; Kotlin was considered but had 0 qualifying repos)
 - Used `--pin-refs` to resolve all branch names to commit SHAs for reproducibility
 
 ### Blockers
