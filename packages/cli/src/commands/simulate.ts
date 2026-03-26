@@ -31,6 +31,19 @@ export const simulateCommand = defineCommand({
     name: "simulate",
     description: `Simulate an AI agent workflow to validate repository readiness
 
+Static analysis detects whether bootstrap scripts and devcontainers exist, but
+cannot verify they actually work. Simulation bridges that gap by executing the
+agent workflow end-to-end and comparing results with static predictions.
+
+Research basis:
+  - Tutorial Problem (VS Code Blog, 2022): 94-96% drop-off when users must
+    follow manual setup steps — agents face the same barrier.
+  - SWE-bench Setup Analysis (2025): agent task failure frequently traces to
+    environment setup, not task complexity.
+  - Reproducible Builds Survey (ACM, 2023): reproducibility reduces debugging
+    time by 40-60% across team sizes.
+See docs/research/EVIDENCE-BASE.md entries 4.1-4.3 for full citations.
+
 Examples:
   ariscan simulate .                    # Simulate with auto-detected isolation
   ariscan simulate . --isolation native # Run natively (no Docker)

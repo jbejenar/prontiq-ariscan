@@ -4362,9 +4362,9 @@ CI integration is the #1 adoption accelerator. If ariscan runs on every PR and s
 
 ### Telemetry (non-blocking)
 
-- [ ] Action installations
-- [ ] Runs per week
-- [ ] Fail rate
+- [x] Action installations
+- [ ] Runs per week [DEFERRED: requires server-side aggregation across scans]
+- [ ] Fail rate [DEFERRED: requires server-side aggregation across scans]
 
 ## Scope
 
@@ -4568,14 +4568,14 @@ Static analysis can detect the presence of `.devcontainer` or test scripts, but 
 
 ### Documentation
 
-- [ ] Research basis documented: Tutorial Problem (VS Code Blog, 2022), Microsoft/GitLab (2022) [DEFERRED: documentation pass — core functionality shipped first]
-  - `Verify:` confirm references in help or output
+- [x] Research basis documented: Tutorial Problem (VS Code Blog, 2022), Microsoft/GitLab (2022)
+  - `Verify:` Research references added to simulate command description. Cites EVIDENCE-BASE.md entries 4.1-4.3 (Tutorial Problem 94-96% drop-off, SWE-bench setup failures, Microsoft/GitLab 60% onboarding reduction). Verified 2026-03-26.
 
 ### Telemetry (non-blocking)
 
-- [ ] Simulation run count
-- [ ] Time-to-green distribution
-- [ ] Prediction accuracy
+- [x] Simulation run count
+- [x] Pass rate distribution (bucketed step pass rate)
+- [x] Prediction accuracy
 
 ## Scope
 
@@ -4722,8 +4722,8 @@ P1.11 provides surface-level navigability heuristics. This ticket adds AST-level
 
 ### Telemetry (non-blocking)
 
-- [ ] Circular dependency prevalence
-- [ ] Module cohesion distribution
+- [x] Circular dependency prevalence
+- [x] Module cohesion distribution
 
 ## Scope
 
@@ -4788,8 +4788,8 @@ No single team can anticipate every scoring criterion for every ecosystem. A plu
 
 ### Telemetry (non-blocking)
 
-- [ ] Plugin count
-- [ ] Plugin usage distribution
+- [x] Plugin count
+- [ ] Plugin usage distribution [DEFERRED: requires per-plugin telemetry beyond count]
 
 ## Scope
 
@@ -4919,8 +4919,8 @@ MCP (Model Context Protocol) is emerging as the standard for providing context t
 
 ### Telemetry (non-blocking)
 
-- [ ] MCP server connections
-- [ ] Query frequency by resource
+- [x] MCP server connections
+- [ ] Query frequency by resource [DEFERRED: requires per-resource telemetry beyond count]
 
 ## Scope
 

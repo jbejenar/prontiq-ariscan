@@ -24,6 +24,15 @@ Every telemetry payload contains exactly these fields — nothing more:
 | `pillar_scores` | `[{"pillar_id":"P1","score_bucket":"61-80"}]` | Per-pillar bucketed scores (5 bands: 0-20, 21-40, 41-60, 61-80, 81-100) |
 | `maturity_level` | `"L4"` | Maturity level (L1–L5) |
 | `fix_applied` | `false` | Whether the user ran with `--fix` |
+| `action_used` | `true` | Whether the scan ran from a GitHub Action |
+| `simulation_ran` | `true` | Whether the `simulate` subcommand was executed |
+| `simulation_step_count` | `4` | Number of simulation steps executed |
+| `simulation_pass_rate_bucket` | `"61-80"` | Bucketed simulation pass rate |
+| `simulation_prediction_accuracy_bucket` | `"61-80"` | Bucketed static vs simulation accuracy |
+| `circular_dependency_detected` | `false` | Whether circular dependencies were found |
+| `module_cohesion_bucket` | `"61-80"` | Bucketed P7 navigability score (cohesion proxy) |
+| `plugin_count` | `2` | Number of plugins loaded |
+| `mcp_resource_count` | `5` | Number of MCP resources registered |
 
 **Not collected:** repository names/URLs, file names/paths/contents, git remote/branch/commit, user identity/email/IP, org name, finding details/code snippets, raw scores, or any PII. No persistent device identifier.
 

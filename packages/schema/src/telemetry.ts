@@ -108,5 +108,30 @@ export const telemetryPayloadSchema = z.object({
   devcontainer_detected: z.boolean().optional(),
   /** Number of test files flagged as high flakiness-transfer risk. */
   high_risk_test_count: z.number().int().nonnegative().optional(),
+
+  // --- Round 3 telemetry fields (P3 telemetry consolidation) ---
+
+  /** P3.02 — Whether the scan was triggered from a GitHub Action. */
+  action_used: z.boolean().optional(),
+
+  /** P3.05 — Whether the simulate subcommand was executed. */
+  simulation_ran: z.boolean().optional(),
+  /** P3.05 — Number of simulation steps executed. */
+  simulation_step_count: z.number().int().nonnegative().optional(),
+  /** P3.05 — Bucketed simulation pass rate (steps passed / steps run). */
+  simulation_pass_rate_bucket: ScoreBucket.optional(),
+  /** P3.05 — Bucketed prediction accuracy (static vs simulation agreement). */
+  simulation_prediction_accuracy_bucket: ScoreBucket.optional(),
+
+  /** P3.07 — Whether circular dependencies were detected by graph analysis. */
+  circular_dependency_detected: z.boolean().optional(),
+  /** P3.07 — Bucketed module cohesion score from P7 navigability analysis. */
+  module_cohesion_bucket: ScoreBucket.optional(),
+
+  /** P3.08 — Number of plugins loaded (0 if none). */
+  plugin_count: z.number().int().nonnegative().optional(),
+
+  /** P3.10 — Number of MCP resources registered. */
+  mcp_resource_count: z.number().int().nonnegative().optional(),
 });
 export type TelemetryPayload = z.infer<typeof telemetryPayloadSchema>;
