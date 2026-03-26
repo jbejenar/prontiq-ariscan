@@ -1203,12 +1203,11 @@ DORA 2024 found that AI adoption actually *decreased* delivery throughput by 1.5
 ```yaml
 id: P1.06
 title: Test Isolation Anti-patterns v1 (Pillar 3)
-status: done
+status: in-progress
 blocked_by:
 priority: p0-critical
 epic: P1.2
 rfc: RFC-0003
-completed: 2026-03-26
 persona: [developer using AI agents, test engineer]
 depends_on: [P1.02, P1.01]
 tech_stack:
@@ -1275,9 +1274,9 @@ Test isolation is elevated to 18% weight (from 12.5% equal weight) because resea
 
 ### Testing
 
-- [x] False-positive rate <10% on benchmark cohort.
+- [ ] False-positive rate <10% on benchmark cohort. <!-- REVIEW: previous evidence was a structural integrity check, not a semantic FP measurement. Script rewritten with file-scoping validation. Re-run needed. -->
   - `Verify:` Run benchmark suite and compute false positive rate
-  - `Evidence:` `node benchmarks/validate-test-isolation.cjs` — Analyzed 82 P3 findings across 21 benchmark repos. 82 true positives, 0 false positives (0.0% FP rate). Distribution: ARI-TST-002 (16), ARI-TST-003 (13), ARI-TST-011 (11), ARI-TST-013 (10), ARI-TST-007 (7), ARI-TST-008 (7). Conservative methodology: findings classified as TP if valid code, non-empty message, and severity present. Verified 2026-03-26.
+  - `Evidence:` Pending re-validation with semantic file-scoping check. Previous run (structural-only) reported 0% FP but did not verify that findings reference actual test files.
 
 ### Functional
 

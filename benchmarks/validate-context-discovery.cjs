@@ -19,7 +19,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 
 const RESULTS_DIR = path.join(__dirname, "results");
 const REVISIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "revisions.json"), "utf8"));
@@ -89,7 +89,7 @@ function localGroundTruth(repoDir) {
     }
   }
   try {
-    const allFiles = execSync(`git -C "${repoDir}" ls-files`, {
+    const allFiles = execFileSync("git", ["-C", repoDir, "ls-files"], {
       encoding: "utf8",
       timeout: 30000,
       stdio: ["pipe", "pipe", "pipe"],
