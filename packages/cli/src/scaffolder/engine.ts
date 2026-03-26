@@ -14,7 +14,7 @@ import { resolvePreset, listPresets } from "./presets/index.js";
  * Supports both built-in and community presets (S.11).
  */
 export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult> {
-  const preset = await resolvePreset(options.preset);
+  const preset = options.resolvedPreset ?? (await resolvePreset(options.preset));
   if (!preset) {
     const available = listPresets()
       .map((p) => p.manifest.id)

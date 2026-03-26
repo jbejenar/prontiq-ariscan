@@ -304,8 +304,9 @@ describe("resolvePreset", () => {
     expect(preset?.manifest.id).toBe("community/local-test");
   });
 
-  it("returns error for unfound community preset", async () => {
-    // Both local and npm will fail for a nonexistent preset
-    await expect(resolvePreset("community/nonexistent", tempDir)).rejects.toThrow();
+  it("returns undefined for unfound community preset", async () => {
+    // Both local and npm will fail — resolvePreset returns undefined
+    const result = await resolvePreset("community/nonexistent", tempDir);
+    expect(result).toBeUndefined();
   });
 });

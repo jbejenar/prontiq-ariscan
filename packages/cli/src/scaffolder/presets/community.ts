@@ -180,11 +180,12 @@ export async function loadNpmPreset(name: string): Promise<ScaffolderPreset> {
 
 /**
  * Resolve a community preset by name. Tries local directory first, then npm.
+ * Returns undefined if neither source has the preset.
  */
 export async function loadCommunityPreset(
   repoRoot: string,
   name: string,
-): Promise<ScaffolderPreset> {
+): Promise<ScaffolderPreset | undefined> {
   // Try local directory first
   try {
     return await loadLocalPreset(repoRoot, name);
@@ -193,7 +194,11 @@ export async function loadCommunityPreset(
   }
 
   // Try npm package
-  return loadNpmPreset(name);
+  try {
+    return await loadNpmPreset(name);
+  } catch {
+    return undefined;
+  }
 }
 
 /**

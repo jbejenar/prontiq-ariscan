@@ -49,6 +49,8 @@ export interface ScaffoldOptions {
   readonly preset: string;
   /** Absolute path to the output directory. */
   readonly outputDir: string;
+  /** Pre-resolved preset object — skips re-resolution in the engine. */
+  readonly resolvedPreset?: ScaffolderPreset;
 }
 
 /** Result of a scaffold operation. */

@@ -18,6 +18,7 @@ import {
   isCommunityPreset,
 } from "../scaffolder/presets/index.js";
 import { promptProjectName, promptPreset, validateProjectName } from "../scaffolder/prompts.js";
+import type { ScaffolderPreset } from "../scaffolder/types.js";
 
 /** Minimum ARI score for scaffolded projects (L3 Capable). */
 const DOGFOOD_FLOOR = 46;
@@ -88,11 +89,12 @@ Examples:
 
     // Resolve preset
     let presetId: string;
+    let resolvedCommunityPreset: ScaffolderPreset | undefined;
     if (presetArg) {
       // Community presets are resolved asynchronously (S.11)
       if (isCommunityPreset(presetArg)) {
-        const resolved = await resolvePreset(presetArg);
-        if (!resolved) {
+        resolvedCommunityPreset = await resolvePreset(presetArg);
+        if (!resolvedCommunityPreset) {
           process.stderr.write(`Error: Community preset "${presetArg}" not found.\n`);
           process.stderr.write("Community presets are loaded from:\n");
           process.stderr.write("  1. .ariscan/presets/<name>/ (local directory)\n");
@@ -125,6 +127,7 @@ Examples:
         name: projectName,
         preset: presetId,
         outputDir,
+        ...(resolvedCommunityPreset ? { resolvedPreset: resolvedCommunityPreset } : {}),
       });
 
       process.stderr.write(`\nCreated ${result.filesWritten} files in ${result.outputDir}\n`);
