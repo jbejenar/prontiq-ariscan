@@ -163,19 +163,19 @@ const main = defineCommand({
     description: `Measure and improve repository readiness for AI coding agents
 
 Examples:
-  npx @prontiq/ariscan-cli .                    # Scan current directory
-  npx @prontiq/ariscan-cli /path/to/repo --json # JSON output
-  npx @prontiq/ariscan-cli . --threshold 60     # Fail if score < 60
-  npx @prontiq/ariscan-cli . --format sarif     # SARIF output for Code Scanning
-  npx @prontiq/ariscan-cli . --badge badge.svg  # Generate badge SVG
-  npx @prontiq/ariscan-cli . --budget           # Analyze token budget
-  npx @prontiq/ariscan-cli . --fix              # Generate missing config files
-  npx @prontiq/ariscan-cli . --fix --dry-run   # Preview changes without writing
-  npx @prontiq/ariscan-cli . --fix --force     # Overwrite existing files
-  npx @prontiq/ariscan-cli init                  # Scaffold a new agent-ready project
-  npx @prontiq/ariscan-cli init --preset bare --name my-app  # Non-interactive
-  npx @prontiq/ariscan-cli policy init          # Generate starter policy
-  npx @prontiq/ariscan-cli policy validate      # Validate policy file
+  npx @prontiq/ariscan .                    # Scan current directory
+  npx @prontiq/ariscan /path/to/repo --json # JSON output
+  npx @prontiq/ariscan . --threshold 60     # Fail if score < 60
+  npx @prontiq/ariscan . --format sarif     # SARIF output for Code Scanning
+  npx @prontiq/ariscan . --badge badge.svg  # Generate badge SVG
+  npx @prontiq/ariscan . --budget           # Analyze token budget
+  npx @prontiq/ariscan . --fix              # Generate missing config files
+  npx @prontiq/ariscan . --fix --dry-run   # Preview changes without writing
+  npx @prontiq/ariscan . --fix --force     # Overwrite existing files
+  npx @prontiq/ariscan init                  # Scaffold a new agent-ready project
+  npx @prontiq/ariscan init --preset bare --name my-app  # Non-interactive
+  npx @prontiq/ariscan policy init          # Generate starter policy
+  npx @prontiq/ariscan policy validate      # Validate policy file
 
 Exit codes:
   0  Score meets or exceeds threshold (default: 0)

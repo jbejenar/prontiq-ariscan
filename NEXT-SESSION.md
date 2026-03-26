@@ -31,7 +31,7 @@ Checkboxes checked this session: 0 (no actionable roadmap items)
 
 ### Next Session Should Start With
 1. **npm publish** — merge to main triggers the publish workflow (`publish.yml` with changesets). This is the single highest-impact unblock. Requires a changeset + merge to main.
-2. **Post-publish verification** — after npm publish, verify `npx @prontiq/ariscan-cli .` works, MCP server works via `npx`, GitHub Action Marketplace listing.
+2. **Post-publish verification** — after npm publish, verify `npx @prontiq/ariscan .` works, MCP server works via `npx`, GitHub Action Marketplace listing.
 3. **Benchmark cohort expansion** — expand from 21 to 50+ repos for P1.02 false-language detection validation.
 
 ### Roadmap Progress

@@ -16,7 +16,7 @@ Defines the technology stack, architectural patterns, and AI-first design princi
 
 The `ariscan` CLI must satisfy three constraints simultaneously:
 
-1. **Zero-friction adoption:** `npx @prontiq/ariscan-cli .` must work on any repository without requiring the target repo's language toolchain, global installs, or configuration.
+1. **Zero-friction adoption:** `npx @prontiq/ariscan .` must work on any repository without requiring the target repo's language toolchain, global installs, or configuration.
 2. **AI-agent-first design:** AI coding agents (Claude Code, Copilot, Cursor, Codex, Aider) are treated as first-class developers. Every output, error, and interface is designed for machine consumption first, human readability second.
 3. **Cross-stack universality:** The scanner must analyze TypeScript, Python, Go, Rust, Java, C#, Ruby, and PHP repositories without depending on any of those ecosystems' toolchains.
 
@@ -46,7 +46,7 @@ Use the same core technology choices as ripple-next for ecosystem consistency, b
 
 | Layer | Technology | Rationale |
 |---|---|---|
-| **Runtime** | Node.js 22 + TypeScript 5.7 (strict) | Same as ripple-next. `npx @prontiq/ariscan-cli .` = zero install. Widest reach via npm. Pin exact version in `.nvmrc` and `engines` field. |
+| **Runtime** | Node.js 22 + TypeScript 5.7 (strict) | Same as ripple-next. `npx @prontiq/ariscan .` = zero install. Widest reach via npm. Pin exact version in `.nvmrc` and `engines` field. |
 | **Package Manager** | pnpm 9.x + pnpm workspaces | Same as ripple-next. Strict dependency management, workspace support for monorepo packages. |
 | **Monorepo Orchestration** | Turborepo | Same as ripple-next. Task caching, parallel execution, workspace-aware builds. |
 | **CLI Framework** | citty (UnJS) | Lightweight, TypeScript-native, zero dependencies. Part of the UnJS ecosystem. Preferable over Commander.js/Yargs (heavyweight, many transitive deps) or oclif (unnecessary plugin architecture). |
@@ -101,7 +101,7 @@ ARI-SEC-002  No CODEOWNERS file
 ARI-SEC-003  No secrets scanning configured
 ```
 
-**Implementation:** Taxonomy stored as structured JSON in `docs/error-taxonomy.json`, consumable via `npx @prontiq/ariscan-cli taxonomy --json`. Each code includes: severity, pillar, description, remediation action, research citation.
+**Implementation:** Taxonomy stored as structured JSON in `docs/error-taxonomy.json`, consumable via `npx @prontiq/ariscan taxonomy --json`. Each code includes: severity, pillar, description, remediation action, research citation.
 
 ### Pattern 2: Machine-Readable Everything
 
@@ -109,22 +109,22 @@ Modeled on ripple-next's `pnpm verify --json` and `pnpm doctor --json` patterns.
 
 ```bash
 # Human developer (default when TTY detected)
-npx @prontiq/ariscan-cli .
+npx @prontiq/ariscan .
 
 # AI agent / CI pipeline (structured output)
-npx @prontiq/ariscan-cli . --format json
+npx @prontiq/ariscan . --format json
 
 # GitHub Code Scanning integration
-npx @prontiq/ariscan-cli . --format sarif --output ariscan.sarif
+npx @prontiq/ariscan . --format sarif --output ariscan.sarif
 
 # Self-check (modeled on ripple-next's pnpm doctor)
-npx @prontiq/ariscan-cli doctor --json
+npx @prontiq/ariscan doctor --json
 
 # Taxonomy lookup
-npx @prontiq/ariscan-cli taxonomy ARI-TST-001 --json
+npx @prontiq/ariscan taxonomy ARI-TST-001 --json
 
 # Schema export for validation tooling
-npx @prontiq/ariscan-cli --json-schema
+npx @prontiq/ariscan --json-schema
 ```
 
 **Output contract:** JSON output is the primary contract (P1.14). Terminal output is a pretty-printed derivative. SARIF is a projection for GitHub integration. All three are generated from the same internal `ScanResult` type (Zod schema).
@@ -145,7 +145,7 @@ Modeled on ripple-next's machine-readable runbooks (`pnpm runbook <name> --json`
   "remediation": {
     "action": "create-file",
     "path": "AGENTS.md",
-    "generator": "npx @prontiq/ariscan-cli init agents-md",
+    "generator": "npx @prontiq/ariscan init agents-md",
     "template": "https://prontiq.dev/templates/agents-md",
     "estimated_impact": "+12 points composite",
     "confidence": "high"
@@ -201,8 +201,8 @@ Modeled on ripple-next's multi-surface AI configuration:
 | `.github/agents/*.agent.md` | `.github/agents/*.agent.md` | Specialized agent personas (e.g., `scorer.agent.md`, `analyzer.agent.md`) |
 | `.github/prompts/*.prompt.md` | `.github/prompts/*.prompt.md` | Reusable prompt templates for common tasks |
 | `docs/error-taxonomy.json` | `docs/error-taxonomy.json` | Machine-readable error codes (`ARI-*`) |
-| `pnpm verify --json` | `npx @prontiq/ariscan-cli verify --json` | Structured quality gate execution |
-| `pnpm doctor --json` | `npx @prontiq/ariscan-cli doctor --json` | Environment self-check |
+| `pnpm verify --json` | `npx @prontiq/ariscan verify --json` | Structured quality gate execution |
+| `pnpm doctor --json` | `npx @prontiq/ariscan doctor --json` | Environment self-check |
 
 **The meta-requirement:** `ariscan`'s own repository must score L5 on its own rubric. It eats its own dog food by shipping all the context files, configurations, and patterns it measures in other repos.
 
@@ -239,7 +239,7 @@ The scanner must work on **any** repository without imposing dependencies:
 
 | Friction Source | Solution |
 |---|---|
-| **Install** | `npx @prontiq/ariscan-cli .` — no global install, no brew, no pip, no cargo. npm is the universal distribution channel. |
+| **Install** | `npx @prontiq/ariscan .` — no global install, no brew, no pip, no cargo. npm is the universal distribution channel. |
 | **Runtime deps on target** | Zero. Tree-sitter WASM parses any language without that language's toolchain installed. |
 | **Native compilation** | None. Tree-sitter grammars shipped as WASM. No `node-gyp`, no build tools required on user's machine. |
 | **Configuration** | Works with zero config. `.ariscan.yml` is opt-in for customization. |

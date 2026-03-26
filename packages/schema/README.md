@@ -2,7 +2,7 @@
 
 > Zod schemas and TypeScript types for the [ARI (Agent Readiness Index)](https://github.com/jbejenar/prontiq-ariscan) scoring framework.
 
-This package contains the shared type contracts used by `@prontiq/ariscan-engine`, `@prontiq/ariscan-cli`, and third-party plugins.
+This package contains the shared type contracts used by `@prontiq/ariscan-engine`, `@prontiq/ariscan`, and third-party plugins.
 
 ## Install
 
@@ -60,7 +60,7 @@ All types are Zod-validated. You can use the schemas for runtime validation of s
 
 ## Related Packages
 
-- [`@prontiq/ariscan-cli`](https://www.npmjs.com/package/@prontiq/ariscan-cli) — CLI tool
+- [`@prontiq/ariscan`](https://www.npmjs.com/package/@prontiq/ariscan) — CLI tool
 - [`@prontiq/ariscan-engine`](https://www.npmjs.com/package/@prontiq/ariscan-engine) — Scoring engine
 
 ## License

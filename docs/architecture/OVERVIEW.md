@@ -4,7 +4,7 @@
 
 ```
 prontiq/ariscan (CLI — ELv2)
-  | npx @prontiq/ariscan-cli .
+  | npx @prontiq/ariscan .
   | consumes @prontiq/ariscan-engine
   |
   +-- packages/schema (@prontiq/ariscan-schema)
@@ -15,7 +15,7 @@ prontiq/ariscan (CLI — ELv2)
   |     8 pillar analyzers, composite scoring, security gate,
   |     context budget analysis, .agentignore parser, --fix generators
   |
-  +-- packages/cli (@prontiq/ariscan-cli)
+  +-- packages/cli (@prontiq/ariscan)
         CLI entrypoint, argument parsing, config loading,
         terminal/JSON/SARIF/Markdown output, badge generation
 ```
@@ -30,7 +30,7 @@ Build order: `schema` → `engine` → `cli`. Turborepo handles this automatical
 
 | Layer | Technology | Rationale |
 |---|---|---|
-| Runtime | Node.js 22 + TypeScript 5.7 (strict) | Widest install base via `npx @prontiq/ariscan-cli .`, type-safe internals. Pin via `.nvmrc` + `engines`. |
+| Runtime | Node.js 22 + TypeScript 5.7 (strict) | Widest install base via `npx @prontiq/ariscan .`, type-safe internals. Pin via `.nvmrc` + `engines`. |
 | Package Manager | pnpm 9.x + pnpm workspaces | Strict dependency management, workspace support for `@prontiq/ariscan-engine`. Same as ripple-next. |
 | Monorepo | Turborepo | Task caching, parallel execution, workspace-aware builds. Same as ripple-next. |
 | CLI Framework | citty (UnJS) | Lightweight, TypeScript-native, zero deps. Aligns with Nuxt/Nitro ecosystem. |
@@ -51,14 +51,14 @@ Build order: `schema` → `engine` → `cli`. Turborepo handles this automatical
 | Provider Pattern | `PillarAnalyzer` interface + conformance suites per analyzer | ripple-next provider pattern + conformance |
 | Structured Remediation | Findings include `remediation.action`, `remediation.generator` | ripple-next machine-readable runbooks |
 | Agent Config Surfaces | AGENTS.md, CLAUDE.md, `.github/agents/`, `.github/prompts/` | ripple-next multi-surface AI config |
-| Self-Check | `npx @prontiq/ariscan-cli doctor --json` | ripple-next `pnpm doctor --json` |
+| Self-Check | `npx @prontiq/ariscan doctor --json` | ripple-next `pnpm doctor --json` |
 | Pure Function Core | `scan(path, config) → ScanResult` for CLI/MCP/Action | Enables MCP server (P3.10) |
 
 ---
 
 ## Repository Boundaries and Responsibilities
 
-### @prontiq/ariscan-cli
+### @prontiq/ariscan
 
 The CLI entrypoint and the public face of the project. Runs entirely locally with no network calls required.
 
@@ -103,7 +103,7 @@ The shared type and validation layer.
 ## Data Flow — CLI Scan (Local)
 
 ```
-npx @prontiq/ariscan-cli .
+npx @prontiq/ariscan .
   -> Config loading (CLI flags > ariscan.yml > defaults)
   -> Language/framework detection
   -> Context file discovery (AGENTS.md, CLAUDE.md, Copilot rules, MCP files)

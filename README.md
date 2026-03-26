@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml"><img src="https://github.com/jbejenar/prontiq-ariscan/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://www.npmjs.com/package/@prontiq/ariscan-cli"><img src="https://img.shields.io/npm/v/@prontiq/ariscan-cli?color=blue&label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@prontiq/ariscan"><img src="https://img.shields.io/npm/v/@prontiq/ariscan?color=blue&label=npm" alt="npm version"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-ELv2-blue" alt="License"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A522-brightgreen" alt="Node">
   <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white" alt="TypeScript">
@@ -39,7 +39,7 @@
 ## Quick Start
 
 ```bash
-npx @prontiq/ariscan-cli .
+npx @prontiq/ariscan .
 ```
 
 That's it. You'll get a full readiness report with scores, maturity level, and prioritized recommendations.
@@ -70,13 +70,13 @@ That's it. You'll get a full readiness report with scores, maturity level, and p
 ### More Output Formats
 
 ```bash
-npx @prontiq/ariscan-cli . --json               # JSON for CI pipelines
-npx @prontiq/ariscan-cli . --format sarif        # SARIF for GitHub Code Scanning
-npx @prontiq/ariscan-cli . --format markdown     # Markdown report
-npx @prontiq/ariscan-cli . --badge badge.svg     # Generate score badge
-npx @prontiq/ariscan-cli . --threshold 50        # Exit code 1 if below threshold
-npx @prontiq/ariscan-cli . --budget              # Token budget analysis
-npx @prontiq/ariscan-cli --json-schema           # Export JSON Schema
+npx @prontiq/ariscan . --json               # JSON for CI pipelines
+npx @prontiq/ariscan . --format sarif        # SARIF for GitHub Code Scanning
+npx @prontiq/ariscan . --format markdown     # Markdown report
+npx @prontiq/ariscan . --badge badge.svg     # Generate score badge
+npx @prontiq/ariscan . --threshold 50        # Exit code 1 if below threshold
+npx @prontiq/ariscan . --budget              # Token budget analysis
+npx @prontiq/ariscan --json-schema           # Export JSON Schema
 ```
 
 **Exit codes:** `0` = pass, `1` = below threshold, `2` = runtime error.
@@ -123,8 +123,8 @@ Running `--fix` generates up to **15 best-practice files** — enough to jump fr
 ```bash
 mkdir my-project && cd my-project
 npm init -y
-npx @prontiq/ariscan-cli . --fix        # scaffold best practices
-npx @prontiq/ariscan-cli .              # verify: 61/100 — L3 Capable
+npx @prontiq/ariscan . --fix        # scaffold best practices
+npx @prontiq/ariscan .              # verify: 61/100 — L3 Capable
 ```
 
 All generated files are **additive-only** — existing files are never overwritten. Running `--fix` twice is idempotent.
@@ -160,7 +160,7 @@ A typical TypeScript project gets 12 files; the remaining 3 are conditional on f
 
 ```mermaid
 graph LR
-    CLI["@prontiq/ariscan-cli<br/><sub>Terminal &bull; JSON &bull; SARIF &bull; Markdown &bull; Badge</sub>"]
+    CLI["@prontiq/ariscan<br/><sub>Terminal &bull; JSON &bull; SARIF &bull; Markdown &bull; Badge</sub>"]
     MCP["@prontiq/ariscan-mcp<br/><sub>Model Context Protocol server</sub>"]
     Engine["@prontiq/ariscan-engine<br/><sub>8 analyzers &bull; scoring &bull; --fix generators</sub>"]
     Schema["@prontiq/ariscan-schema<br/><sub>Zod types &bull; PillarId &bull; Finding &bull; ScanResult</sub>"]
@@ -203,7 +203,7 @@ The core scanning engine is functional. What's built:
 
 - **@prontiq/ariscan-schema** — Zod schemas for all types (PillarId, MaturityLevel, Finding, PillarResult, ScanResult, ScanConfig, Confidence)
 - **@prontiq/ariscan-engine** — All 8 pillar analyzers, composite scoring, security gate, maturity classification, context budget analyzer, `.agentignore` parser, safe `--fix` generators (up to 15 files including AGENTS.md, .agentignore, .devcontainer, tsconfig, .nvmrc, pre-commit hooks, CODEOWNERS, PR template, ADR template, CHANGELOG, docker-compose, .gitleaks.toml, provider skeleton, env var docs, DI wiring examples)
-- **@prontiq/ariscan-cli** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export; `--budget` token analysis; `--fix`/`--dry-run` safe file generation
+- **@prontiq/ariscan** — Terminal, JSON, SARIF, Markdown output; threshold exit codes; badge generation; JSON Schema export; `--budget` token analysis; `--fix`/`--dry-run` safe file generation
 - **841 tests** across 44 test files
 - **CI pipeline** — GitHub Actions (lint, typecheck, test, build, self-scan)
 - **Test fixtures** — hostile-repo (L1), capable-repo (L3)
@@ -218,7 +218,7 @@ The core scanning engine is functional. What's built:
 
 | Package | Status | Purpose |
 |---|---|---|
-| `@prontiq/ariscan-cli` | Built | CLI scan, scoring, reporting, threshold exit codes |
+| `@prontiq/ariscan` | Built | CLI scan, scoring, reporting, threshold exit codes |
 | `@prontiq/ariscan-schema` | Built | Zod schemas for scan results, config, findings |
 | `@prontiq/ariscan-engine` | Built | 8-pillar analyzers, composite scoring, security gate |
 | `@prontiq/sdk` | Planned | Programmatic integration for reporting/workflow automation |

@@ -44,7 +44,7 @@ That's it. The action will:
 | `comment` | Post a PR comment with results | `true` |
 | `annotations` | Add inline annotations for findings | `true` |
 | `delta` | Compare scores against the base branch | `true` |
-| `version` | Version of `@prontiq/ariscan-cli` to install | `latest` |
+| `version` | Version of `@prontiq/ariscan` to install | `latest` |
 | `node-version` | Node.js version to use | `22` |
 | `token` | GitHub token for comments/annotations | `${{ github.token }}` |
 | `skip-install` | Skip CLI installation (when CLI is already available) | `false` |

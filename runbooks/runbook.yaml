@@ -3,7 +3,7 @@
 # Used by agents and operators to execute standard procedures.
 runbook:
   version: "1.0"
-  service: "@prontiq/ariscan-cli"
+  service: "@prontiq/ariscan"
 
 procedures:
   - id: release

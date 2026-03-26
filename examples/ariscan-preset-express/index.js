@@ -12,7 +12,7 @@
  *   ariscan init --preset community/express --name my-api
  */
 
-/** @type {import('@prontiq/ariscan-cli').ScaffolderPreset} */
+/** @type {import('@prontiq/ariscan').ScaffolderPreset} */
 export default {
   manifest: {
     id: "express",

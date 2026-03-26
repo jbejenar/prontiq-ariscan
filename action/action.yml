@@ -36,7 +36,7 @@ inputs:
     required: false
     default: "true"
   version:
-    description: "Version of @prontiq/ariscan-cli to install (default: latest)"
+    description: "Version of @prontiq/ariscan to install (default: latest)"
     required: false
     default: "latest"
   node-version:
@@ -79,7 +79,7 @@ runs:
     - name: Install ariscan CLI
       if: inputs.skip-install != 'true'
       shell: bash
-      run: npm install -g "@prontiq/ariscan-cli@${INPUT_VERSION}"
+      run: npm install -g "@prontiq/ariscan@${INPUT_VERSION}"
       env:
         INPUT_VERSION: ${{ inputs.version }}
 

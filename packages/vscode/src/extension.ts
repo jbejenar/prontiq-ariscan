@@ -143,5 +143,5 @@ async function runScan(): Promise<void> {
 
   const terminal = vscode.window.createTerminal({ name: "ARI Scan" });
   terminal.show();
-  terminal.sendText(`npx @prontiq/ariscan-cli . --json --output "${outputPath}"`);
+  terminal.sendText(`npx @prontiq/ariscan . --json --output "${outputPath}"`);
 }

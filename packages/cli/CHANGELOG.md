@@ -1,4 +1,4 @@
-# @prontiq/ariscan-cli
+# @prontiq/ariscan
 
 ## 0.56.0
 
