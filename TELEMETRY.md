@@ -12,14 +12,20 @@ Every telemetry payload contains exactly these fields — nothing more:
 |-------|---------|-------------|
 | `scan_id` | `"a1b2c3d4-..."` | Random UUID per scan (not persisted, not linkable) |
 | `version` | `"0.1.0"` | CLI version |
-| `platform` | `"darwin"` | OS platform |
+| `platform` | `"darwin"` | OS platform (no version, no hostname) |
 | `language` | `"typescript"` | Primary detected language |
-| `score_bucket` | `"66-80"` | Bucketed score range (never the raw score) |
+| `framework` | `"react"` | Primary detected framework |
+| `repo_size_bucket` | `"medium"` | File count bucket (small/medium/large/xlarge — never exact count) |
+| `timestamp` | `"2026-03-26"` | Day-only date (no time, no timezone) |
+| `score_bucket` | `"61-80"` | Bucketed composite score (never raw score) |
 | `duration_ms` | `1234` | Scan wall-clock time |
 | `pillar_count` | `8` | Number of pillars analyzed |
 | `finding_count` | `12` | Total findings |
+| `pillar_scores` | `[{"pillar_id":"P1","score_bucket":"61-80"}]` | Per-pillar bucketed scores (5 bands: 0-20, 21-40, 41-60, 61-80, 81-100) |
+| `maturity_level` | `"L4"` | Maturity level (L1–L5) |
+| `fix_applied` | `false` | Whether the user ran with `--fix` |
 
-**Not collected:** repository names, file paths, file contents, usernames, IP-derived location, raw scores, or any PII.
+**Not collected:** repository names/URLs, file names/paths/contents, git remote/branch/commit, user identity/email/IP, org name, finding details/code snippets, raw scores, or any PII. No persistent device identifier.
 
 ## How to opt in / out
 
@@ -62,17 +68,17 @@ Consent is stored at `~/.config/ariscan/telemetry.json` (or `$XDG_CONFIG_HOME/ar
 
 ## Where data is sent
 
-Telemetry is sent via HTTPS POST to `https://telemetry.prontiq.dev/v1/ari`.
+Telemetry is sent via HTTPS POST to `https://telemetry.prontiq.dev/v1/scan`.
 
 You can override the endpoint with `ARISCAN_TELEMETRY_URL`:
 
 ```bash
-export ARISCAN_TELEMETRY_URL=https://your-proxy.example.com/v1/ari
+export ARISCAN_TELEMETRY_URL=https://your-proxy.example.com/v1/scan
 ```
 
 ## Behavior guarantees
 
-- **Fire-and-forget**: Telemetry never blocks or slows your scan. Sends have a 2-second timeout and all errors are silently swallowed.
+- **Fire-and-forget**: Telemetry never blocks or slows your scan. Sends have a sub-1-second timeout (800ms) and all errors are silently swallowed.
 - **No persistence**: The `scan_id` is a random UUID generated per scan. It is not stored anywhere and cannot be used to link scans.
 - **No network on disable**: When telemetry is off, no HTTP requests are made at all.
 
