@@ -954,10 +954,9 @@ The AI coding agent ecosystem is fragmented across multiple context file formats
 
 ### Testing
 
-<!-- REVIEW: Original marked partial but criterion "Zero false negatives on benchmark cohort" lacks completion evidence. -->
-- [ ] Zero false negatives on benchmark cohort (every known context file is found).
+- [x] Zero false negatives on benchmark cohort (every known context file is found).
   - `Verify:` Run benchmark suite and confirm all context files discovered
-  - `Evidence:`
+  - `Evidence:` `node benchmarks/validate-context-discovery.cjs` — GitHub API mode checks 11 root-level context file paths + nested AGENTS.md + .claude/commands/* across all 21 benchmark repos at pinned SHAs. 22 ground-truth files found, 22 discovered, 0 missed. False negative rate: 0.0%. Verified 2026-03-26.
 
 ### Performance
 
@@ -1275,10 +1274,9 @@ Test isolation is elevated to 18% weight (from 12.5% equal weight) because resea
 
 ### Testing
 
-<!-- REVIEW: Original marked done but criterion "False-positive rate <10% on benchmark cohort" lacks completion evidence. -->
-- [ ] False-positive rate <10% on benchmark cohort.
+- [ ] False-positive rate <10% on benchmark cohort. <!-- REVIEW: previous evidence was a structural integrity check, not a semantic FP measurement. Script rewritten with file-scoping validation. Re-run needed. -->
   - `Verify:` Run benchmark suite and compute false positive rate
-  - `Evidence:`
+  - `Evidence:` Pending re-validation with semantic file-scoping check. Previous run (structural-only) reported 0% FP but did not verify that findings reference actual test files.
 
 ### Functional
 
@@ -4629,9 +4627,11 @@ A TypeScript-heavy default rubric unfairly penalizes Python, Go, Rust, and Java 
 - [x] Auto-selection based on P1.02 language detection (with manual override)
   - `Verify:` `resolveLanguageProfile()` maps detected primary language to profile via DETECTION_NAME_MAP. Minimum confidence threshold 0.3. 11 unit tests verify auto-selection for TypeScript, Python, Go, C#, low-confidence, empty detection, unsupported language. Verified 2026-03-26.
 - [ ] Scores are comparable across languages at the maturity level
-  - `Verify:` compare L3 Python repo and L3 TypeScript repo for similar readiness [ACTIONABLE: P1.18 benchmark cohort available with 21 repos across 6 languages]
+  - `Verify:` compare L3 Python repo and L3 TypeScript repo for similar readiness
+  - `Partial evidence:` Benchmark cohort analysis (2026-03-26): TS repos score 33-65, Python repos score 30-42, Go repos score 28-37, Rust repos score 28-30, Java score 30. Language profiles adjust weights but score ranges still vary significantly by ecosystem (TS repos benefit from richer tooling/context files). Further calibration needed for true cross-language comparability.
 - [ ] Auto-selection is correct >95% of the time
-  - `Verify:` test on benchmark repos [ACTIONABLE: P1.18 benchmark cohort available with 21 repos]
+  - `Verify:` test on benchmark repos
+  - `Partial evidence:` `node benchmarks/validate-language-selection.cjs` — 19/21 correct (90.5%). Mismatches: svelte (expected TypeScript, detected JavaScript@0.8 — repo is multi-language with significant .js/.svelte files), deno (expected Rust, detected TypeScript@0.57 — repo is Rust runtime + TypeScript stdlib). Both are genuinely multi-language repos where "primary" is subjective. Verified 2026-03-26.
 - [x] Manual override available via `ariscan.yml` and CLI flag
   - `Verify:` `--language` CLI flag added to scan command (validated against SupportedLanguage enum). `language` field added to FileConfig schema and passed through config-loader. Override takes precedence over auto-detection per unit tests. Verified 2026-03-26.
 
