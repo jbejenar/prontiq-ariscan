@@ -842,7 +842,7 @@ Agent readiness criteria differ by language — TypeScript strict mode is irrele
 
 ### Testing
 
-- [ ] False-language detection rate <5% on benchmark cohort of 50+ repos. [BLOCKED: P1.18 benchmark cohort requires npm publishing]
+- [ ] False-language detection rate <5% on benchmark cohort of 50+ repos. [BLOCKED: P1.18 cohort has 21 repos (need 50+); expanding cohort is a separate effort]
   - `Verify:` Run benchmark suite on 50+ repos and compute false detection rate
   - `Evidence:`
 
@@ -860,7 +860,7 @@ Agent readiness criteria differ by language — TypeScript strict mode is irrele
 
 ### Telemetry (non-blocking)
 
-- [ ] Detection accuracy rate [DEFERRED: requires ground-truth benchmark data from P1.18 to compute accuracy — `detection_confidence` emits confidence, not accuracy]
+- [ ] Detection accuracy rate [DEFERRED: requires manually-labelled ground-truth data to compute accuracy — P1.18 benchmark provides scan results but not human-verified language labels]
 - [x] Languages per scan distribution — `language_count` field emits per-scan language count
 
 ## Scope
@@ -4629,9 +4629,9 @@ A TypeScript-heavy default rubric unfairly penalizes Python, Go, Rust, and Java 
 - [x] Auto-selection based on P1.02 language detection (with manual override)
   - `Verify:` `resolveLanguageProfile()` maps detected primary language to profile via DETECTION_NAME_MAP. Minimum confidence threshold 0.3. 11 unit tests verify auto-selection for TypeScript, Python, Go, C#, low-confidence, empty detection, unsupported language. Verified 2026-03-26.
 - [ ] Scores are comparable across languages at the maturity level
-  - `Verify:` compare L3 Python repo and L3 TypeScript repo for similar readiness [DEFERRED: requires P1.18 benchmark cohort for cross-language comparison]
+  - `Verify:` compare L3 Python repo and L3 TypeScript repo for similar readiness [ACTIONABLE: P1.18 benchmark cohort available with 21 repos across 6 languages]
 - [ ] Auto-selection is correct >95% of the time
-  - `Verify:` test on benchmark repos [DEFERRED: requires P1.18 benchmark cohort]
+  - `Verify:` test on benchmark repos [ACTIONABLE: P1.18 benchmark cohort available with 21 repos]
 - [x] Manual override available via `ariscan.yml` and CLI flag
   - `Verify:` `--language` CLI flag added to scan command (validated against SupportedLanguage enum). `language` field added to FileConfig schema and passed through config-loader. Override takes precedence over auto-detection per unit tests. Verified 2026-03-26.
 
@@ -4703,7 +4703,7 @@ P1.11 provides surface-level navigability heuristics. This ticket adds AST-level
 - [x] Supports TypeScript, Python, Go, Java at minimum (via Tree-sitter grammars)
   - `Verify:` `extractImports()` supports TypeScript/JavaScript, Python, Go, and Java. 23 import-extractor tests covering all 4 languages pass. Tree-sitter WASM grammars planned for all 4 + Rust, C#, Ruby. Verified 2026-03-26.
 - [ ] Analysis completes in <30 seconds for repos up to 50k files
-  - `Verify:` benchmark on large repo [DEFERRED: requires P1.18 benchmark cohort for large repo testing; design uses O(V+E) Tarjan's with 200-file sampling cap]
+  - `Verify:` benchmark on large repo [ACTIONABLE: P1.18 cohort includes large repos (VS Code, Spring Boot); design uses O(V+E) Tarjan's with 200-file sampling cap]
 
 ### Documentation
 

@@ -20,13 +20,27 @@ Checkboxes checked this session: ~8 (P1.18 functional + documentation items)
 - **P3.02 — GitHub Action:** 2 items remain (Marketplace publication, runtime timing)
 - **P3.09 — VS Code Extension:** Not started
 
-### Deferred
-- P1.02 testing: False-language detection rate — BLOCKED on benchmark execution against 50+ repos (21 done, need more)
-- P1.03 testing: Zero false negatives — needs larger benchmark
-- P1.06 testing: False-positive rate <10% — needs benchmark analysis
-- P1.07: All items deferred to P3.07 (AST analysis)
-- P2.12: Blocked on P1.18 (now unblocked — continuous benchmarking can proceed)
-- Non-blocking telemetry items across P1.04, P1.17, P2, P3
+### Blocked/Deferred Audit (2026-03-26)
+
+**Now ACTIONABLE (P1.18 unblocked these):**
+- P3.06 cross-language score comparison — P1.18 cohort has 21 repos across 6 languages, sufficient for L3 comparison
+- P3.06 auto-selection accuracy >95% — testable against 21 benchmark repos
+- P3.07 analysis <30s benchmark — P1.18 cohort includes large repos (VS Code, Spring Boot)
+- P2.12 continuous benchmarking — fully unblocked by P1.18 completion
+- P1.03 testing: Zero false negatives — can analyze against P1.18 benchmark results
+
+**Still BLOCKED (genuine external blockers):**
+- P1.02 testing: False-language detection rate <5% on 50+ repos — cohort has 21 repos, needs expansion (NOT npm publishing)
+- P1.03 discovery <1s for 100k files — needs end-to-end filesystem fixture benchmark (not P1.18 data)
+- P1.07: All items — genuinely blocked on P3.07 AST/Tree-sitter integration
+- P3.10 MCP items requiring npm publish — genuinely external
+- P3.02 Marketplace publication — requires separate repo
+
+**Still DEFERRED (infrastructure not available):**
+- P1.02 detection accuracy rate — needs manually-labelled ground-truth data
+- All telemetry items requiring server-side infrastructure (P1.04, P1.17, P2, P3 telemetry)
+- All --fix mode telemetry items — requires fix-mode telemetry integration
+- Scaffolder items requiring npm publish (lockfile, ariscan dependency)
 
 ### Key Decisions
 - Replaced Kubernetes subset and Chromium with more manageable repos (Gin for Go, Deno for Rust/multi-language) — Chromium too large for shallow clone
@@ -38,10 +52,12 @@ Checkboxes checked this session: ~8 (P1.18 functional + documentation items)
 - P3.09 VS Code Extension requires separate toolchain (vsce, VS Code Extension API)
 
 ### Next Session Should Start With
-1. **P2.12 (Continuous Benchmarking)** — now unblocked by P1.18 completion
-2. **P3.09 (VS Code Extension Preview)** — p2-medium, largest remaining P3 item
-3. **P3.02 remaining items** — GitHub Marketplace publication, runtime timing
-4. **P1 remaining testing items** — analyze benchmark results for false-positive/false-negative rates
+1. **P2.12 (Continuous Benchmarking)** — fully unblocked by P1.18 completion
+2. **P3.06 cross-language validation** — use P1.18 cohort to verify score comparability and auto-selection accuracy
+3. **P3.07 analysis <30s benchmark** — use P1.18 large repos to verify performance
+4. **P1.03 false-negative analysis** — analyze P1.18 benchmark results for context file discovery gaps
+5. **P3.09 (VS Code Extension Preview)** — p2-medium, largest remaining P3 item
+6. **P3.02 remaining items** — GitHub Marketplace publication, runtime timing
 
 ### Roadmap Progress
 - P1: ~132/132 done (remaining: blocked/deferred testing items requiring 50+ repo benchmark, non-blocking telemetry)
