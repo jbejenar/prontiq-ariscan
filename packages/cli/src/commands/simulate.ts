@@ -40,8 +40,8 @@ Research basis:
     follow manual setup steps — agents face the same barrier.
   - SWE-bench Setup Analysis (2025): agent task failure frequently traces to
     environment setup, not task complexity.
-  - Microsoft/GitLab (2022): standardized environments reduce onboarding time
-    by 60% and integration conflicts by 30%.
+  - Reproducible Builds Survey (ACM, 2023): reproducibility reduces debugging
+    time by 40-60% across team sizes.
 See docs/research/EVIDENCE-BASE.md entries 4.1-4.3 for full citations.
 
 Examples:
