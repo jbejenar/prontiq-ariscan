@@ -30,9 +30,16 @@ function validateField(value, pattern, label) {
   }
 }
 
-// Ensure prerequisites
-if (!fs.existsSync(REVISIONS_FILE)) {
-  console.error("ERROR: revisions.json not found");
+// Ensure prerequisites — read directly instead of existsSync to avoid TOCTOU race
+let data;
+try {
+  data = JSON.parse(fs.readFileSync(REVISIONS_FILE, "utf8"));
+} catch (e) {
+  if (e.code === "ENOENT") {
+    console.error("ERROR: revisions.json not found");
+  } else {
+    console.error(`ERROR: failed to read revisions.json — ${e.message}`);
+  }
   process.exit(1);
 }
 if (!fs.existsSync(ARISCAN)) {
@@ -42,8 +49,6 @@ if (!fs.existsSync(ARISCAN)) {
 
 fs.mkdirSync(RESULTS_DIR, { recursive: true });
 fs.mkdirSync(CLONE_DIR, { recursive: true });
-
-const data = JSON.parse(fs.readFileSync(REVISIONS_FILE, "utf8"));
 const repos = data.repos;
 
 console.log("═══════════════════════════════════════════════════════════");
@@ -159,19 +164,26 @@ console.log(`  Results: ${RESULTS_DIR}/`);
 console.log(`  Summary: ${RESULTS_DIR}/summary.json`);
 console.log("═══════════════════════════════════════════════════════════");
 
-// Pin refs — re-read the file to avoid TOCTOU race condition
+// Pin refs — open file descriptor for atomic read-modify-write to avoid TOCTOU race
 if (PIN_REFS) {
   console.log("\nPinning refs to resolved commit SHAs...");
-  const freshData = JSON.parse(fs.readFileSync(REVISIONS_FILE, "utf8"));
-  let pinned = 0;
-  freshData.repos.forEach((r, i) => {
-    if (pinnedShas[i] && pinnedShas[i] !== "SKIP") {
-      r.ref = pinnedShas[i];
-      pinned++;
-    }
-  });
-  fs.writeFileSync(REVISIONS_FILE, JSON.stringify(freshData, null, 2) + "\n");
-  console.log(`Updated ${pinned}/${repos.length} refs in ${REVISIONS_FILE}`);
+  const fd = fs.openSync(REVISIONS_FILE, "r+");
+  try {
+    const freshData = JSON.parse(fs.readFileSync(fd, "utf8"));
+    let pinned = 0;
+    freshData.repos.forEach((r, i) => {
+      if (pinnedShas[i] && pinnedShas[i] !== "SKIP") {
+        r.ref = pinnedShas[i];
+        pinned++;
+      }
+    });
+    const updatedContent = JSON.stringify(freshData, null, 2) + "\n";
+    fs.ftruncateSync(fd);
+    fs.writeSync(fd, updatedContent, 0, "utf8");
+    console.log(`Updated ${pinned}/${repos.length} refs in ${REVISIONS_FILE}`);
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 // Output results table
