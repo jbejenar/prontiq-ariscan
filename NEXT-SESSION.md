@@ -1,28 +1,18 @@
 # Next Session Guide
 
-## Session: 2026-03-26
-Phase: P3 advanced (all code complete; adoption metric deferred)
-Checkboxes checked this session: 0 (governance session — ticket statuses updated, exit criteria documented)
+## Session: 2026-03-26 (verification-only)
+Phase: All phases complete (all remaining items DEFERRED on external dependencies)
+Checkboxes checked this session: 0 (no actionable roadmap items)
 
 ### Completed
-- **P3 exit criteria review:** 6/7 criteria met. Remaining criterion (>=50 repo adoption) is external.
-- **Deprecation policy:** Added to README.md Versioning Policy section — covers CLI flags, config schema, finding codes, plugin API.
-- **Ticket status reconciliation:** Updated 9 tickets from `in-progress` → `done` (P1.02, P1.03, P1.07, P3.02, P3.05, P3.07, P3.08, P3.10, CI.10). All had only DEFERRED/BLOCKED items remaining.
-- **P3 phase advancement decision:** P3 advanced. All remaining unchecked items across all phases (61 total) are DEFERRED on external dependencies.
+- **Full verification pass:** All golden commands pass — install, build, lint, typecheck, test (1330 tests, 0 failures), selftest (87/100, L5 Autonomous).
+- **Roadmap audit:** Confirmed all 61 remaining unchecked items are DEFERRED/BLOCKED on external dependencies or are non-blocking telemetry metrics requiring server-side infrastructure.
 
 ### Ticket Status Changes
-- P1.02: in-progress → done (remaining items DEFERRED/BLOCKED)
-- P1.03: in-progress → done (remaining items DEFERRED/BLOCKED)
-- P1.07: in-progress → done (all items DEFERRED to P3.07)
-- P3.02: in-progress → done (Marketplace publication blocked on external repo)
-- P3.05: in-progress → done (all functional items complete)
-- P3.07: in-progress → done (cross-boundary violations DEFERRED)
-- P3.08: in-progress → done (only deferred telemetry remains)
-- P3.10: in-progress → done (deferred items blocked on npm publish)
-- CI.10: in-progress → done (alert visibility requires push to main)
+- None — all tickets remain `status: done`
 
 ### In Progress
-- None — all tickets are now `status: done` or have only DEFERRED items
+- None — all tickets are `status: done` or have only DEFERRED items
 
 ### Deferred
 - All 61 remaining unchecked items are DEFERRED across all phases
@@ -30,9 +20,7 @@ Checkboxes checked this session: 0 (governance session — ticket statuses updat
 - Telemetry items deferred across P3.01-P3.10 (non-blocking, require server-side aggregation)
 
 ### Key Decisions
-- P3 phase advanced despite 1 unmet exit criterion (adoption metric). Rationale: all code work complete; adoption is post-launch and cannot be achieved through code changes.
-- Deprecation policy added to README to satisfy exit criteria #3.
-- Tickets with only DEFERRED remaining items marked `done` — the deferred items track their own blockers.
+- No code changes this session — roadmap is feature-complete from a code perspective.
 
 ### Blockers
 - npm publish required for: P3.10 MCP integration, P3.02 Marketplace listing
@@ -41,7 +29,7 @@ Checkboxes checked this session: 0 (governance session — ticket statuses updat
 - Tree-sitter AST integration required for: P1.07 order-sensitive assertion detection
 
 ### Next Session Should Start With
-1. **npm publish preparation** — the single highest-impact unblock. Enables P3.10 MCP integration, P3.02 Marketplace, and external adoption tracking.
+1. **npm publish** — merge to main triggers the publish workflow (`publish.yml` with changesets). This is the single highest-impact unblock. Pre-publish checklist is fully complete (see roadmap §NPM Package Publication Strategy). Requires a changeset + merge to main.
 2. **Post-publish verification** — after npm publish, verify `npx @prontiq/ariscan-cli .` works, MCP server works via `npx`, GitHub Action Marketplace listing.
 3. **Benchmark cohort expansion** — expand from 21 to 50+ repos for P1.02 false-language detection validation.
 
@@ -52,3 +40,11 @@ Checkboxes checked this session: 0 (governance session — ticket statuses updat
 - P3.5 Scaffolder: S.01-S.11 all done
 - CI: CI.01-CI.10 all done (CI.10 alert visibility pending push to main)
 - Selftest: 87/100 (L5 Autonomous)
+
+### Verification Evidence (2026-03-26)
+- `pnpm install` — up to date
+- `pnpm build` — 5/5 tasks successful
+- `pnpm lint` — 5/5 tasks successful, 0 warnings
+- `pnpm typecheck` — 7/7 tasks successful
+- `pnpm test` — 1330 tests passed, 1 skipped, 0 failures (engine: 1099, cli: 231)
+- `pnpm selftest` — 87/100, L5 Autonomous (matches baseline)
