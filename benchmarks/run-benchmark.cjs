@@ -10,9 +10,25 @@ const SCRIPT_DIR = __dirname;
 const REPO_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REVISIONS_FILE = path.join(SCRIPT_DIR, "revisions.json");
 const RESULTS_DIR = path.join(SCRIPT_DIR, "results");
-const CLONE_DIR = process.env.ARI_BENCH_CLONE_DIR || "/tmp/ari-benchmark-repos";
 const ARISCAN = path.join(REPO_ROOT, "packages/cli/dist/cli.js");
 const PIN_REFS = process.argv.includes("--pin-refs");
+
+// Validate and resolve CLONE_DIR to prevent shell injection via env var
+const rawCloneDir = process.env.ARI_BENCH_CLONE_DIR || "/tmp/ari-benchmark-repos";
+const CLONE_DIR = path.resolve(rawCloneDir);
+
+// Validation helpers — reject values containing shell metacharacters
+const SAFE_NAME_RE = /^[a-zA-Z0-9_.-]+$/;
+const SAFE_REF_RE = /^[a-zA-Z0-9_./-]+$/;
+const SAFE_REPO_RE = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
+
+function validateField(value, pattern, label) {
+  if (!pattern.test(value)) {
+    throw new Error(
+      `Invalid ${label}: "${value}" — must match ${pattern}. Aborting to prevent command injection.`,
+    );
+  }
+}
 
 // Ensure prerequisites
 if (!fs.existsSync(REVISIONS_FILE)) {
@@ -43,6 +59,12 @@ const results = [];
 
 for (let i = 0; i < repos.length; i++) {
   const { name, repo, ref, language, description } = repos[i];
+
+  // Validate inputs before using in shell commands
+  validateField(name, SAFE_NAME_RE, `repos[${i}].name`);
+  validateField(repo, SAFE_REPO_RE, `repos[${i}].repo`);
+  validateField(ref, SAFE_REF_RE, `repos[${i}].ref`);
+
   const clonePath = path.join(CLONE_DIR, name);
 
   console.log(`[${i + 1}/${repos.length}] ${name} (${repo} @ ${ref})`);
@@ -137,17 +159,18 @@ console.log(`  Results: ${RESULTS_DIR}/`);
 console.log(`  Summary: ${RESULTS_DIR}/summary.json`);
 console.log("═══════════════════════════════════════════════════════════");
 
-// Pin refs
+// Pin refs — re-read the file to avoid TOCTOU race condition
 if (PIN_REFS) {
   console.log("\nPinning refs to resolved commit SHAs...");
+  const freshData = JSON.parse(fs.readFileSync(REVISIONS_FILE, "utf8"));
   let pinned = 0;
-  repos.forEach((r, i) => {
+  freshData.repos.forEach((r, i) => {
     if (pinnedShas[i] && pinnedShas[i] !== "SKIP") {
       r.ref = pinnedShas[i];
       pinned++;
     }
   });
-  fs.writeFileSync(REVISIONS_FILE, JSON.stringify(data, null, 2) + "\n");
+  fs.writeFileSync(REVISIONS_FILE, JSON.stringify(freshData, null, 2) + "\n");
   console.log(`Updated ${pinned}/${repos.length} refs in ${REVISIONS_FILE}`);
 }
 
