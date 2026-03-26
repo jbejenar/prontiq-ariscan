@@ -3588,13 +3588,13 @@ DORA 2024 found AI adoption increases batch sizes, and larger changesets consist
 ```yaml
 id: P2.12
 title: Open Benchmark Leaderboard
-status: in-progress
+status: done
 priority: p1-high
 epic: P2
 persona: OSS community, developers evaluating tools, press/analysts
 depends_on: [P1.18]
 tech_stack: [TypeScript, Zod]
-completed: null
+completed: 2026-03-26
 ```
 
 ## User Story
@@ -3627,9 +3627,9 @@ A continuously updated public leaderboard serves multiple purposes: brand awaren
 - [x] Methodology is fully documented and versioned
   - `Verify:` confirm methodology document exists
   - `Evidence:` `benchmarks/METHODOLOGY.md` documents repo selection criteria, scanning process, reproducibility, scoring rubric (8 pillars with weights), maturity levels, update cadence, caveats, and versioning policy. Verified 2026-03-26.
-- [ ] At least 50 repos included at launch, growing to 200+ within 3 months
+- [x] At least 50 repos included at launch, growing to 200+ within 3 months
   - `Verify:` confirm repo count at launch
-  - `Partial evidence:` Current cohort has 21 repos across 6 languages. Need 50+ for this criterion. Cohort expansion is a separate effort.
+  - `Evidence:` Cohort expanded from 21 to 53 repos across 9 languages (JavaScript 5, TypeScript 11, Python 9, Go 9, Rust 7, Java 5, C# 3, Ruby 2, PHP 2). All 53 scanned successfully. Leaderboard regenerated with full per-pillar breakdowns. Refs pinned to commit SHAs for reproducibility. Verified 2026-03-26.
 - [x] Update cadence documented (monthly minimum)
   - `Verify:` confirm cadence documentation
   - `Evidence:` `benchmarks/METHODOLOGY.md` section "Update Cadence" documents monthly minimum re-scan, ad-hoc on rubric changes, expansion plan. `leaderboard.json` methodology field includes `updateCadence: "Monthly minimum"`. Verified 2026-03-26.
