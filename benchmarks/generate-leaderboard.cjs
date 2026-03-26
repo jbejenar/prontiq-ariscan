@@ -51,9 +51,10 @@ function computeStats(scores) {
   if (scores.length === 0) return { mean: 0, median: 0, min: 0, max: 0, stddev: 0 };
   const sorted = [...scores].sort((a, b) => a - b);
   const mean = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length);
-  const median = sorted.length % 2 === 0
-    ? Math.round((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)
-    : sorted[Math.floor(sorted.length / 2)];
+  const median =
+    sorted.length % 2 === 0
+      ? Math.round((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)
+      : sorted[Math.floor(sorted.length / 2)];
   const min = sorted[0];
   const max = sorted[sorted.length - 1];
   const variance = scores.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / scores.length;
@@ -101,7 +102,9 @@ for (const repo of revisions.repos) {
 
 // Sort by score descending, then alphabetically
 entries.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
-entries.forEach((e, i) => { e.rank = i + 1; });
+entries.forEach((e, i) => {
+  e.rank = i + 1;
+});
 
 // Compute statistics
 const allScores = entries.map((e) => e.score);
@@ -146,9 +149,11 @@ const leaderboard = {
   rubricVersion: revisions.rubric_version,
   generatedAt: new Date().toISOString(),
   methodology: {
-    description: "ARI (Agent Readiness Index) scores for open-source repositories. Each repo is scanned at a pinned commit SHA using the ariscan CLI with default rubric weights.",
+    description:
+      "ARI (Agent Readiness Index) scores for open-source repositories. Each repo is scanned at a pinned commit SHA using the ariscan CLI with default rubric weights.",
     rubricPillars: Object.entries(PILLAR_NAMES).map(([id, name]) => ({ id, name })),
-    reproducibility: "All refs pinned to commit SHAs in revisions.json. Scanner is deterministic (no network, no randomness). Re-running produces identical scores.",
+    reproducibility:
+      "All refs pinned to commit SHAs in revisions.json. Scanner is deterministic (no network, no randomness). Re-running produces identical scores.",
     updateCadence: "Monthly minimum, with ad-hoc updates for rubric changes.",
     versionPolicy: "Scores are only comparable within the same rubric version.",
   },
@@ -276,6 +281,12 @@ console.log(`Leaderboard Markdown → ${LEADERBOARD_MD_PATH}`);
 
 function formatName(name) {
   // Capitalize first letter of each word, handle special cases
-  const special = { "next.js": "Next.js", vscode: "VS Code", fastapi: "FastAPI", langchain: "LangChain", "spring-boot": "Spring Boot" };
+  const special = {
+    "next.js": "Next.js",
+    vscode: "VS Code",
+    fastapi: "FastAPI",
+    langchain: "LangChain",
+    "spring-boot": "Spring Boot",
+  };
   return special[name] || name.charAt(0).toUpperCase() + name.slice(1);
 }
