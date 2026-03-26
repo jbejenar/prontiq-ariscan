@@ -47,7 +47,7 @@ With scripts in place, the template will:
 | `ARI_FAIL_ON_VIOLATION` | Fail pipeline on policy violations | `true` |
 | `ARI_COMMENT` | Post an MR comment with results | `true` |
 | `ARI_DELTA` | Compare scores against target branch | `true` |
-| `ARI_VERSION` | Version of `@prontiq/ariscan-cli` to install | `latest` |
+| `ARI_VERSION` | Version of `@prontiq/ariscan` to install | `latest` |
 | `ARI_NODE_VERSION` | Node.js major version | `22` |
 | `GITLAB_TOKEN` | Token with `api` scope for MR comments | _(set in CI/CD settings)_ |
 

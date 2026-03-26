@@ -42,16 +42,16 @@ Every telemetry payload contains exactly these fields — nothing more:
 
 ```bash
 # Enable telemetry
-npx @prontiq/ariscan-cli --telemetry true
+npx @prontiq/ariscan --telemetry true
 
 # Disable telemetry
-npx @prontiq/ariscan-cli --telemetry false
+npx @prontiq/ariscan --telemetry false
 
 # See exactly what would be sent
-npx @prontiq/ariscan-cli --telemetry-show
+npx @prontiq/ariscan --telemetry-show
 
 # Disable for a single run
-npx @prontiq/ariscan-cli . --no-telemetry
+npx @prontiq/ariscan . --no-telemetry
 ```
 
 ### Environment variable

@@ -110,7 +110,7 @@ const analyzer = getAnalyzer("P1"); // Agent Context Quality
 
 ## Related Packages
 
-- [`@prontiq/ariscan-cli`](https://www.npmjs.com/package/@prontiq/ariscan-cli) — CLI tool
+- [`@prontiq/ariscan`](https://www.npmjs.com/package/@prontiq/ariscan) — CLI tool
 - [`@prontiq/ariscan-schema`](https://www.npmjs.com/package/@prontiq/ariscan-schema) — Type definitions and Zod schemas
 
 ## License

@@ -87,16 +87,16 @@ prontiq/ariscan/
 │   ├── cli/                              # CLI entrypoint (citty)
 │   │   ├── src/
 │   │   │   ├── commands/
-│   │   │   │   ├── scan.ts               # npx @prontiq/ariscan-cli . (default command)
-│   │   │   │   ├── doctor.ts             # npx @prontiq/ariscan-cli doctor [--json]
-│   │   │   │   ├── init.ts               # npx @prontiq/ariscan-cli init [agents-md|agentignore|devcontainer|policy]
-│   │   │   │   ├── audit.ts              # npx @prontiq/ariscan-cli audit agents-md
-│   │   │   │   ├── diff.ts               # npx @prontiq/ariscan-cli diff context
-│   │   │   │   ├── badge.ts              # npx @prontiq/ariscan-cli badge
-│   │   │   │   ├── taxonomy.ts           # npx @prontiq/ariscan-cli taxonomy [ARI-XXX-NNN] [--json]
-│   │   │   │   ├── policy.ts             # npx @prontiq/ariscan-cli policy [init|validate]
-│   │   │   │   ├── simulate.ts           # npx @prontiq/ariscan-cli simulate
-│   │   │   │   └── config.ts             # npx @prontiq/ariscan-cli config [set|show-telemetry-payload]
+│   │   │   │   ├── scan.ts               # npx @prontiq/ariscan . (default command)
+│   │   │   │   ├── doctor.ts             # npx @prontiq/ariscan doctor [--json]
+│   │   │   │   ├── init.ts               # npx @prontiq/ariscan init [agents-md|agentignore|devcontainer|policy]
+│   │   │   │   ├── audit.ts              # npx @prontiq/ariscan audit agents-md
+│   │   │   │   ├── diff.ts               # npx @prontiq/ariscan diff context
+│   │   │   │   ├── badge.ts              # npx @prontiq/ariscan badge
+│   │   │   │   ├── taxonomy.ts           # npx @prontiq/ariscan taxonomy [ARI-XXX-NNN] [--json]
+│   │   │   │   ├── policy.ts             # npx @prontiq/ariscan policy [init|validate]
+│   │   │   │   ├── simulate.ts           # npx @prontiq/ariscan simulate
+│   │   │   │   └── config.ts             # npx @prontiq/ariscan config [set|show-telemetry-payload]
 │   │   │   ├── output/
 │   │   │   │   ├── json.ts               # --format json (default for non-TTY)
 │   │   │   │   ├── sarif.ts              # --format sarif (GitHub Code Scanning)
@@ -250,7 +250,7 @@ packages:
 **Root `package.json` scripts:**
 ```json
 {
-  "name": "@prontiq/ariscan-cli",
+  "name": "@prontiq/ariscan",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.4",
@@ -546,7 +546,7 @@ All 8 pillar analyzers implement `PillarAnalyzer`. Community plugins (P3.08) als
       "remediation": {
         "action": "create-file",
         "path": "AGENTS.md",
-        "generator": "npx @prontiq/ariscan-cli init agents-md"
+        "generator": "npx @prontiq/ariscan init agents-md"
       },
       "evidence": {
         "paper": "Lulla et al., 2026",
@@ -670,7 +670,7 @@ These patterns are extracted from the [ripple-next](https://github.com/jbejenar/
 | Provider Pattern | `PillarAnalyzer` interface + conformance suites | ripple-next provider pattern + `packages/testing/conformance/` |
 | Structured Remediation | Findings include `remediation.action`, `remediation.generator` | ripple-next machine-readable runbooks (`pnpm runbook <name> --json`) |
 | Agent Config Surfaces | AGENTS.md, CLAUDE.md, `.github/agents/`, `.github/prompts/` | ripple-next multi-surface AI config (7+ config files) |
-| Self-Check | `npx @prontiq/ariscan-cli doctor --json` | ripple-next `pnpm doctor --json` |
+| Self-Check | `npx @prontiq/ariscan doctor --json` | ripple-next `pnpm doctor --json` |
 | Pure Function Core | `scan(path, config) → ScanResult` for CLI, MCP, and Action | Enables MCP server (P3.10) and GitHub Action (P3.02) |
 
 **Dog-fooding requirement:** The `ariscan` repo itself must score L5 on its own rubric. It ships with AGENTS.md, CLAUDE.md, `.agentignore`, `.ariscan.yml`, `docs/error-taxonomy.json`, and all agent configuration surfaces it measures in other repos.
@@ -714,17 +714,17 @@ There is no standard CLI tool for measuring AI coding agent readiness. Developer
 
 ### Functional
 
-- [x] `npx @prontiq/ariscan-cli .` command that scans the current directory and produces a scored report.
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --json` and confirm JSON output with `score` field
+- [x] `npx @prontiq/ariscan .` command that scans the current directory and produces a scored report.
+  - `Verify:` Run `npx @prontiq/ariscan . --json` and confirm JSON output with `score` field
   - `Evidence:` `cli.ts` defines main command with positional `path` defaulting to `"."`
 - [x] Config loading with clear precedence: CLI flags > `.ariscan.yml` > built-in defaults.
   - `Verify:` Run `pnpm --filter @prontiq/ariscan-engine test -- --run config-loader` and confirm all tests pass
   - `Evidence:` Implemented in `config-loader.ts` with directory walk-up, YAML parsing, Zod validation via `FileConfig` schema. `resolveConfig()` merges CLI > file > defaults. 16 unit tests.
 - [x] Deterministic exit codes: 0 (pass), 1 (fail — below threshold), 2 (error — scan could not complete).
-  - `Verify:` Run `npx @prontiq/ariscan-cli /nonexistent 2>/dev/null; echo $?` and confirm exit code 2
+  - `Verify:` Run `npx @prontiq/ariscan /nonexistent 2>/dev/null; echo $?` and confirm exit code 2
   - `Evidence:` `process.exit(2)` on path not found and scan error. `process.exit(1)` when score < threshold. Implicit 0 on success.
 - [x] `--verbose` and `--quiet` modes for debugging and CI respectively.
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --verbose` and confirm detailed pillar output; run with `--quiet` and confirm single-line output
+  - `Verify:` Run `npx @prontiq/ariscan . --verbose` and confirm detailed pillar output; run with `--quiet` and confirm single-line output
   - `Evidence:` `--verbose` shows pillar details, detection info, context files, and all findings. `--quiet` outputs single-line CI-friendly summary "ARI score/100 level (name)". Added 2026-03-08.
 - [x] Zero external network calls during scan (fully offline operation).
   - `Verify:` Run `grep -r "fetch\|http\|axios" packages/engine/src packages/cli/src` and confirm no network imports
@@ -733,13 +733,13 @@ There is no standard CLI tool for measuring AI coding agent readiness. Developer
 ### Documentation
 
 - [x] `--help` output documenting all core flags, examples, and config file format.
-  - `Verify:` Run `npx @prontiq/ariscan-cli --help` and confirm output contains flags and examples
+  - `Verify:` Run `npx @prontiq/ariscan --help` and confirm output contains flags and examples
   - `Evidence:` citty auto-generates flag docs + 3 usage examples in description (basic scan, JSON output, threshold)
 - [x] `--help` includes at least 3 usage examples.
-  - `Verify:` Run `npx @prontiq/ariscan-cli --help | grep -c "npx"` and confirm ≥3
-  - `Evidence:` 3 examples: `npx @prontiq/ariscan-cli .`, `npx @prontiq/ariscan-cli /path --json`, `npx @prontiq/ariscan-cli . --threshold 60`
+  - `Verify:` Run `npx @prontiq/ariscan --help | grep -c "npx"` and confirm ≥3
+  - `Evidence:` 3 examples: `npx @prontiq/ariscan .`, `npx @prontiq/ariscan /path --json`, `npx @prontiq/ariscan . --threshold 60`
 - [x] Exit code matrix documented for CI users in both `--help` and published docs.
-  - `Verify:` Run `npx @prontiq/ariscan-cli --help` and confirm exit codes 0/1/2 are documented
+  - `Verify:` Run `npx @prontiq/ariscan --help` and confirm exit codes 0/1/2 are documented
   - `Evidence:` Exit codes 0/1/2 documented in `--help` description. Added 2026-03-10.
 
 ### Testing
@@ -831,10 +831,10 @@ Agent readiness criteria differ by language — TypeScript strict mode is irrele
   - `Verify:` Run scan on this repo and confirm monorepo detected in JSON output
   - `Evidence:` Implemented in `detection/monorepo.ts` — 6 monorepo tools. Go workspaces instead of Go modules.
 - [x] Detection confidence score (0-1) per detected language/framework in JSON output.
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --json | jq '.languages[0].confidence'` and confirm numeric value
+  - `Verify:` Run `npx @prontiq/ariscan . --json | jq '.languages[0].confidence'` and confirm numeric value
   - `Evidence:` Each `DetectedLanguage`/`DetectedFramework` includes confidence field
 - [x] Primary language determination for weight calibration.
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --json | jq '.languages[] | select(.primary==true)'` and confirm one result
+  - `Verify:` Run `npx @prontiq/ariscan . --json | jq '.languages[] | select(.primary==true)'` and confirm one result
   - `Evidence:` Languages sorted by confidence, `primary: true` flag on highest
 - [x] Graceful fallback to "unknown" with appropriate confidence level when detection is ambiguous.
   - `Verify:` Run scan on empty directory and confirm no crash, empty arrays returned
@@ -925,7 +925,7 @@ The AI coding agent ecosystem is fragmented across multiple context file formats
     - `Verify:` Run scan on monorepo and confirm nested AGENTS.md files discovered
     - `Evidence:` Root + nested discovery for monorepos added 2026-03-09
   - [x] `CLAUDE.md` / `.claude/` directory files
-    - `Verify:` Run `npx @prontiq/ariscan-cli . --json | jq '.contextFiles[] | select(.type=="claude-md")'`
+    - `Verify:` Run `npx @prontiq/ariscan . --json | jq '.contextFiles[] | select(.type=="claude-md")'`
     - `Evidence:` .claude/settings.json and .claude/commands/ discovery added 2026-03-09
   - [x] `.cursorrules` / `.cursor/rules/`
     - `Verify:` Check fixture scan for cursorrules detection
@@ -940,7 +940,7 @@ The AI coding agent ecosystem is fragmented across multiple context file formats
     - `Verify:` Check fixture scan for aider config detection
     - `Evidence:` Both paths checked
 - [x] For each discovered file: path, file type, size, last modified date, parse status (valid/warning/error).
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --json | jq '.contextFiles[0] | keys'` and confirm all fields present
+  - `Verify:` Run `npx @prontiq/ariscan . --json | jq '.contextFiles[0] | keys'` and confirm all fields present
   - `Evidence:` ContextFileInfo includes lastModified via fs.stat and parseStatus via content validation in scan.ts `discoverContextFiles()`
 - [x] Cross-agent compatibility report: which agents have dedicated context files vs none.
   - `Verify:` Run scan and check for ARI-CTX-010 finding in output
@@ -2089,7 +2089,7 @@ CI integration is the primary adoption vector for sustained usage. Without a sta
 ### Functional
 
 - [x] `--json` flag producing versioned output.
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --json` and confirm valid JSON
+  - `Verify:` Run `npx @prontiq/ariscan . --json` and confirm valid JSON
   - `Evidence:` Boolean flag, shorthand for `--format json`
 - [x] Schema includes: scan metadata (version, timestamp, duration).
   - `Verify:` Run scan `--json | jq '.metadata'` and confirm fields
@@ -2113,13 +2113,13 @@ CI integration is the primary adoption vector for sustained usage. Without a sta
   - `Verify:` Check `test -f ariscan.schema.json && echo PASS`
   - `Evidence:` Zod schemas in @prontiq/ariscan-schema. `ariscan.schema.json` published in repo root. `getJsonSchemaObject()` export. Added 2026-03-10.
 - [x] `--json-schema` flag that outputs the schema itself for validation tooling.
-  - `Verify:` Run `npx @prontiq/ariscan-cli --jsonSchema` and confirm JSON Schema output
+  - `Verify:` Run `npx @prontiq/ariscan --jsonSchema` and confirm JSON Schema output
   - `Evidence:` `--jsonSchema` flag wired 2026-03-09: outputs JSON Schema and exits
 - [x] All findings use `ARI-*` taxonomy codes.
   - `Verify:` Run scan `--json | jq '.findings[].code'` and confirm ARI-XXX-NNN pattern
   - `Evidence:` `Finding.code` regex enforces `^ARI-[A-Z]{3}-\d{3}$`
 - [x] SARIF projection.
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --format sarif` and confirm valid SARIF 2.1.0
+  - `Verify:` Run `npx @prontiq/ariscan . --format sarif` and confirm valid SARIF 2.1.0
   - `Evidence:` SARIF 2.1.0 formatter implemented in `output/sarif.ts`, wired to `--format sarif`. Added 2026-03-08.
 - [x] Schema includes `$schema` and `$id` fields for validation tooling.
   - `Verify:` Run scan `--json | jq '."$schema"'` and confirm present
@@ -2209,7 +2209,7 @@ JSON output serves machines; teams need a human-readable format for communicatio
 ### Functional
 
 - [x] Markdown report ordered by impact and effort (highest-impact, lowest-effort fixes first).
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --format markdown` and confirm ordered recommendations
+  - `Verify:` Run `npx @prontiq/ariscan . --format markdown` and confirm ordered recommendations
   - `Evidence:` Remediations sorted by impact × ease score — severity × confidence. Updated 2026-03-10.
 - [x] "First 3 actions" quick-start section highlighting immediate wins.
   - `Verify:` Run markdown report and confirm "Quick Start: Top 3 Actions" section
@@ -2221,7 +2221,7 @@ JSON output serves machines; teams need a human-readable format for communicatio
   - `Verify:` Run markdown report and confirm header section
   - `Evidence:` Badge header with score, level, scan timestamp, duration
 - [x] Terminal-friendly colored output (when not piped to file).
-  - `Verify:` Run `npx @prontiq/ariscan-cli .` in terminal and confirm ANSI colors
+  - `Verify:` Run `npx @prontiq/ariscan .` in terminal and confirm ANSI colors
   - `Evidence:` terminal.ts uses chalk for ANSI colors
 - [x] Recommendations are ordered by impact × ease (not by pillar number).
   - `Verify:` Run markdown report and confirm recommendation ordering
@@ -2230,7 +2230,7 @@ JSON output serves machines; teams need a human-readable format for communicatio
   - `Verify:` Run markdown report and paste into GitHub PR comment to verify rendering
   - `Evidence:` Uses Unicode block chars, standard markdown tables — no emoji dependency
 - [x] Terminal output uses ANSI colors when TTY detected, plain text otherwise.
-  - `Verify:` Run `npx @prontiq/ariscan-cli . | head` (piped) and confirm no ANSI codes
+  - `Verify:` Run `npx @prontiq/ariscan . | head` (piped) and confirm no ANSI codes
   - `Evidence:` chalk handles TTY detection automatically
 
 ### Telemetry (non-blocking)
@@ -2289,7 +2289,7 @@ README badges are a proven viral distribution mechanism in the OSS ecosystem. Ba
 ### Functional
 
 - [x] Badge format: "Agent-Ready: L4 (78/100)" with color coding (red/orange/yellow/green/blue by level).
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --badge /tmp/badge.svg` and check SVG content
+  - `Verify:` Run `npx @prontiq/ariscan . --badge /tmp/badge.svg` and check SVG content
   - `Evidence:` SVG badge with 5 color levels: L1 red, L2 orange, L3 yellow, L4 green, L5 bright green. Added 2026-03-08.
 - [x] SVG badge generation from scan results (no external service dependency).
   - `Verify:` Check `test -f output/badge.ts && echo PASS` in packages/cli/src/
@@ -2298,7 +2298,7 @@ README badges are a proven viral distribution mechanism in the OSS ecosystem. Ba
   - `Verify:` Run badge command and confirm 3 format snippets in output
   - `Evidence:` `generateBadgeSnippets()` outputs all 3 formats. Added 2026-03-08.
 - [x] `ariscan badge` command to generate badge file and embed snippet.
-  - `Verify:` Run `npx @prontiq/ariscan-cli badge` and confirm badge generated
+  - `Verify:` Run `npx @prontiq/ariscan badge` and confirm badge generated
   - `Evidence:` `--badge <path>` flag generates SVG file and prints embed snippets. Added 2026-03-08.
 - [x] Supports static generation without external tracker dependency.
   - `Verify:` Confirm no network calls during badge generation
@@ -2369,13 +2369,13 @@ Scoring without remediation creates "so what?" syndrome. The fastest path to pro
 ### Functional
 
 - [x] `AGENTS.md` generation: additive-only content (build commands, test patterns, constraint specifics — NOT README restatement).
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --fix --dry-run` and confirm AGENTS.md in output
+  - `Verify:` Run `npx @prontiq/ariscan . --fix --dry-run` and confirm AGENTS.md in output
   - `Evidence:` Done 2026-03-10. computeOverlap() avoids README duplication.
 - [x] `.agentignore` generation: exclude generated files, `dist/`, `coverage/`, lockfiles, `node_modules/`, build artifacts.
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --fix --dry-run` and confirm .agentignore in output
+  - `Verify:` Run `npx @prontiq/ariscan . --fix --dry-run` and confirm .agentignore in output
   - `Evidence:` Done 2026-03-10
 - [x] `.devcontainer/devcontainer.json` starter template based on detected stack.
-  - `Verify:` Run `npx @prontiq/ariscan-cli . --fix --dry-run` and confirm devcontainer in output
+  - `Verify:` Run `npx @prontiq/ariscan . --fix --dry-run` and confirm devcontainer in output
   - `Evidence:` Done 2026-03-10
 - [x] Provider pattern skeleton (interface + in-memory implementation) for detected cloud SDK usage.
   - `Verify:` Run fix on fixture with AWS SDK and confirm provider skeleton generated
@@ -2658,7 +2658,7 @@ To maximise adoption across end users, plugin authors, and programmatic consumer
 
 | Package | npm Name | Scope | Target Audience | Status |
 |---|---|---|---|---|
-| `packages/cli` | `@prontiq/ariscan-cli` | Public (scoped) | End users running `npx @prontiq/ariscan-cli .` | `private: false` — ready to publish |
+| `packages/cli` | `@prontiq/ariscan` | Public (scoped) | End users running `npx @prontiq/ariscan .` | `private: false` — ready to publish |
 | `packages/schema` | `@prontiq/ariscan-schema` | Public (scoped) | Plugin authors, CI integrations, anyone importing types (`PillarId`, `Finding`, `ScanResult`) | `private: false` — ready to publish |
 | `packages/engine` | `@prontiq/ariscan-engine` | Public (scoped) | Programmatic consumers embedding scanning in their own tooling | `private: false` — ready to publish |
 
@@ -2670,7 +2670,7 @@ To maximise adoption across end users, plugin authors, and programmatic consumer
 - [x] Add `publishConfig`, `repository`, `homepage`, and `bugs` fields to all three `package.json` files.
 - [x] Add `files` whitelist (`["dist", "README.md"]`) to each package to avoid publishing source/test files.
 - [x] Ensure `workspace:*` dependencies are resolved to real version ranges at publish time (pnpm handles this automatically with `pnpm publish`).
-- [x] Add per-package `README.md` for all three packages (`@prontiq/ariscan-cli`, `@prontiq/ariscan-schema`, `@prontiq/ariscan-engine`) with API docs and usage examples.
+- [x] Add per-package `README.md` for all three packages (`@prontiq/ariscan`, `@prontiq/ariscan-schema`, `@prontiq/ariscan-engine`) with API docs and usage examples.
 - [x] Integrate `@changesets/cli` for coordinated versioning across all three packages (see CI.07).
 - [x] Enable npm provenance attestation (`--provenance`) in the publish workflow.
 
@@ -2680,7 +2680,7 @@ Build and publish order must follow the dependency graph:
 
 1. `@prontiq/ariscan-schema` (no internal deps)
 2. `@prontiq/ariscan-engine` (depends on `@prontiq/ariscan-schema`)
-3. `@prontiq/ariscan-cli` (depends on both)
+3. `@prontiq/ariscan` (depends on both)
 
 Changesets will coordinate version bumps so that a schema change triggers engine and CLI releases as needed.
 
@@ -4836,7 +4836,7 @@ CLI output requires context-switching. An IDE extension surfaces findings where 
   - [x] Import local scan report (`ariscan.json`) for display
     - `Verify:` `ariscan.importReport` command opens file dialog. `parseReport()` validates JSON shape. `reportPath` configuration defaults to `ariscan.json`. File watcher auto-reloads on change. 10 report-loader tests pass. Verified 2026-03-26.
   - [x] "Run ariscan" command from command palette
-    - `Verify:` `ariscan.runScan` command opens terminal and runs `npx @prontiq/ariscan-cli . --json --output`. Registered in `commands.ts`. Verified 2026-03-26.
+    - `Verify:` `ariscan.runScan` command opens terminal and runs `npx @prontiq/ariscan . --json --output`. Registered in `commands.ts`. Verified 2026-03-26.
   - [x] Status bar indicator showing current composite score
     - `Verify:` `createStatusBarItem()` in `status-bar.ts` shows "ARI: {score} ({level})" with level-specific icons. Tooltip shows per-pillar score bars. Click triggers pillar summary. Verified 2026-03-26.
 - [x] Extension supports local report import (no external service dependency)
@@ -4989,7 +4989,7 @@ As a developer starting a new project, I want a single interactive command that 
 ### Testing
 
 - [x] Integration test: `ariscan init` produces valid project structure
-  - `Verify:` `pnpm --filter @prontiq/ariscan-cli test -- --run scaffolder`
+  - `Verify:` `pnpm --filter @prontiq/ariscan test -- --run scaffolder`
 
 ### Meta
 
@@ -5969,7 +5969,7 @@ As a maintainer, I want automated versioning, changelog generation, and npm publ
 
 ## Problem Statement
 
-*[Constructed from CI Design Decisions]* npm publishing is a P1 exit criterion. Provenance attestation is AI-first — agents downloading `@prontiq/ariscan-cli` from npm should be able to verify the package hasn't been tampered with.
+*[Constructed from CI Design Decisions]* npm publishing is a P1 exit criterion. Provenance attestation is AI-first — agents downloading `@prontiq/ariscan` from npm should be able to verify the package hasn't been tampered with.
 
 ## Definition of Done
 
@@ -6162,7 +6162,7 @@ As a contributor using GitHub Copilot, I want ARI findings to appear as GitHub c
 
 | Package | Status | Purpose |
 |---|---|---|
-| `@prontiq/ariscan-cli` | Core | CLI scan, scoring, reporting, policy execution |
+| `@prontiq/ariscan` | Core | CLI scan, scoring, reporting, policy execution |
 | `@prontiq/core` | Planned | Shared rubric models, score contracts, policy schemas |
 | `@prontiq/sdk` | Planned | Programmatic integration for reporting/workflow automation |
 | `@prontiq/agentignore` | Planned | `.agentignore` parser (MIT, reusable by agent vendors) |

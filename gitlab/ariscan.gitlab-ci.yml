@@ -19,7 +19,7 @@
 #   ARI_FAIL_ON_VIOLATION — fail pipeline on policy violations (default: "true")
 #   ARI_COMMENT         — post MR comment with results (default: "true")
 #   ARI_DELTA           — compare scores against target branch (default: "true")
-#   ARI_VERSION         — version of @prontiq/ariscan-cli (default: "latest")
+#   ARI_VERSION         — version of @prontiq/ariscan (default: "latest")
 #   ARI_NODE_VERSION    — Node.js major version (default: "22")
 #   GITLAB_TOKEN        — token with api scope for MR comments (set in CI/CD settings)
 
@@ -41,7 +41,7 @@ variables:
   variables:
     GIT_DEPTH: 0
   before_script:
-    - npm install -g "@prontiq/ariscan-cli@${ARI_VERSION}"
+    - npm install -g "@prontiq/ariscan@${ARI_VERSION}"
   script:
     # ── Scan MR branch ──
     - |

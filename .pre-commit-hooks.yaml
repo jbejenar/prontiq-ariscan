@@ -16,14 +16,14 @@
 #       hooks:
 #         - id: ariscan-check
 #           name: ariscan readiness check
-#           entry: npx @prontiq/ariscan-cli check . --mode fast
+#           entry: npx @prontiq/ariscan check . --mode fast
 #           language: system
 #           pass_filenames: false
 #           always_run: true
 
 - id: ariscan-check
   name: ariscan readiness check (fast)
-  entry: npx @prontiq/ariscan-cli check . --mode fast --quiet
+  entry: npx @prontiq/ariscan check . --mode fast --quiet
   language: node
   pass_filenames: false
   always_run: true
@@ -31,7 +31,7 @@
 
 - id: ariscan-check-standard
   name: ariscan readiness check (standard)
-  entry: npx @prontiq/ariscan-cli check . --mode standard --quiet
+  entry: npx @prontiq/ariscan check . --mode standard --quiet
   language: node
   pass_filenames: false
   always_run: true
@@ -39,7 +39,7 @@
 
 - id: ariscan-check-thorough
   name: ariscan readiness check (thorough)
-  entry: npx @prontiq/ariscan-cli check . --mode thorough --quiet
+  entry: npx @prontiq/ariscan check . --mode thorough --quiet
   language: node
   pass_filenames: false
   always_run: true

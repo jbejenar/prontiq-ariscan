@@ -57,7 +57,7 @@ my-preset/
 ### index.js
 
 ```js
-/** @type {import('@prontiq/ariscan-cli').ScaffolderPreset} */
+/** @type {import('@prontiq/ariscan').ScaffolderPreset} */
 export default {
   manifest: {
     id: "my-preset",
