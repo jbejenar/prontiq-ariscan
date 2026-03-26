@@ -45,11 +45,6 @@
           "type": "string",
           "default": "ariscan.json",
           "description": "Path to the ARI scan report file (relative to workspace root)"
-        },
-        "ariscan.autoScan": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically run scan when workspace opens"
         }
       }
     }

@@ -87,6 +87,23 @@ describe("findingsForFile", () => {
     expect(findingsForFile(report, "src/index.ts")).toHaveLength(0);
   });
 
+  it("does not false-positive match shorter finding paths in monorepos", () => {
+    const report = makeReport({
+      findings: [
+        {
+          code: "ARI-CTX-001",
+          severity: "medium",
+          pillar: "P1",
+          file: "src/index.ts",
+          message: "test",
+        },
+      ],
+    });
+
+    // A different package with the same relative suffix must NOT match
+    expect(findingsForFile(report, "packages/mcp/src/index.ts")).toHaveLength(0);
+  });
+
   it("handles backslash normalization", () => {
     const report = makeReport({
       findings: [

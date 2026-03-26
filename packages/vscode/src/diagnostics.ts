@@ -3,13 +3,16 @@ import type { Finding, Severity } from "./types.js";
 /**
  * VS Code diagnostic severity values (mirrors vscode.DiagnosticSeverity).
  * Defined here to enable testing without the vscode module.
+ * Plain object (not const enum) for isolatedModules/esbuild compatibility.
  */
-export const enum DiagSeverity {
-  Error = 0,
-  Warning = 1,
-  Information = 2,
-  Hint = 3,
-}
+export const DiagSeverity = {
+  Error: 0,
+  Warning: 1,
+  Information: 2,
+  Hint: 3,
+} as const;
+
+export type DiagSeverity = (typeof DiagSeverity)[keyof typeof DiagSeverity];
 
 /**
  * A diagnostic entry ready for VS Code consumption.

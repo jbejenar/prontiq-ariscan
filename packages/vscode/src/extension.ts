@@ -40,9 +40,11 @@ export function activate(context: vscode.ExtensionContext): void {
     const config = vscode.workspace.getConfiguration("ariscan");
     const reportPath = config.get<string>("reportPath", "ariscan.json");
     const fullPath = path.resolve(workspaceRoot, reportPath);
-    loadReportFromPath(fullPath).catch(() => {
-      // Report not found on startup — expected for first-time users
-    });
+    if (fs.existsSync(fullPath)) {
+      loadReportFromPath(fullPath).catch(() => {
+        // Report read/parse error on startup — silently ignore
+      });
+    }
 
     // Watch for report file changes
     const pattern = new vscode.RelativePattern(workspaceRoot, reportPath);

@@ -35,11 +35,7 @@ export function findingsForFile(report: ScanResult, relativePath: string): ScanR
     // Normalize separators and compare
     const normalized = f.file.replace(/\\/g, "/");
     const target = relativePath.replace(/\\/g, "/");
-    return (
-      normalized === target ||
-      normalized.endsWith("/" + target) ||
-      target.endsWith("/" + normalized)
-    );
+    return normalized === target || normalized.endsWith("/" + target);
   });
 }
 

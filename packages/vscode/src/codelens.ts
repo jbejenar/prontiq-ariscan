@@ -1,4 +1,5 @@
 import type * as vscode from "vscode";
+import * as path from "node:path";
 import type { ScanResult } from "./types.js";
 import { findingsForFile, fileSummary } from "./report-loader.js";
 
@@ -31,7 +32,7 @@ export class AriCodeLensProvider implements vscode.CodeLensProvider {
     const folder = this.vscodeApi.workspace.getWorkspaceFolder(document.uri);
     if (!folder) return [];
 
-    const relativePath = document.uri.fsPath.replace(folder.uri.fsPath + "/", "");
+    const relativePath = path.relative(folder.uri.fsPath, document.uri.fsPath).replace(/\\/g, "/");
     const summary = fileSummary(this.report, relativePath);
     if (!summary) return [];
 
