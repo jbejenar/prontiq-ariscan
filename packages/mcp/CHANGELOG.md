@@ -1,5 +1,13 @@
 # @prontiq/ariscan-mcp
 
+## 0.35.8
+
+### Patch Changes
+
+- Updated dependencies
+  - @prontiq/ariscan-schema@0.44.0
+  - @prontiq/ariscan-engine@0.44.0
+
 ## 0.35.7
 
 ### Patch Changes
