@@ -28,7 +28,7 @@ Every telemetry payload contains exactly these fields — nothing more:
 | `simulation_ran` | `true` | Whether the `simulate` subcommand was executed |
 | `simulation_step_count` | `4` | Number of simulation steps executed |
 | `simulation_pass_rate_bucket` | `"61-80"` | Bucketed simulation pass rate |
-| `simulation_prediction_accuracy_bucket` | `"81-100"` | Bucketed static vs simulation accuracy |
+| `simulation_prediction_accuracy_bucket` | `"61-80"` | Bucketed static vs simulation accuracy |
 | `circular_dependency_detected` | `false` | Whether circular dependencies were found |
 | `module_cohesion_bucket` | `"61-80"` | Bucketed P7 navigability score (cohesion proxy) |
 | `plugin_count` | `2` | Number of plugins loaded |
