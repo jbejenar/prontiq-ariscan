@@ -15,9 +15,7 @@ const fs = require("fs");
 const path = require("path");
 
 const RESULTS_DIR = path.join(__dirname, "results");
-const REVISIONS = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "revisions.json"), "utf8"),
-);
+const REVISIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "revisions.json"), "utf8"));
 
 // Mapping from revisions.json language names to scanner detection names
 // The scanner uses language names from its detection module
@@ -59,9 +57,7 @@ for (const entry of REVISIONS.repos) {
 
   // Compare: detected primary language should match expected
   const aliases = LANGUAGE_ALIASES[expectedName] || [expectedName];
-  const isCorrect = aliases.some(
-    (a) => a.toLowerCase() === detectedName.toLowerCase(),
-  );
+  const isCorrect = aliases.some((a) => a.toLowerCase() === detectedName.toLowerCase());
 
   totalRepos++;
   if (isCorrect) {
@@ -83,8 +79,7 @@ for (const entry of REVISIONS.repos) {
   );
 }
 
-const accuracy =
-  totalRepos > 0 ? ((correct / totalRepos) * 100).toFixed(1) : "0.0";
+const accuracy = totalRepos > 0 ? ((correct / totalRepos) * 100).toFixed(1) : "0.0";
 
 console.log("\n=== SUMMARY ===");
 console.log(`Repos validated: ${totalRepos}`);
@@ -103,17 +98,9 @@ if (mismatches.length > 0) {
 }
 
 console.log("\nMethodology:");
-console.log(
-  "  - Expected language is from revisions.json (human-labelled primary language)",
-);
-console.log(
-  "  - Detected language is from the scanner's detection.languages[].primary field",
-);
-console.log(
-  "  - Language profile is from the scanner's languageProfile field (auto-selected)",
-);
-console.log(
-  "  - Accuracy = correct / total repos (case-insensitive language name match)",
-);
+console.log("  - Expected language is from revisions.json (human-labelled primary language)");
+console.log("  - Detected language is from the scanner's detection.languages[].primary field");
+console.log("  - Language profile is from the scanner's languageProfile field (auto-selected)");
+console.log("  - Accuracy = correct / total repos (case-insensitive language name match)");
 
 process.exit(parseFloat(accuracy) >= 95 ? 0 : 1);

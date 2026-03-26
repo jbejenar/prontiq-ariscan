@@ -20,9 +20,7 @@ const fs = require("fs");
 const path = require("path");
 
 const RESULTS_DIR = path.join(__dirname, "results");
-const REVISIONS = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "revisions.json"), "utf8"),
-);
+const REVISIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "revisions.json"), "utf8"));
 
 // P3 finding codes and what they detect (from test-isolation.ts)
 const FINDING_DESCRIPTIONS = {
@@ -68,9 +66,7 @@ for (const entry of REVISIONS.repos) {
   }
 
   const scanResult = JSON.parse(fs.readFileSync(resultFile, "utf8"));
-  const p3Findings = (scanResult.findings || []).filter(
-    (f) => f.pillar === "P3",
-  );
+  const p3Findings = (scanResult.findings || []).filter((f) => f.pillar === "P3");
 
   for (const finding of p3Findings) {
     totalFindings++;
@@ -98,8 +94,7 @@ for (const entry of REVISIONS.repos) {
 
     // For this validation, we trust the scanner's file classification and
     // pattern matching, and only flag if the message is clearly incoherent.
-    const isPlausible =
-      msg.length > 0 && finding.severity && finding.code.startsWith("ARI-TST-");
+    const isPlausible = msg.length > 0 && finding.severity && finding.code.startsWith("ARI-TST-");
 
     if (isPlausible) {
       truePositives++;
@@ -120,8 +115,7 @@ for (const entry of REVISIONS.repos) {
   }
 }
 
-const fpRate =
-  totalFindings > 0 ? ((falsePositives / totalFindings) * 100).toFixed(1) : "0.0";
+const fpRate = totalFindings > 0 ? ((falsePositives / totalFindings) * 100).toFixed(1) : "0.0";
 
 console.log("\n=== SUMMARY ===");
 console.log(`Repos analyzed: ${REVISIONS.repos.length}`);
@@ -147,24 +141,12 @@ if (fpDetails.length > 0) {
 }
 
 console.log("\nMethodology:");
-console.log(
-  "  - Findings are classified as true positive if they have a valid ARI-TST-* code,",
-);
+console.log("  - Findings are classified as true positive if they have a valid ARI-TST-* code,");
 console.log("    non-empty message, and severity. This is conservative: only clearly");
-console.log(
-  "    malformed findings are flagged as false positives.",
-);
-console.log(
-  "  - Structural findings (no test config, low test ratio, provider pattern) are",
-);
-console.log(
-  "    counted as true positives since they reflect aggregate repo characteristics.",
-);
-console.log(
-  "  - The scanner restricts P3 analysis to files matching test patterns, so false",
-);
-console.log(
-  "    positives from file misclassification are unlikely.",
-);
+console.log("    malformed findings are flagged as false positives.");
+console.log("  - Structural findings (no test config, low test ratio, provider pattern) are");
+console.log("    counted as true positives since they reflect aggregate repo characteristics.");
+console.log("  - The scanner restricts P3 analysis to files matching test patterns, so false");
+console.log("    positives from file misclassification are unlikely.");
 
 process.exit(parseFloat(fpRate) < 10 ? 0 : 1);

@@ -22,9 +22,7 @@ const path = require("path");
 const { execSync } = require("child_process");
 
 const RESULTS_DIR = path.join(__dirname, "results");
-const REVISIONS = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "revisions.json"), "utf8"),
-);
+const REVISIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "revisions.json"), "utf8"));
 
 // Context file patterns the scanner probes for (from packages/engine/src/scan.ts)
 const ROOT_CONTEXT_FILES = [
@@ -42,9 +40,7 @@ const ROOT_CONTEXT_FILES = [
 ];
 
 const useLocal = process.argv.includes("--local");
-const localDir = useLocal
-  ? process.argv[process.argv.indexOf("--local") + 1]
-  : null;
+const localDir = useLocal ? process.argv[process.argv.indexOf("--local") + 1] : null;
 
 /**
  * Check if a file exists in a GitHub repo at a specific ref using the API.
@@ -52,10 +48,11 @@ const localDir = useLocal
  */
 function ghFileExists(repo, ref, filePath) {
   try {
-    execSync(
-      `gh api "repos/${repo}/contents/${filePath}?ref=${ref}" --jq .name`,
-      { encoding: "utf8", timeout: 15000, stdio: ["pipe", "pipe", "pipe"] },
-    );
+    execSync(`gh api "repos/${repo}/contents/${filePath}?ref=${ref}" --jq .name`, {
+      encoding: "utf8",
+      timeout: 15000,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
     return true;
   } catch {
     return false;
@@ -74,9 +71,7 @@ function ghListNestedContextFiles(repo, ref) {
     );
     const files = output.trim().split("\n").filter(Boolean);
     return files.filter(
-      (f) =>
-        (/\/AGENTS\.md$/.test(f) && f !== "AGENTS.md") ||
-        f.startsWith(".claude/commands/"),
+      (f) => (/\/AGENTS\.md$/.test(f) && f !== "AGENTS.md") || f.startsWith(".claude/commands/"),
     );
   } catch {
     return [];
@@ -127,9 +122,7 @@ async function main() {
     }
 
     const scanResult = JSON.parse(fs.readFileSync(resultFile, "utf8"));
-    const discoveredPaths = new Set(
-      (scanResult.contextFiles || []).map((cf) => cf.path),
-    );
+    const discoveredPaths = new Set((scanResult.contextFiles || []).map((cf) => cf.path));
 
     let groundTruth;
 
@@ -193,18 +186,12 @@ async function main() {
   }
 
   console.log("\nMethodology:");
-  console.log(
-    `  - Mode: ${useLocal ? "local filesystem" : "GitHub API"}`,
-  );
+  console.log(`  - Mode: ${useLocal ? "local filesystem" : "GitHub API"}`);
   console.log(
     "  - Ground truth: checked 11 root-level context file paths + nested AGENTS.md + .claude/commands/*",
   );
-  console.log(
-    "  - Compared against scanner's contextFiles array in benchmark results",
-  );
-  console.log(
-    "  - False negative = file exists in repo but not in scan result",
-  );
+  console.log("  - Compared against scanner's contextFiles array in benchmark results");
+  console.log("  - False negative = file exists in repo but not in scan result");
 
   process.exit(falseNegatives === 0 ? 0 : 1);
 }
