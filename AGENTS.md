@@ -14,9 +14,10 @@ packages/
   engine/     — 8 pillar analyzers, scoring pipeline, RepoContext abstraction
   cli/        — CLI entry point using citty, output formatting, policy execution
   mcp/        — MCP server exposing read-only ARI readiness data (@prontiq/ariscan-mcp)
+  vscode/     — VS Code extension for inline ARI diagnostics (@prontiq/ariscan-vscode)
 ```
 
-Dependencies flow one-way: `cli -> engine -> schema`, `mcp -> engine -> schema`. No circular imports.
+Dependencies flow one-way: `cli -> engine -> schema`, `mcp -> engine -> schema`. The `vscode` package is standalone (reads JSON reports, no internal dependencies).
 
 ### Key Abstractions
 
@@ -166,6 +167,15 @@ packages/mcp/src/
     context-files.ts     — readiness/context-files resource extractor
     budget.ts            — readiness/budget resource extractor
     index.ts             — barrel export
+
+packages/vscode/src/
+  extension.ts           — VS Code extension entry point (activate/deactivate)
+  types.ts               — Minimal ARI type definitions (no schema dependency)
+  report-loader.ts       — JSON report parsing and per-file finding lookup
+  diagnostics.ts         — Finding → VS Code diagnostic mapping
+  codelens.ts            — CodeLens provider for per-file ARI summaries
+  status-bar.ts          — Status bar item with composite score display
+  commands.ts            — Command palette: Run Scan, Import Report, Pillar Summary
 ```
 
 ## Common Tasks
