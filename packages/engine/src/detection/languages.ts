@@ -258,6 +258,9 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
     if (rawTotal > 0) {
       const testRatio = test / rawTotal;
       if (testRatio > DOMINANCE_THRESHOLD) {
+        // Defensive clamp: with the current linear formula the minimum penalty
+        // is 0.7x (at testRatio = 1.0), so the 0.5 floor is not reachable today.
+        // Kept as a safety net in case the formula is later adjusted.
         const penalty = Math.max(0.5, 1 - (testRatio - DOMINANCE_THRESHOLD));
         confidence *= penalty;
       }
