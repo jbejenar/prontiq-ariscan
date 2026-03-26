@@ -141,7 +141,7 @@
       "name": "svelte",
       "repo": "sveltejs/svelte",
       "ref": "669f6b45a3d02aa55b4011576b8d4ded2b5b7135",
-      "language": "TypeScript",
+      "language": "JavaScript",
       "description": "Cybernetically enhanced web apps"
     },
     {

@@ -229,6 +229,48 @@ describe("detectLanguages", () => {
     expect(primary?.language).toBe("Rust");
   });
 
+  it("applies build-system authority floor for Rust with Cargo.toml even when JS dominates", async () => {
+    // Rust project where JS files outnumber Rust files 4:1 in non-test dirs
+    const ctx = createMockContext({
+      "Cargo.toml": '[package]\nname = "compiler"',
+      "src/main.rs": "fn main() {}",
+      "src/lib.rs": "pub fn foo() {}",
+      "packages/core/index.js": "",
+      "packages/core/utils.js": "",
+      "packages/core/cli.js": "",
+      "packages/core/format.js": "",
+      "packages/plugin/index.js": "",
+      "packages/plugin/run.js": "",
+      "packages/plugin/load.js": "",
+      "packages/plugin/validate.js": "",
+    });
+
+    const result = await detectLanguages(ctx);
+    const rust = result.find((l) => l.language === "Rust");
+    expect(rust).toBeDefined();
+    expect(rust?.confidence).toBeGreaterThanOrEqual(0.85);
+    expect(rust?.primary).toBe(true);
+  });
+
+  it("does not apply build-system authority to scripting languages", async () => {
+    // tsconfig.json should not get the authority floor
+    const ctx = createMockContext({
+      "tsconfig.json": "{}",
+      "src/index.ts": "",
+      "src/main.py": "",
+      "src/utils.py": "",
+      "src/app.py": "",
+      "src/server.py": "",
+      "pyproject.toml": '[project]\nname="app"',
+    });
+
+    const result = await detectLanguages(ctx);
+    const primary = result.find((l) => l.primary);
+    expect(primary).toBeDefined();
+    // Python should win by file count since TS doesn't get authority floor
+    expect(primary?.language).toBe("Python");
+  });
+
   it("detects language from marker only when no source files exist", async () => {
     const ctx = createMockContext({
       "tsconfig.json": "{}",

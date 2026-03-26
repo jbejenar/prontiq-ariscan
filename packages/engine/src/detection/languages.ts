@@ -108,6 +108,23 @@ const TEST_PATH_WEIGHT = 0.5;
  */
 const DOMINANCE_THRESHOLD = 0.7;
 
+/**
+ * Build-system authority: compiled-language build manifests at the project root
+ * are authoritative signals of the implementation language. Repos like deno
+ * (Rust runtime with TS stdlib) or swc (Rust compiler with JS test fixtures)
+ * have more scripting-language files than compiled-language files, but the build
+ * manifest definitively identifies the core language.
+ *
+ * When such a manifest exists AND the language has been detected (confidence > 0),
+ * we apply a confidence floor so file-count ratios cannot override the manifest signal.
+ */
+const BUILD_SYSTEM_AUTHORITY: Record<string, number> = {
+  Rust: 0.85,
+  Go: 0.85,
+  Java: 0.85,
+  "C#": 0.85,
+};
+
 function isTestPath(filePath: string): boolean {
   const segments = filePath.split("/");
   // Check all directory segments (not the filename)
@@ -196,6 +213,7 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
 
   // Check markers and compute confidence
   const results: DetectedLanguage[] = [];
+  const markerFoundFor = new Set<string>();
   let maxCount = 0;
 
   for (const spec of LANGUAGE_SPECS) {
@@ -219,6 +237,7 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
         }
       }
       if (hasMarker) {
+        markerFoundFor.add(spec.name);
         results.push({
           language: spec.name,
           confidence: Math.min(1, spec.markerBoost),
@@ -238,12 +257,14 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
       if (!marker.includes("*")) {
         if (await context.fileExists(marker)) {
           confidence = Math.min(1, confidence + spec.markerBoost);
+          markerFoundFor.add(spec.name);
           break;
         }
       } else {
         const pattern = marker.replaceAll("*", "");
         if (files.some((f) => f.endsWith(pattern))) {
           confidence = Math.min(1, confidence + spec.markerBoost);
+          markerFoundFor.add(spec.name);
           break;
         }
       }
@@ -274,6 +295,21 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
       confidence,
       primary: false, // Will be set below
     });
+  }
+
+  // Build-system authority: for compiled languages with root-level build
+  // manifests, apply a confidence floor. This ensures that projects like
+  // deno (Rust + TS stdlib) or swc (Rust + JS test fixtures) are correctly
+  // identified by their build system rather than file-count ratios.
+  for (const result of results) {
+    const authorityFloor = BUILD_SYSTEM_AUTHORITY[result.language];
+    if (authorityFloor === undefined) continue;
+    if (!markerFoundFor.has(result.language)) continue;
+    if (result.confidence <= 0) continue;
+
+    if (result.confidence < authorityFloor) {
+      result.confidence = authorityFloor;
+    }
   }
 
   // Sort by confidence descending, then mark primary
