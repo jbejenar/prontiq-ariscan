@@ -7,147 +7,147 @@
     {
       "name": "react",
       "repo": "facebook/react",
-      "ref": "main",
+      "ref": "3cb2c42013eda273ac449126ab9fcc115a09d39d",
       "language": "JavaScript",
       "description": "React UI library"
     },
     {
       "name": "next.js",
       "repo": "vercel/next.js",
-      "ref": "canary",
+      "ref": "56993a6c3b2dbb090312628097bcb180a60a993a",
       "language": "TypeScript",
       "description": "React framework for production"
     },
     {
       "name": "vue",
       "repo": "vuejs/core",
-      "ref": "main",
+      "ref": "81615d398a89beeccfe56a4a96fd2fba0c6fb37b",
       "language": "TypeScript",
       "description": "Progressive JavaScript framework"
     },
     {
       "name": "nuxt",
       "repo": "nuxt/nuxt",
-      "ref": "main",
+      "ref": "79d08580b5df81c55d81b7f2904d293081326bea",
       "language": "TypeScript",
       "description": "Vue framework"
     },
     {
       "name": "express",
       "repo": "expressjs/express",
-      "ref": "main",
+      "ref": "6c4249feec8ab40631817c8e7001baf2ed022224",
       "language": "JavaScript",
       "description": "Fast web framework for Node.js"
     },
     {
       "name": "remix",
       "repo": "remix-run/remix",
-      "ref": "main",
+      "ref": "690199187712258736d082a73bbde0f5b03247ea",
       "language": "TypeScript",
       "description": "Full-stack React framework"
     },
     {
       "name": "astro",
       "repo": "withastro/astro",
-      "ref": "main",
+      "ref": "87fd6a4fcb075efa10a518aa8b92a11dd3284964",
       "language": "TypeScript",
       "description": "Web framework for content-driven websites"
     },
     {
       "name": "fastapi",
       "repo": "fastapi/fastapi",
-      "ref": "master",
+      "ref": "937d3075f9456dfcdfe2e1f6bc3b8b7b9a6c6cad",
       "language": "Python",
       "description": "Modern Python web framework"
     },
     {
       "name": "django",
       "repo": "django/django",
-      "ref": "main",
+      "ref": "f6167b8bc881babd19b67c004e8f37954afc192e",
       "language": "Python",
       "description": "Python web framework"
     },
     {
       "name": "flask",
       "repo": "pallets/flask",
-      "ref": "main",
+      "ref": "7ef2946fb5151b745df30201b8c27790cac53875",
       "language": "Python",
       "description": "Lightweight Python web framework"
     },
     {
       "name": "pydantic",
       "repo": "pydantic/pydantic",
-      "ref": "main",
+      "ref": "1a37a3d479dea9b21c7379e882bf5ec56fb94fc2",
       "language": "Python",
       "description": "Data validation using Python type hints"
     },
     {
       "name": "langchain",
       "repo": "langchain-ai/langchain",
-      "ref": "master",
+      "ref": "90d015c841e76396b077b04aaeaa57bc388b2118",
       "language": "Python",
       "description": "LLM application framework"
     },
     {
       "name": "hugo",
       "repo": "gohugoio/hugo",
-      "ref": "master",
+      "ref": "0c013c2326be1bbebba9a9f89d27072074fc6cc4",
       "language": "Go",
       "description": "Static site generator"
     },
     {
       "name": "terraform",
       "repo": "hashicorp/terraform",
-      "ref": "main",
+      "ref": "6bb021838800f5fce838708cf3ff0a0e8184c96f",
       "language": "Go",
       "description": "Infrastructure as code"
     },
     {
       "name": "gin",
       "repo": "gin-gonic/gin",
-      "ref": "master",
+      "ref": "d3ffc9985281dcf4d3bef604cce4e662b1a327a6",
       "language": "Go",
       "description": "HTTP web framework for Go"
     },
     {
       "name": "ripgrep",
       "repo": "BurntSushi/ripgrep",
-      "ref": "master",
+      "ref": "4519153e5e461527f4bca45b042fff45c4ec6fb9",
       "language": "Rust",
       "description": "Fast line-oriented search tool"
     },
     {
       "name": "tokio",
       "repo": "tokio-rs/tokio",
-      "ref": "master",
+      "ref": "467d614267ce422206d8acbccf957eb49a597467",
       "language": "Rust",
       "description": "Async runtime for Rust"
     },
     {
       "name": "spring-boot",
       "repo": "spring-projects/spring-boot",
-      "ref": "main",
+      "ref": "5b6d346c602bc76f0fc982a9a75077d7a4806fba",
       "language": "Java",
       "description": "Java application framework"
     },
     {
       "name": "vscode",
       "repo": "microsoft/vscode",
-      "ref": "main",
+      "ref": "2ce238e7e5e1892eb28e177e839c4cd5a3041ede",
       "language": "TypeScript",
       "description": "Code editor"
     },
     {
       "name": "svelte",
       "repo": "sveltejs/svelte",
-      "ref": "main",
+      "ref": "669f6b45a3d02aa55b4011576b8d4ded2b5b7135",
       "language": "TypeScript",
       "description": "Cybernetically enhanced web apps"
     },
     {
       "name": "deno",
       "repo": "denoland/deno",
-      "ref": "main",
+      "ref": "8f1c7719f6ff0b308144f51c2a37ea788a7c6c61",
       "language": "Rust",
       "description": "JavaScript/TypeScript runtime"
     }

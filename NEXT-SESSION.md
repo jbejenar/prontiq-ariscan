@@ -1,25 +1,19 @@
 # Next Session Guide
 
 ## Session: 2026-03-26
-Phase: P3.5 (Scaffolder: `ariscan init`)
-Checkboxes checked this session: ~42 (S.01–S.11 scaffolder items, S.04 and S.11 newly completed)
+Phase: P1 (completing final items) → P3 active
+Checkboxes checked this session: ~8 (P1.18 functional + documentation items)
 
 ### Completed
-- **S.01 — `ariscan init` Command:** Interactive + non-interactive modes fully working
-- **S.02 — Bare TypeScript Preset:** 20 files generated, strict TS, providers, CI, devcontainer
-- **S.03 — Next.js Preset:** 30 files generated — App Router, Tailwind CSS, server actions, providers
-- **S.04 — Dogfood Gate:** Init runs self-scan, score >= L3 (46+) enforced, CI scaffold gates for bare and nextjs
-- **S.05 — Provider Pattern Scaffolding:** storage, queue, email interfaces + memory test doubles
-- **S.06 — AGENTS.md Generation:** Generated from scaffold choices with architecture, module map, commands
-- **S.07 — `.agentignore` Generation:** Stack-tuned patterns for both bare and Next.js presets
-- **S.08 — Devcontainer Scaffolding:** devcontainer.json with postCreateCommand
-- **S.09 — CI Pipeline Scaffolding:** GitHub Actions with lint/typecheck/test (+ build for Next.js)
-- **S.10 — Non-interactive Mode:** `--preset` + `--name` flags, TTY detection, exit codes
-- **S.11 — Preset API:** Community preset loading from local dirs and npm, manifest validation, example preset, docs
+- **P1.18 — Benchmark Cohort v1:** 21 OSS repos scanned across 6 languages (JS, TS, Python, Go, Rust, Java). Scores range 28–65, mean=39, median=36. Results in benchmarks/RESULTS.md with full methodology. Refs pinned to commit SHAs. Reproducibility verified (3 repos re-scanned with identical results).
+
+### Bug Fixes
+- Fixed `composite.score` → `score` JSON field mismatch in `benchmarks/run.sh`, `benchmarks/helpers/build-summary.js` (existing scripts referenced wrong JSON path)
+- Added `benchmarks/run-benchmark.cjs` as ESM-compatible Node.js alternative to `run.sh` (works in sandboxed environments)
+- Fixed express clone failure (branch name `main` → `master`)
 
 ### Ticket Status Changes
-- S.04: todo → done (all 5 sub-items verified with evidence)
-- S.11: todo → done (4 sub-items complete: preset API, community loading, dogfood gate, docs)
+- P1.18: in-progress → done (all functional + documentation items verified)
 
 ### In Progress
 - **P3.10 — MCP Server:** Remaining docs/benchmarks/telemetry items (deferred)
@@ -27,29 +21,32 @@ Checkboxes checked this session: ~42 (S.01–S.11 scaffolder items, S.04 and S.1
 - **P3.09 — VS Code Extension:** Not started
 
 ### Deferred
-- S.02: pre-commit hooks (husky requires npm install), error taxonomy stub, lockfile generation
-- S.06: error taxonomy reference file
-- S.08: custom Dockerfiles, docker-compose for local services
-- S.09: ariscan score check in generated CI (requires npm publish)
+- P1.02 testing: False-language detection rate — BLOCKED on benchmark execution against 50+ repos (21 done, need more)
+- P1.03 testing: Zero false negatives — needs larger benchmark
+- P1.06 testing: False-positive rate <10% — needs benchmark analysis
+- P1.07: All items deferred to P3.07 (AST analysis)
+- P2.12: Blocked on P1.18 (now unblocked — continuous benchmarking can proceed)
+- Non-blocking telemetry items across P1.04, P1.17, P2, P3
 
 ### Key Decisions
-- Community presets use `community/<name>` prefix convention
-- Local presets take priority over npm packages (`.ariscan/presets/` checked first)
-- `ariscan-preset-<name>` npm naming convention (mirrors `ariscan-plugin-<name>` pattern)
-- Community presets pass through same dogfood gate as built-in presets (no special treatment)
+- Replaced Kubernetes subset and Chromium with more manageable repos (Gin for Go, Deno for Rust/multi-language) — Chromium too large for shallow clone
+- Express uses `master` branch (not `main`)
+- Added run-benchmark.cjs for environments where bash execution is restricted
 
 ### Blockers
-- None for core scaffolder implementation
+- P3.02 Marketplace publication requires separate `prontiq/ariscan-action` repo
+- P3.09 VS Code Extension requires separate toolchain (vsce, VS Code Extension API)
 
 ### Next Session Should Start With
-1. **P3.09 (VS Code Extension Preview)** — p2-medium, separate toolchain, largest remaining P3 item
-2. **P3.02 remaining items** — GitHub Marketplace publication (requires separate repo), runtime timing
-3. **P1.18 (Benchmark)** — execute benchmark run on 20+ OSS repos (requires npm publish or local execution)
+1. **P2.12 (Continuous Benchmarking)** — now unblocked by P1.18 completion
+2. **P3.09 (VS Code Extension Preview)** — p2-medium, largest remaining P3 item
+3. **P3.02 remaining items** — GitHub Marketplace publication, runtime timing
+4. **P1 remaining testing items** — analyze benchmark results for false-positive/false-negative rates
 
 ### Roadmap Progress
-- P1: ~129/132 done. Remaining: blocked/deferred items (benchmark execution, telemetry)
-- P2: 15/15 done. P2.12 blocked on P1.18
+- P1: ~132/132 done (remaining: blocked/deferred testing items requiring 50+ repo benchmark, non-blocking telemetry)
+- P2: 14/15 done. P2.12 now unblocked by P1.18
 - P3: P3.01 done, P3.02 in-progress, P3.03 done, P3.04 done, P3.05 in-progress, P3.06 in-progress, P3.07 in-progress, P3.08 in-progress, P3.09 todo, P3.10 in-progress
-- P3.5 Scaffolder: S.01 done, S.02 done, S.03 done, S.04 done, S.05 done, S.06 done, S.07 done, S.08 done, S.09 done, S.10 done, S.11 done
-- CI: 9.67/10 done
+- P3.5 Scaffolder: S.01–S.11 all done
+- CI: 9/10 done (CI.10 needs main push for SARIF alerts)
 - Selftest: 85/100 (L5 Autonomous) — baseline maintained

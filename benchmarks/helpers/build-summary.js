@@ -40,8 +40,8 @@ for (const repo of revisions.repos) {
   if (fs.existsSync(resultFile) && !meta.error) {
     try {
       const scan = JSON.parse(fs.readFileSync(resultFile, "utf8"));
-      entry.score = scan.composite.score;
-      entry.level = scan.composite.level;
+      entry.score = scan.score;
+      entry.level = scan.level;
     } catch {
       entry.score = null;
       entry.level = null;
