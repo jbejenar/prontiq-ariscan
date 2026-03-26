@@ -13,9 +13,10 @@ packages/
   schema/     — Zod schemas, pillar types, score contracts (@prontiq/ariscan-schema)
   engine/     — 8 pillar analyzers, scoring pipeline, RepoContext abstraction
   cli/        — CLI entry point using citty, output formatting, policy execution
+  mcp/        — MCP server exposing read-only ARI readiness data (@prontiq/ariscan-mcp)
 ```
 
-Dependencies flow one-way: `cli -> engine -> schema`. No circular imports.
+Dependencies flow one-way: `cli -> engine -> schema`, `mcp -> engine -> schema`. No circular imports.
 
 ### Key Abstractions
 
@@ -153,6 +154,18 @@ packages/cli/src/
     markdown.ts          — Markdown report formatter
     sarif.ts             — SARIF output formatter (GitHub Code Scanning)
     badge.ts             — SVG badge generator
+
+packages/mcp/src/
+  server.ts              — MCP server setup, resource registration, scan caching
+  cli.ts                 — CLI entry point (ariscan-mcp)
+  index.ts               — public API
+  resources/
+    score.ts             — readiness/score resource extractor
+    pillars.ts           — readiness/pillars resource extractor
+    recommendations.ts   — readiness/recommendations resource extractor
+    context-files.ts     — readiness/context-files resource extractor
+    budget.ts            — readiness/budget resource extractor
+    index.ts             — barrel export
 ```
 
 ## Common Tasks

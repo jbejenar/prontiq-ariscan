@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "ariscan": {
+      "command": "npx",
+      "args": ["@prontiq/ariscan-mcp"],
+      "env": {}
+    }
+  }
+}
