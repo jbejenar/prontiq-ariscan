@@ -1,3 +1,10 @@
+<!-- UPDATE-STATS: When test count, version, finding count, or self-scan score changes,
+     update these locations in sync:
+     1. shields.io badge URLs (below)
+     2. "By the Numbers" HTML table
+     3. docs/assets/banner-dark.svg  (feature pills + version pill + score bar)
+     4. docs/assets/banner-light.svg (feature pills + version pill + score bar)
+-->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/banner-light.svg">
