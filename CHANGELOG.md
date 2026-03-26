@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.27.0] — 2026-03-26
+
+### Added
+- **VS Code Extension Preview (P3.09):** New `packages/vscode/` package implementing inline ARI diagnostics for VS Code. Features: CodeLens showing per-file finding summaries, VS Code diagnostics (Error/Warning/Info/Hint) mapped from ARI severity, status bar with composite score and level, "Run Scan" and "Import Report" commands, pillar summary webview panel. Reads local `ariscan.json` reports — no network calls. File watcher auto-reloads on report changes. 21 unit tests. Bundled with esbuild.
+
+### Changed
+- **Roadmap (P3.06):** Auto-selection accuracy checkbox completed. 51/53 repos correct (96.2%, PASS) — build-system authority heuristic raised accuracy above 95% target.
+- **Roadmap (P3.09):** Ticket status `todo` → `done`. All functional items complete (CodeLens, diagnostics, status bar, commands, local report import, activation events, performance).
+- **AGENTS.md:** Added `packages/vscode/` to architecture and file structure sections.
+
 ## [3.26.0] — 2026-03-26
 
 ### Added

@@ -1,0 +1,67 @@
+{
+  "name": "@prontiq/ariscan-vscode",
+  "displayName": "Prontiq ARI Scanner",
+  "description": "Agent Readiness Index (ARI) scoring inline in VS Code — diagnostics, CodeLens, and status bar from local scan reports",
+  "version": "0.1.0",
+  "publisher": "prontiq",
+  "license": "Elastic-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbejenar/prontiq-ariscan.git",
+    "directory": "packages/vscode"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/.ariscan.yml",
+    "workspaceContains:**/ariscan.yml"
+  ],
+  "main": "./dist/extension.js",
+  "type": "module",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ariscan.runScan",
+        "title": "ARI: Run Scan"
+      },
+      {
+        "command": "ariscan.importReport",
+        "title": "ARI: Import Report"
+      },
+      {
+        "command": "ariscan.showPillarSummary",
+        "title": "ARI: Show Pillar Summary"
+      }
+    ],
+    "configuration": {
+      "title": "Prontiq ARI Scanner",
+      "properties": {
+        "ariscan.reportPath": {
+          "type": "string",
+          "default": "ariscan.json",
+          "description": "Path to the ARI scan report file (relative to workspace root)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "test": "vitest run",
+    "lint": "eslint src/ --ignore-pattern '**/__tests__/**'",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.0"
+  }
+}
