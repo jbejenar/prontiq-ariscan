@@ -21,6 +21,7 @@ import { auditCommand } from "./commands/audit.js";
 import { diffCommand } from "./commands/diff.js";
 import { checkCommand } from "./commands/check.js";
 import { simulateCommand } from "./commands/simulate.js";
+import { initCommand } from "./commands/init.js";
 import { formatTerminal } from "./output/terminal.js";
 import {
   formatJson,
@@ -137,6 +138,12 @@ export async function dispatchCommand(args: Record<string, unknown>): Promise<vo
     return;
   }
 
+  if (isBareWord && rawFirstArg === "init") {
+    const { runCommand } = await import("citty");
+    await runCommand(initCommand, { rawArgs: process.argv.slice(3) });
+    return;
+  }
+
   const repoPath = await resolveRepoPath(args.path as string);
   if (await handleRepoCommands(repoPath, args)) return;
 
@@ -162,6 +169,8 @@ Examples:
   npx @prontiq/ariscan-cli . --fix              # Generate missing config files
   npx @prontiq/ariscan-cli . --fix --dry-run   # Preview changes without writing
   npx @prontiq/ariscan-cli . --fix --force     # Overwrite existing files
+  npx @prontiq/ariscan-cli init                  # Scaffold a new agent-ready project
+  npx @prontiq/ariscan-cli init --preset bare --name my-app  # Non-interactive
   npx @prontiq/ariscan-cli policy init          # Generate starter policy
   npx @prontiq/ariscan-cli policy validate      # Validate policy file
 
