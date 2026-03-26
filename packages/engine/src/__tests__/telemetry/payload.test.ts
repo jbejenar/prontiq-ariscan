@@ -287,6 +287,138 @@ describe("buildTelemetryPayload", () => {
     expect(payload.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(payload.timestamp).not.toContain("T");
   });
+
+  // --- Round 3 telemetry fields ---
+
+  it("includes action_used when provided", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100, { actionUsed: true });
+    expect(payload.action_used).toBe(true);
+  });
+
+  it("omits action_used when not provided", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.action_used).toBeUndefined();
+  });
+
+  it("includes simulation fields when simulation data provided", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100, {
+      simulation: { stepCount: 4, passRate: 75, predictionAccuracy: 80 },
+    });
+    expect(payload.simulation_ran).toBe(true);
+    expect(payload.simulation_step_count).toBe(4);
+    expect(payload.simulation_pass_rate_bucket).toBe("61-80");
+    expect(payload.simulation_prediction_accuracy_bucket).toBe("61-80");
+  });
+
+  it("omits simulation fields when no simulation data", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.simulation_ran).toBeUndefined();
+    expect(payload.simulation_step_count).toBeUndefined();
+    expect(payload.simulation_pass_rate_bucket).toBeUndefined();
+    expect(payload.simulation_prediction_accuracy_bucket).toBeUndefined();
+  });
+
+  it("detects circular dependencies from ARI-NAV-010 findings", () => {
+    const result = makeScanResult({
+      pillars: [
+        {
+          pillar: "P7",
+          name: "Code Navigability",
+          score: 60,
+          weight: 0.12,
+          confidence: "high",
+          findings: [],
+          summary: "OK",
+        },
+      ],
+      findings: [
+        {
+          code: "ARI-NAV-010",
+          severity: "medium",
+          pillar: "P7",
+          message: "Circular dependency: a → b → a",
+        },
+      ],
+    });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.circular_dependency_detected).toBe(true);
+  });
+
+  it("sets circular_dependency_detected to false when no ARI-NAV-010", () => {
+    const result = makeScanResult({
+      pillars: [
+        {
+          pillar: "P7",
+          name: "Code Navigability",
+          score: 80,
+          weight: 0.12,
+          confidence: "high",
+          findings: [],
+          summary: "OK",
+        },
+      ],
+    });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.circular_dependency_detected).toBe(false);
+  });
+
+  it("omits circular_dependency_detected when no P7 pillar", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.circular_dependency_detected).toBeUndefined();
+  });
+
+  it("includes module_cohesion_bucket from P7 score", () => {
+    const result = makeScanResult({
+      pillars: [
+        {
+          pillar: "P7",
+          name: "Code Navigability",
+          score: 72,
+          weight: 0.12,
+          confidence: "high",
+          findings: [],
+          summary: "OK",
+        },
+      ],
+    });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.module_cohesion_bucket).toBe("61-80");
+  });
+
+  it("omits module_cohesion_bucket when no P7 pillar", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.module_cohesion_bucket).toBeUndefined();
+  });
+
+  it("includes plugin_count when provided", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100, { pluginCount: 3 });
+    expect(payload.plugin_count).toBe(3);
+  });
+
+  it("omits plugin_count when not provided", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.plugin_count).toBeUndefined();
+  });
+
+  it("includes mcp_resource_count when provided", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100, { mcpResourceCount: 5 });
+    expect(payload.mcp_resource_count).toBe(5);
+  });
+
+  it("omits mcp_resource_count when not provided", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.mcp_resource_count).toBeUndefined();
+  });
 });
 
 describe("scoreToBucket", () => {

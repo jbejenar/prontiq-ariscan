@@ -3,6 +3,15 @@ import { platform } from "node:os";
 import type { ScanResult, TelemetryPayload } from "@prontiq/ariscan-schema";
 import { scoreToBucket, fileCountToBucket } from "@prontiq/ariscan-schema";
 
+export interface SimulationTelemetry {
+  /** Number of simulation steps executed. */
+  stepCount: number;
+  /** Pass rate as percentage (0-100). */
+  passRate: number;
+  /** Prediction accuracy as percentage (0-100). */
+  predictionAccuracy: number;
+}
+
 export interface TelemetryOptions {
   /** Output format used (e.g. "terminal", "json"). */
   format?: string;
@@ -10,6 +19,14 @@ export interface TelemetryOptions {
   badgeGenerated?: boolean;
   /** Whether the user ran with --fix. */
   fixApplied?: boolean;
+  /** Whether the scan was triggered from a GitHub Action (P3.02). */
+  actionUsed?: boolean;
+  /** Simulation telemetry data (P3.05). */
+  simulation?: SimulationTelemetry;
+  /** Number of plugins loaded (P3.08). */
+  pluginCount?: number;
+  /** Number of MCP resources registered (P3.10). */
+  mcpResourceCount?: number;
 }
 
 /**
@@ -80,5 +97,34 @@ export function buildTelemetryPayload(
     // Round 2 fields
     devcontainer_detected: result.devcontainerDetected,
     high_risk_test_count: result.findings.filter((f) => f.code === "ARI-TST-015").length,
+
+    // Round 3 fields (P3 telemetry consolidation)
+    action_used: options?.actionUsed,
+    simulation_ran: options?.simulation != null ? true : undefined,
+    simulation_step_count: options?.simulation?.stepCount,
+    simulation_pass_rate_bucket: options?.simulation
+      ? scoreToBucket(options.simulation.passRate)
+      : undefined,
+    simulation_prediction_accuracy_bucket: options?.simulation
+      ? scoreToBucket(options.simulation.predictionAccuracy)
+      : undefined,
+    circular_dependency_detected: hasCircularDependencies(result),
+    module_cohesion_bucket: moduleCohesionBucket(result),
+    plugin_count: options?.pluginCount,
+    mcp_resource_count: options?.mcpResourceCount,
   };
+}
+
+/** Check if any circular dependency findings exist (ARI-NAV-010). */
+function hasCircularDependencies(result: ScanResult): boolean | undefined {
+  const p7 = result.pillars.find((p) => p.pillar === "P7");
+  if (!p7) return undefined;
+  return result.findings.some((f) => f.code === "ARI-NAV-010");
+}
+
+/** Bucket the P7 navigability score as a module cohesion proxy. */
+function moduleCohesionBucket(result: ScanResult): ReturnType<typeof scoreToBucket> | undefined {
+  const p7 = result.pillars.find((p) => p.pillar === "P7");
+  if (!p7) return undefined;
+  return scoreToBucket(p7.score);
 }
