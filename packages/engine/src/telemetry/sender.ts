@@ -1,14 +1,14 @@
 import type { TelemetryPayload } from "@prontiq/ariscan-schema";
 import { getTelemetryConsent } from "./consent.js";
 
-const DEFAULT_ENDPOINT = "https://telemetry.prontiq.dev/v1/ari";
-const TIMEOUT_MS = 2000;
+const DEFAULT_ENDPOINT = "https://telemetry.prontiq.dev/v1/scan";
+const TIMEOUT_MS = 800;
 
 /**
  * Fire-and-forget telemetry send.
  *
  * - No-op if consent is false.
- * - 2s timeout — never blocks or slows the scan.
+ * - <1s timeout — never blocks or slows the scan.
  * - All errors are silently swallowed.
  */
 export function sendTelemetry(payload: TelemetryPayload): void {

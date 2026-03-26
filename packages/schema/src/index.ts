@@ -55,6 +55,8 @@ export {
 export {
   ScoreBucket,
   scoreToBucket,
+  RepoSizeBucket,
+  fileCountToBucket,
   PillarScoreBucket,
   telemetryPayloadSchema,
 } from "./telemetry.js";

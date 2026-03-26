@@ -404,6 +404,7 @@ async function handleScanMode(
   const telemetryPayload = buildTelemetryPayload(result, result.metadata.duration, {
     format,
     badgeGenerated,
+    fixApplied: false,
   });
   sendTelemetry(telemetryPayload);
 

@@ -68,8 +68,16 @@ export async function handleTelemetryShow(): Promise<void> {
     findings: [],
     detection: {
       languages: [{ language: "typescript", confidence: 0.9, primary: true }],
-      frameworks: [],
+      frameworks: [{ framework: "react", confidence: 0.8 }],
       monorepo: null,
+    },
+    repoProfile: {
+      archetype: "web-app",
+      confidence: "high",
+      signals: ["package.json"],
+      fileCount: 120,
+      sourceFileCount: 80,
+      hasCI: true,
     },
   };
 
@@ -77,14 +85,18 @@ export async function handleTelemetryShow(): Promise<void> {
   process.stdout.write("Example payload (what would be sent):\n");
   process.stdout.write(JSON.stringify(examplePayload, null, 2) + "\n\n");
   process.stdout.write("Fields:\n");
-  process.stdout.write("  scan_id       — random UUID (not persisted, not linkable)\n");
-  process.stdout.write("  version       — CLI version\n");
-  process.stdout.write("  platform      — OS platform (darwin/linux/win32)\n");
-  process.stdout.write("  language      — primary detected language\n");
-  process.stdout.write("  score_bucket  — bucketed score range (never raw score)\n");
-  process.stdout.write("  duration_ms   — scan duration\n");
-  process.stdout.write("  pillar_count  — number of pillars analyzed\n");
-  process.stdout.write("  finding_count — total findings\n\n");
+  process.stdout.write("  scan_id         — random UUID (not persisted, not linkable)\n");
+  process.stdout.write("  version         — CLI version\n");
+  process.stdout.write("  platform        — OS platform (darwin/linux/win32)\n");
+  process.stdout.write("  language        — primary detected language\n");
+  process.stdout.write("  framework       — primary detected framework\n");
+  process.stdout.write("  repo_size_bucket— bucketed file count (small/medium/large/xlarge)\n");
+  process.stdout.write("  timestamp       — day-only date (no time, no timezone)\n");
+  process.stdout.write("  score_bucket    — bucketed score range (never raw score)\n");
+  process.stdout.write("  duration_ms     — scan duration\n");
+  process.stdout.write("  pillar_count    — number of pillars analyzed\n");
+  process.stdout.write("  finding_count   — total findings\n");
+  process.stdout.write("  fix_applied     — whether --fix was used\n\n");
   process.stdout.write("No PII, repo names, file paths, or raw scores are ever transmitted.\n");
   process.stdout.write("See TELEMETRY.md for full details.\n");
 }

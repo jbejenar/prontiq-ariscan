@@ -47,8 +47,16 @@ function makeScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
     ],
     detection: {
       languages: [{ language: "typescript", confidence: 0.9, primary: true }],
-      frameworks: [],
+      frameworks: [{ framework: "react", confidence: 0.8 }],
       monorepo: null,
+    },
+    repoProfile: {
+      archetype: "web-app",
+      confidence: "high",
+      signals: ["package.json"],
+      fileCount: 120,
+      sourceFileCount: 80,
+      hasCI: true,
     },
     ...overrides,
   };
@@ -65,7 +73,10 @@ describe("buildTelemetryPayload", () => {
     expect(payload.version).toBe("0.2.0");
     expect(payload.platform).toBeTruthy();
     expect(payload.language).toBe("typescript");
-    expect(payload.score_bucket).toBe("66-80");
+    expect(payload.framework).toBe("react");
+    expect(payload.repo_size_bucket).toBe("medium");
+    expect(payload.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(payload.score_bucket).toBe("61-80");
     expect(payload.duration_ms).toBe(1234);
     expect(payload.pillar_count).toBe(1);
     expect(payload.finding_count).toBe(2);
@@ -78,7 +89,7 @@ describe("buildTelemetryPayload", () => {
     expect(payload.pillar_scores).toHaveLength(1);
     expect(payload.pillar_scores?.[0]).toEqual({
       pillar_id: "P1",
-      score_bucket: "66-80",
+      score_bucket: "61-80",
     });
   });
 
@@ -86,17 +97,19 @@ describe("buildTelemetryPayload", () => {
     const result = makeScanResult();
     const payload = buildTelemetryPayload(result, 100);
     expect(payload.language_count).toBe(1);
-    expect(payload.framework_count).toBe(0);
+    expect(payload.framework_count).toBe(1);
   });
 
-  it("includes format and badge options when provided", () => {
+  it("includes format, badge, and fix options when provided", () => {
     const result = makeScanResult();
     const payload = buildTelemetryPayload(result, 100, {
       format: "json",
       badgeGenerated: true,
+      fixApplied: true,
     });
     expect(payload.format).toBe("json");
     expect(payload.badge_generated).toBe(true);
+    expect(payload.fix_applied).toBe(true);
   });
 
   it("omits optional fields when not provided", () => {
@@ -104,6 +117,7 @@ describe("buildTelemetryPayload", () => {
     const payload = buildTelemetryPayload(result, 100);
     expect(payload.format).toBeUndefined();
     expect(payload.badge_generated).toBeUndefined();
+    expect(payload.fix_applied).toBeUndefined();
   });
 
   it("generates unique scan_id per call", () => {
@@ -117,6 +131,18 @@ describe("buildTelemetryPayload", () => {
     const result = makeScanResult({ detection: undefined });
     const payload = buildTelemetryPayload(result, 100);
     expect(payload.language).toBe("unknown");
+  });
+
+  it("uses 'none' when no detection frameworks", () => {
+    const result = makeScanResult({
+      detection: {
+        languages: [{ language: "typescript", confidence: 0.9, primary: true }],
+        frameworks: [],
+        monorepo: null,
+      },
+    });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.framework).toBe("none");
   });
 
   it("rounds duration_ms", () => {
@@ -233,17 +259,45 @@ describe("buildTelemetryPayload", () => {
     const payload = buildTelemetryPayload(result, 100);
     expect(payload.high_risk_test_count).toBe(2);
   });
+
+  it("buckets repo size from repoProfile.fileCount", () => {
+    const result = makeScanResult({
+      repoProfile: {
+        archetype: "web-app",
+        confidence: "high",
+        signals: [],
+        fileCount: 10,
+        sourceFileCount: 5,
+        hasCI: false,
+      },
+    });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.repo_size_bucket).toBe("small");
+  });
+
+  it("defaults repo_size_bucket to small when repoProfile is absent", () => {
+    const result = makeScanResult({ repoProfile: undefined });
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.repo_size_bucket).toBe("small");
+  });
+
+  it("produces day-only timestamp without time or timezone", () => {
+    const result = makeScanResult();
+    const payload = buildTelemetryPayload(result, 100);
+    expect(payload.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(payload.timestamp).not.toContain("T");
+  });
 });
 
 describe("scoreToBucket", () => {
-  it("maps score 0 to 0-25", () => expect(scoreToBucket(0)).toBe("0-25"));
-  it("maps score 25 to 0-25", () => expect(scoreToBucket(25)).toBe("0-25"));
-  it("maps score 26 to 26-45", () => expect(scoreToBucket(26)).toBe("26-45"));
-  it("maps score 45 to 26-45", () => expect(scoreToBucket(45)).toBe("26-45"));
-  it("maps score 46 to 46-65", () => expect(scoreToBucket(46)).toBe("46-65"));
-  it("maps score 65 to 46-65", () => expect(scoreToBucket(65)).toBe("46-65"));
-  it("maps score 66 to 66-80", () => expect(scoreToBucket(66)).toBe("66-80"));
-  it("maps score 80 to 66-80", () => expect(scoreToBucket(80)).toBe("66-80"));
+  it("maps score 0 to 0-20", () => expect(scoreToBucket(0)).toBe("0-20"));
+  it("maps score 20 to 0-20", () => expect(scoreToBucket(20)).toBe("0-20"));
+  it("maps score 21 to 21-40", () => expect(scoreToBucket(21)).toBe("21-40"));
+  it("maps score 40 to 21-40", () => expect(scoreToBucket(40)).toBe("21-40"));
+  it("maps score 41 to 41-60", () => expect(scoreToBucket(41)).toBe("41-60"));
+  it("maps score 60 to 41-60", () => expect(scoreToBucket(60)).toBe("41-60"));
+  it("maps score 61 to 61-80", () => expect(scoreToBucket(61)).toBe("61-80"));
+  it("maps score 80 to 61-80", () => expect(scoreToBucket(80)).toBe("61-80"));
   it("maps score 81 to 81-100", () => expect(scoreToBucket(81)).toBe("81-100"));
   it("maps score 100 to 81-100", () => expect(scoreToBucket(100)).toBe("81-100"));
 });
