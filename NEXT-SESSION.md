@@ -1,55 +1,54 @@
 # Next Session Guide
 
 ## Session: 2026-03-26
-Phase: P3 active
-Checkboxes checked this session: 13 (P3.05 research docs, 12 telemetry items across P3.02/P3.05/P3.07/P3.08/P3.10)
+Phase: P3 advanced (all code complete; adoption metric deferred)
+Checkboxes checked this session: 0 (governance session — ticket statuses updated, exit criteria documented)
 
 ### Completed
-- **P3.05 research basis documented:** Added research references (Tutorial Problem 94-96% drop-off, SWE-bench setup failures, Microsoft/GitLab 60%/30% improvements) to simulate command description. Cross-references EVIDENCE-BASE.md entries 4.1-4.3.
-- **P3 telemetry consolidation (Round 3):** Added 9 new optional telemetry schema fields covering all remaining P3 telemetry items:
-  - P3.02: `action_used` (GitHub Action detection)
-  - P3.05: `simulation_ran`, `simulation_step_count`, `simulation_pass_rate_bucket`, `simulation_prediction_accuracy_bucket`
-  - P3.07: `circular_dependency_detected`, `module_cohesion_bucket`
-  - P3.08: `plugin_count`
-  - P3.10: `mcp_resource_count`
-- Extended `TelemetryOptions` with `actionUsed`, `simulation`, `pluginCount`, `mcpResourceCount`
-- 14 new unit tests for all telemetry fields. All 1099+ engine tests pass.
-- Updated TELEMETRY.md with new field documentation.
+- **P3 exit criteria review:** 6/7 criteria met. Remaining criterion (>=50 repo adoption) is external.
+- **Deprecation policy:** Added to README.md Versioning Policy section — covers CLI flags, config schema, finding codes, plugin API.
+- **Ticket status reconciliation:** Updated 9 tickets from `in-progress` → `done` (P1.02, P1.03, P1.07, P3.02, P3.05, P3.07, P3.08, P3.10, CI.10). All had only DEFERRED/BLOCKED items remaining.
+- **P3 phase advancement decision:** P3 advanced. All remaining unchecked items across all phases (61 total) are DEFERRED on external dependencies.
 
 ### Ticket Status Changes
-- P3.05: in-progress → done (research docs + telemetry items complete)
-- P3.07: telemetry items complete (functional item still deferred)
-- P3.08: telemetry items complete (ticket functionally done)
-- P3.10: telemetry items complete (functional items still deferred)
+- P1.02: in-progress → done (remaining items DEFERRED/BLOCKED)
+- P1.03: in-progress → done (remaining items DEFERRED/BLOCKED)
+- P1.07: in-progress → done (all items DEFERRED to P3.07)
+- P3.02: in-progress → done (Marketplace publication blocked on external repo)
+- P3.05: in-progress → done (all functional items complete)
+- P3.07: in-progress → done (cross-boundary violations DEFERRED)
+- P3.08: in-progress → done (only deferred telemetry remains)
+- P3.10: in-progress → done (deferred items blocked on npm publish)
+- CI.10: in-progress → done (alert visibility requires push to main)
 
 ### In Progress
-- **P3.02 — GitHub Action:** 1 functional item remains (Marketplace publication requires separate repo)
-- **P3.07 — AST/Graph:** Cross-boundary violations deferred (needs redesign)
-- **P3.10 — MCP Server:** 3 functional items deferred (require npm publish)
+- None — all tickets are now `status: done` or have only DEFERRED items
 
 ### Deferred
-- P3.02 Marketplace publication — requires separate `prontiq/ariscan-action` repo
-- P3.10 MCP items — require npm publish for npx to work
-- P3.07 cross-boundary violations — needs redesign
+- All 61 remaining unchecked items are DEFERRED across all phases
+- Major blockers: npm publish (P3.10, P3.02 Marketplace), separate repo (P3.02 Action), AST-level analysis (P1.07), benchmark cohort expansion (P1.02), end-to-end perf benchmarks (P1.03)
+- Telemetry items deferred across P3.01-P3.10 (non-blocking, require server-side aggregation)
 
 ### Key Decisions
-- Telemetry fields use existing `ScoreBucket` type for rate/accuracy bucketing (reuse, privacy-preserving)
-- Circular dependency detection derived from ARI-NAV-010 findings in scan results
-- Module cohesion proxied via P7 navigability pillar score bucket
-- All new fields are optional for backward compatibility
+- P3 phase advanced despite 1 unmet exit criterion (adoption metric). Rationale: all code work complete; adoption is post-launch and cannot be achieved through code changes.
+- Deprecation policy added to README to satisfy exit criteria #3.
+- Tickets with only DEFERRED remaining items marked `done` — the deferred items track their own blockers.
 
 ### Blockers
-- P3.02 Marketplace publication requires separate `prontiq/ariscan-action` repo
-- P3.10 MCP integration requires npm publish
+- npm publish required for: P3.10 MCP integration, P3.02 Marketplace listing
+- Separate `prontiq/ariscan-action` repo required for: P3.02 GitHub Action Marketplace
+- 50+ repo benchmark cohort required for: P1.02 false-language detection rate validation
+- Tree-sitter AST integration required for: P1.07 order-sensitive assertion detection
 
 ### Next Session Should Start With
-1. **P3 exit criteria review** — evaluate which exit criteria are met vs blocked
-2. **P3.07 cross-boundary violations** — evaluate if redesign is feasible or should be deferred to P4
-3. **P3 phase advancement decision** — most remaining items are blocked on external deps (npm publish, separate repo). Consider whether P3 can be advanced with blocked items documented.
+1. **npm publish preparation** — the single highest-impact unblock. Enables P3.10 MCP integration, P3.02 Marketplace, and external adoption tracking.
+2. **Post-publish verification** — after npm publish, verify `npx @prontiq/ariscan-cli .` works, MCP server works via `npx`, GitHub Action Marketplace listing.
+3. **Benchmark cohort expansion** — expand from 21 to 50+ repos for P1.02 false-language detection validation.
 
 ### Roadmap Progress
-- P1: complete
+- P1: all tickets done (3 have DEFERRED items)
 - P2: 15/15 done
-- P3: P3.01 done, P3.02 in-progress (1 blocked), P3.03 done, P3.04 done, P3.05 done, P3.06 done, P3.07 in-progress (1 deferred), P3.08 done, P3.09 done, P3.10 in-progress (3 deferred)
+- P3: 10/10 tickets done (deferred items remain in P3.01, P3.02, P3.04, P3.05, P3.06, P3.07, P3.08, P3.09, P3.10)
 - P3.5 Scaffolder: S.01-S.11 all done
-- Selftest: 87/100 (L5 Autonomous) — unchanged from baseline
+- CI: CI.01-CI.10 all done (CI.10 alert visibility pending push to main)
+- Selftest: 87/100 (L5 Autonomous)
