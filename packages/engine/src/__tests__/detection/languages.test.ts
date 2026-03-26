@@ -121,6 +121,81 @@ describe("detectLanguages", () => {
     expect(first?.primary).toBe(true);
   });
 
+  it("prefers Rust over TypeScript in Rust-runtime + TS-test repo (Deno-like)", async () => {
+    // Simulates a Rust project where TypeScript files are mostly in test/stdlib dirs
+    const ctx = createMockContext({
+      "Cargo.toml": '[package]\nname = "runtime"',
+      "src/main.rs": "fn main() {}",
+      "src/lib.rs": "pub fn foo() {}",
+      "src/parser.rs": "mod parser {}",
+      "src/compiler.rs": "mod compiler {}",
+      "crates/core/src/lib.rs": "pub mod core;",
+      // TypeScript files predominantly in test directories
+      "tests/unit/test_parser.ts": "",
+      "tests/unit/test_compiler.ts": "",
+      "tests/integration/test_e2e.ts": "",
+      "tests/fixtures/input.ts": "",
+      "tests/fixtures/output.ts": "",
+      "tests/helpers.ts": "",
+      "benchmark/bench_parser.ts": "",
+      "benchmark/bench_compiler.ts": "",
+    });
+
+    const result = await detectLanguages(ctx);
+    const primary = result.find((l) => l.primary);
+    expect(primary).toBeDefined();
+    expect(primary?.language).toBe("Rust");
+  });
+
+  it("prefers TypeScript over JavaScript in TS-compiler + JS-runtime repo (Svelte-like)", async () => {
+    // Simulates a TypeScript project where JS files are in tests and runtime
+    const ctx = createMockContext({
+      "tsconfig.json": '{"compilerOptions":{}}',
+      "src/compiler/parse.ts": "",
+      "src/compiler/transform.ts": "",
+      "src/compiler/generate.ts": "",
+      "src/runtime/internal.ts": "",
+      "src/types.ts": "",
+      // JavaScript files in test directories
+      "test/runtime/ssr.js": "",
+      "test/runtime/dom.js": "",
+      "test/compiler/parse.js": "",
+      "test/helpers.js": "",
+      "test/fixtures/sample.js": "",
+      "examples/counter/main.js": "",
+    });
+
+    const result = await detectLanguages(ctx);
+    const primary = result.find((l) => l.primary);
+    expect(primary).toBeDefined();
+    expect(primary?.language).toBe("TypeScript");
+  });
+
+  it("down-weights test directory files in language detection", async () => {
+    // Without down-weighting, JavaScript would win (6 files vs 3 TypeScript)
+    // With down-weighting + tsconfig marker, TypeScript wins clearly
+    const ctx = createMockContext({
+      "tsconfig.json": "{}",
+      "src/app.ts": "",
+      "src/utils.ts": "",
+      "src/main.ts": "",
+      "__tests__/app.test.js": "",
+      "__tests__/utils.test.js": "",
+      "tests/integration.js": "",
+      "test/e2e.js": "",
+      "spec/helpers.js": "",
+      "fixtures/data.js": "",
+    });
+
+    const result = await detectLanguages(ctx);
+    const ts = result.find((l) => l.language === "TypeScript");
+    const js = result.find((l) => l.language === "JavaScript");
+    expect(ts).toBeDefined();
+    expect(js).toBeDefined();
+    // TypeScript should have higher confidence due to test down-weighting
+    expect(ts?.confidence).toBeGreaterThan(js?.confidence ?? 0);
+  });
+
   it("detects language from marker only when no source files exist", async () => {
     const ctx = createMockContext({
       "tsconfig.json": "{}",

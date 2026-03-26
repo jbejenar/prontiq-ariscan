@@ -74,6 +74,43 @@ const LANGUAGE_SPECS: LanguageSpec[] = [
   },
 ];
 
+/**
+ * Directory segments that indicate test/fixture/example paths.
+ * Files in these directories are down-weighted when computing language ratios,
+ * because they often reflect ecosystem tooling (e.g. JS test suites in a Rust
+ * project) rather than the core implementation language.
+ */
+const TEST_DIR_SEGMENTS = new Set([
+  "test",
+  "tests",
+  "__tests__",
+  "spec",
+  "specs",
+  "fixtures",
+  "fixture",
+  "examples",
+  "example",
+  "benchmark",
+  "benchmarks",
+  "e2e",
+  "testdata",
+  "test-data",
+  "testing",
+]);
+
+/** Weight applied to files in test-like directories (vs 1.0 for core files). */
+const TEST_PATH_WEIGHT = 0.5;
+
+function isTestPath(filePath: string): boolean {
+  const segments = filePath.split("/");
+  // Check all directory segments (not the filename)
+  for (let i = 0; i < segments.length - 1; i++) {
+    const seg = segments[i];
+    if (seg && TEST_DIR_SEGMENTS.has(seg.toLowerCase())) return true;
+  }
+  return false;
+}
+
 /** Non-source extensions to ignore when computing file ratios */
 const IGNORED_EXTENSIONS = new Set([
   ".md",
@@ -123,7 +160,7 @@ function getExtension(filePath: string): string {
 export async function detectLanguages(context: RepoContext): Promise<DetectedLanguage[]> {
   const { files } = context;
 
-  // Count files per language
+  // Count files per language with test-path down-weighting
   const counts = new Map<string, number>();
   let totalSourceFiles = 0;
 
@@ -133,8 +170,9 @@ export async function detectLanguages(context: RepoContext): Promise<DetectedLan
 
     for (const spec of LANGUAGE_SPECS) {
       if (spec.extensions.includes(ext)) {
-        counts.set(spec.name, (counts.get(spec.name) ?? 0) + 1);
-        totalSourceFiles++;
+        const weight = isTestPath(file) ? TEST_PATH_WEIGHT : 1;
+        counts.set(spec.name, (counts.get(spec.name) ?? 0) + weight);
+        totalSourceFiles += weight;
         break; // Each file counts once
       }
     }
