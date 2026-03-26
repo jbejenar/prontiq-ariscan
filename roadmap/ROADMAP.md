@@ -1069,8 +1069,8 @@ The most impactful finding from Gloaguen et al. (2026, ETH Zurich) is that auto-
 
 ### Telemetry (non-blocking)
 
-- [ ] Additionality score distribution
-- [ ] % repos with redundant context files
+- [ ] Additionality score distribution [DEFERRED: requires server-side telemetry infrastructure]
+- [ ] % repos with redundant context files [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
@@ -2508,8 +2508,8 @@ Benchmark scores on recognizable projects build credibility, drive interest, and
 
 ### Telemetry (non-blocking)
 
-- [ ] Benchmark page views
-- [ ] Repos inspired to scan
+- [ ] Benchmark page views [DEFERRED: requires server-side telemetry infrastructure]
+- [ ] Repos inspired to scan [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
@@ -2788,9 +2788,9 @@ Gloaguen et al. (2026) showed that LLM-generated context files decrease success 
 
 ### Telemetry (non-blocking)
 
-- [ ] Generation count
-- [ ] Additionality score of generated files
-- [ ] User acceptance rate
+- [ ] Generation count [DEFERRED: requires server-side telemetry infrastructure]
+- [ ] Additionality score of generated files [DEFERRED: requires server-side telemetry infrastructure]
+- [ ] User acceptance rate [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
@@ -2880,8 +2880,8 @@ Many teams already have context files but don't know if they're helping or hurti
 
 ### Telemetry (non-blocking)
 
-- [ ] Audit command usage
-- [ ] Issues found per audit
+- [ ] Audit command usage [DEFERRED: requires server-side telemetry infrastructure]
+- [ ] Issues found per audit [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
@@ -2947,8 +2947,8 @@ Repos often accumulate multiple context files (AGENTS.md + CLAUDE.md + .cursorru
 
 ### Telemetry (non-blocking)
 
-- [ ] Delta viewer usage
-- [ ] Deduplication actions taken
+- [ ] Delta viewer usage [DEFERRED: requires server-side telemetry infrastructure]
+- [ ] Deduplication actions taken [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
@@ -3636,8 +3636,8 @@ A continuously updated public leaderboard serves multiple purposes: brand awaren
 
 ### Telemetry (non-blocking)
 
-- [ ] Leaderboard page views
-- [ ] Repos inspired to scan
+- [ ] Leaderboard page views [DEFERRED: requires server-side telemetry infrastructure]
+- [ ] Repos inspired to scan [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
@@ -4129,7 +4129,7 @@ Severity and impact are not the same. A "critical" finding on a pillar weighted 
 
 ### Telemetry (non-blocking)
 
-- [ ] Top 10 finding codes by composite delta across all scans
+- [ ] Top 10 finding codes by composite delta across all scans [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
@@ -4207,7 +4207,7 @@ A tool that detects a Makefile and Docker Compose but suggests a Turborepo setup
 
 ### Telemetry (non-blocking)
 
-- [ ] Remediation acceptance rate by archetype (requires --fix usage data)
+- [ ] Remediation acceptance rate by archetype [DEFERRED: requires --fix usage data and server-side telemetry infrastructure]
 
 ## Scope
 
@@ -4427,7 +4427,7 @@ GitLab has significant market share. Supporting GitLab ensures Prontiq isn't Git
 
 ### Telemetry (non-blocking)
 
-- [ ] GitLab template adoption
+- [ ] GitLab template adoption [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
@@ -4651,8 +4651,8 @@ A TypeScript-heavy default rubric unfairly penalizes Python, Go, Rust, and Java 
 
 ### Telemetry (non-blocking)
 
-- [ ] Profile usage distribution
-- [ ] Score comparability across languages
+- [ ] Profile usage distribution [DEFERRED: requires server-side telemetry infrastructure]
+- [ ] Score comparability across languages [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
@@ -4850,8 +4850,8 @@ CLI output requires context-switching. An IDE extension surfaces findings where 
 
 ### Telemetry (non-blocking)
 
-- [ ] Extension installs
-- [ ] Daily active users
+- [ ] Extension installs [DEFERRED: requires server-side telemetry infrastructure]
+- [ ] Daily active users [DEFERRED: requires server-side telemetry infrastructure]
 
 ## Scope
 
