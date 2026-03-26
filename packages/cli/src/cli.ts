@@ -77,15 +77,6 @@ async function handleRepoCommands(
     await handleBudgetMode(repoPath, args.json as boolean, args.quiet as boolean);
     return true;
   }
-  if (args.fix) {
-    await handleFixMode(
-      repoPath,
-      args.force as boolean,
-      args.dryRun as boolean,
-      args.quiet as boolean,
-    );
-    return true;
-  }
   return false;
 }
 
@@ -150,7 +141,19 @@ export async function dispatchCommand(args: Record<string, unknown>): Promise<vo
   if (args.noTelemetry) {
     process.env["ARISCAN_TELEMETRY"] = "false";
   }
-  await handleScanMode(repoPath, args as Parameters<typeof handleScanMode>[1]);
+
+  // If --fix was used, run fix first then fall through to scan so
+  // telemetry captures fixApplied: true and the user sees updated scores.
+  const fixApplied = args.fix === true;
+  if (fixApplied) {
+    await handleFixMode(
+      repoPath,
+      args.force as boolean,
+      args.dryRun as boolean,
+      args.quiet as boolean,
+    );
+  }
+  await handleScanMode(repoPath, args as Parameters<typeof handleScanMode>[1], fixApplied);
 }
 
 const main = defineCommand({
@@ -345,6 +348,7 @@ async function handleScanMode(
     verbose: boolean;
     badge?: string;
   },
+  fixApplied = false,
 ): Promise<void> {
   const cliOverrides: Record<string, unknown> = {};
   const cliThreshold = parseInt(args.threshold, 10);
@@ -404,7 +408,7 @@ async function handleScanMode(
   const telemetryPayload = buildTelemetryPayload(result, result.metadata.duration, {
     format,
     badgeGenerated,
-    fixApplied: false,
+    fixApplied,
   });
   sendTelemetry(telemetryPayload);
 
