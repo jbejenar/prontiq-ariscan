@@ -14,10 +14,20 @@ for (let i = 0; i < args.length; i++) {
     repoPath = resolve(String(args[i]));
   } else if (arg === "--cache-ttl" && args[i + 1]) {
     i++;
-    cacheTtlMs = Number(args[i]) * 1000;
+    const val = Number(args[i]);
+    if (Number.isNaN(val) || val < 0) {
+      process.stderr.write(`Error: --cache-ttl must be a non-negative number, got '${args[i]}'\n`);
+      process.exit(1);
+    }
+    cacheTtlMs = val * 1000;
   } else if (arg === "--timeout" && args[i + 1]) {
     i++;
-    scanTimeoutMs = Number(args[i]) * 1000;
+    const val = Number(args[i]);
+    if (Number.isNaN(val) || val < 0) {
+      process.stderr.write(`Error: --timeout must be a non-negative number, got '${args[i]}'\n`);
+      process.exit(1);
+    }
+    scanTimeoutMs = val * 1000;
   } else if (arg === "--help" || arg === "-h") {
     process.stderr.write(
       `ariscan-mcp — MCP server exposing read-only ARI readiness data

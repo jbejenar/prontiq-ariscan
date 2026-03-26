@@ -61,20 +61,25 @@ export function createMcpServer(config: McpServerConfig): McpServer {
       return cached;
     }
 
-    const result = await Promise.race([
-      scan(repoPath),
-      new Promise<never>((_, reject) =>
-        setTimeout(
+    const doScan = async () => {
+      const result = await scan(repoPath);
+      const context = await createRepoContext(repoPath);
+      const budget = await analyzeTokenBudget(context);
+      return { result, budget, timestamp: Date.now() };
+    };
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    cached = await Promise.race([
+      doScan(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
           () => reject(new Error(`Scan timed out after ${scanTimeoutMs}ms`)),
           scanTimeoutMs,
-        ),
-      ),
-    ]);
-
-    const context = await createRepoContext(repoPath);
-    const budget = await analyzeTokenBudget(context);
-
-    cached = { result, budget, timestamp: Date.now() };
+        );
+      }),
+    ]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
     return cached;
   }
 
