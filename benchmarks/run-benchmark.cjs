@@ -2,7 +2,7 @@
 // Benchmark runner in Node.js (sandbox-compatible alternative to run.sh)
 // Usage: node benchmarks/run-benchmark.cjs [--pin-refs]
 
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -78,8 +78,9 @@ for (let i = 0; i < repos.length; i++) {
   if (!fs.existsSync(clonePath)) {
     console.log("  Cloning (shallow)...");
     try {
-      execSync(
-        `git clone --depth 1 --branch "${ref}" "https://github.com/${repo}.git" "${clonePath}"`,
+      execFileSync(
+        "git",
+        ["clone", "--depth", "1", "--branch", ref, `https://github.com/${repo}.git`, clonePath],
         { stdio: "pipe", timeout: 120000 },
       );
     } catch (e) {
@@ -101,7 +102,10 @@ for (let i = 0; i < repos.length; i++) {
   // Get commit SHA
   let commitSha;
   try {
-    commitSha = execSync("git rev-parse HEAD", { cwd: clonePath, encoding: "utf8" }).trim();
+    commitSha = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: clonePath,
+      encoding: "utf8",
+    }).trim();
   } catch {
     commitSha = "unknown";
   }
@@ -111,7 +115,7 @@ for (let i = 0; i < repos.length; i++) {
   console.log("  Scanning...");
   const resultFile = path.join(RESULTS_DIR, `${name}.json`);
   try {
-    const output = execSync(`node "${ARISCAN}" "${clonePath}" --format json`, {
+    const output = execFileSync("node", [ARISCAN, clonePath, "--format", "json"], {
       encoding: "utf8",
       timeout: 300000,
       maxBuffer: 50 * 1024 * 1024,
@@ -182,6 +186,7 @@ if (PIN_REFS) {
     fs.writeSync(fd, updatedContent, 0, "utf8");
     console.log(`Updated ${pinned}/${repos.length} refs in ${REVISIONS_FILE}`);
   } finally {
+    fs.fsyncSync(fd);
     fs.closeSync(fd);
   }
 }
