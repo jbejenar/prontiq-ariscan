@@ -103,7 +103,7 @@ while IFS=$'\t' read -r NAME REPO REF LANG DESC; do
   RESULT_FILE="$RESULTS_DIR/$NAME.json"
   if node "$ARISCAN" "$CLONE_PATH" --format json > "$RESULT_FILE" 2>/dev/null; then
     # Read score and level in a single node invocation
-    SCORE_LEVEL=$(node -e "const r=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(r.composite.score+'\t'+r.composite.level)" "$RESULT_FILE")
+    SCORE_LEVEL=$(node -e "const r=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(r.score+'\t'+r.level)" "$RESULT_FILE")
     SCORE=$(echo "$SCORE_LEVEL" | cut -f1)
     LEVEL=$(echo "$SCORE_LEVEL" | cut -f2)
     echo "  Score: $SCORE/100 ($LEVEL)"

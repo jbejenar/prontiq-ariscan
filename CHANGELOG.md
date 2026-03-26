@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.23.0] — 2026-03-26
+
+### Added
+- **Benchmark (P1.18):** First benchmark execution — 21 well-known OSS repos scanned across 6 languages:
+  - TypeScript/JavaScript: React(48/L3), Next.js(65/L3), Vue(50/L2), Nuxt(43/L2), Express(31/L2), Remix(48/L2), Astro(54/L3), Svelte(36/L2), VS Code(45/L2)
+  - Python: FastAPI(37/L2), Django(32/L2), Flask(36/L2), Pydantic(32/L2), LangChain(42/L2)
+  - Go: Hugo(42/L2), Terraform(33/L2), Gin(34/L2)
+  - Rust: ripgrep(28/L2), Tokio(30/L2), Deno(35/L2)
+  - Java: Spring Boot(29/L2)
+  - Mean=39, Median=36, Range=28–65. Reproducibility verified.
+- **Benchmark:** `benchmarks/run-benchmark.cjs` — Node.js ESM-compatible benchmark runner as alternative to `run.sh`
+- **Benchmark:** RESULTS.md populated with full results table, per-language breakdown, key observations, methodology notes
+
+### Fixed
+- **Benchmark:** Fixed JSON field path bug in `run.sh` and `build-summary.js` — was reading `composite.score` instead of `score` from ariscan JSON output
+- **Benchmark:** Fixed Express clone failure — branch name `main` → `master`
+- **Benchmark:** All refs in `revisions.json` pinned to commit SHAs for full reproducibility
+
 ## [3.22.0] — 2026-03-26
 
 ### Added
