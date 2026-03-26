@@ -4,6 +4,7 @@ import {
   computeScoreBreakdown,
   aggregateResults,
   annotateCompositeDelta,
+  applyCalibrationOffset,
 } from "../../scoring/composite.js";
 import { LANGUAGE_PROFILES } from "../../profiles/index.js";
 import type { LanguageProfileDef } from "../../profiles/index.js";
@@ -171,6 +172,132 @@ describe("scoring with language profiles", () => {
 
       // With Rust's lower P6 weight for a low P6 score, composite should differ
       expect(rustResult.score).not.toBe(defaultResult.score);
+    });
+  });
+
+  describe("calibration offset (P3.06 score comparability)", () => {
+    describe("applyCalibrationOffset", () => {
+      it("returns raw score when offset is 0", () => {
+        expect(applyCalibrationOffset(50, 0)).toBe(50);
+      });
+
+      it("adds positive offset to raw score", () => {
+        expect(applyCalibrationOffset(40, 6)).toBe(46);
+      });
+
+      it("clamps calibrated score to 100", () => {
+        expect(applyCalibrationOffset(98, 7)).toBe(100);
+      });
+
+      it("clamps calibrated score to 0 for negative offset above floor", () => {
+        // rawScore 30 is above CALIBRATION_FLOOR (25), offset -35 would go negative
+        expect(applyCalibrationOffset(30, -35)).toBe(0);
+      });
+
+      it("does not apply offset when raw score is at or below L1 threshold (25)", () => {
+        expect(applyCalibrationOffset(25, 9)).toBe(25);
+        expect(applyCalibrationOffset(20, 6)).toBe(20);
+        expect(applyCalibrationOffset(0, 9)).toBe(0);
+      });
+
+      it("applies offset when raw score is above L1 threshold", () => {
+        expect(applyCalibrationOffset(26, 6)).toBe(32);
+        expect(applyCalibrationOffset(30, 9)).toBe(39);
+      });
+    });
+
+    describe("profile calibration offsets", () => {
+      it("TypeScript has zero calibration offset (calibration language)", () => {
+        expect(TS_PROFILE.calibrationOffset).toBe(0);
+      });
+
+      it("non-TS languages have positive calibration offsets", () => {
+        expect(GO_PROFILE.calibrationOffset).toBeGreaterThan(0);
+        expect(RUST_PROFILE.calibrationOffset).toBeGreaterThan(0);
+        expect(PYTHON_PROFILE.calibrationOffset).toBeGreaterThan(0);
+      });
+
+      it("Rust has higher offset than Go (stronger type system reduces rubric relevance)", () => {
+        expect(RUST_PROFILE.calibrationOffset).toBeGreaterThan(GO_PROFILE.calibrationOffset);
+      });
+
+      it("all offsets are between 0 and 15", () => {
+        for (const [, profile] of Object.entries(LANGUAGE_PROFILES)) {
+          expect(profile.calibrationOffset).toBeGreaterThanOrEqual(0);
+          expect(profile.calibrationOffset).toBeLessThanOrEqual(15);
+        }
+      });
+    });
+
+    describe("aggregateResults with calibration offset", () => {
+      it("applies calibration offset to composite score", () => {
+        const pillars = makeAllPillars(baseScores);
+        const meta = { version: "0.2.0", repoPath: "/test", duration: 100 };
+
+        const uncalibratedResult = aggregateResults(pillars, meta, GO_PROFILE.weights);
+        const calibratedResult = aggregateResults(
+          pillars,
+          meta,
+          GO_PROFILE.weights,
+          GO_PROFILE.calibrationOffset,
+        );
+
+        expect(calibratedResult.score).toBe(
+          uncalibratedResult.score + GO_PROFILE.calibrationOffset,
+        );
+      });
+
+      it("includes calibrationOffset in ScanResult when non-zero", () => {
+        const pillars = makeAllPillars(baseScores);
+        const meta = { version: "0.2.0", repoPath: "/test", duration: 100 };
+
+        const result = aggregateResults(
+          pillars,
+          meta,
+          PYTHON_PROFILE.weights,
+          PYTHON_PROFILE.calibrationOffset,
+        );
+        expect(result.calibrationOffset).toBe(PYTHON_PROFILE.calibrationOffset);
+      });
+
+      it("does not include calibrationOffset in ScanResult when zero", () => {
+        const pillars = makeAllPillars(baseScores);
+        const meta = { version: "0.2.0", repoPath: "/test", duration: 100 };
+
+        const result = aggregateResults(
+          pillars,
+          meta,
+          TS_PROFILE.weights,
+          TS_PROFILE.calibrationOffset,
+        );
+        expect(result.calibrationOffset).toBeUndefined();
+      });
+
+      it("does not apply calibration to hostile repos (raw score <= 25)", () => {
+        const hostileScores: Record<PillarId, number> = {
+          P1: 10,
+          P2: 5,
+          P3: 15,
+          P4: 10,
+          P5: 5,
+          P6: 10,
+          P7: 20,
+          P8: 0,
+        };
+        const pillars = makeAllPillars(hostileScores);
+        const meta = { version: "0.2.0", repoPath: "/test", duration: 100 };
+
+        const uncalibrated = aggregateResults(pillars, meta, PYTHON_PROFILE.weights);
+        const calibrated = aggregateResults(
+          pillars,
+          meta,
+          PYTHON_PROFILE.weights,
+          PYTHON_PROFILE.calibrationOffset,
+        );
+
+        // Score should not change for hostile repos
+        expect(calibrated.score).toBe(uncalibrated.score);
+      });
     });
   });
 });

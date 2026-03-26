@@ -53,6 +53,13 @@ describe("language profiles", () => {
         expect(profile.displayName.length).toBeGreaterThan(0);
       }
     });
+
+    it("all profiles have a calibrationOffset that is a non-negative integer", () => {
+      for (const [, profile] of Object.entries(LANGUAGE_PROFILES)) {
+        expect(Number.isInteger(profile.calibrationOffset)).toBe(true);
+        expect(profile.calibrationOffset).toBeGreaterThanOrEqual(0);
+      }
+    });
   });
 
   describe("profile coverage", () => {

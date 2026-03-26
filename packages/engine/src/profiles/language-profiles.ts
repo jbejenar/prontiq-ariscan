@@ -16,6 +16,13 @@ export interface LanguageProfileDef {
   weights: Record<PillarId, number>;
   /** Why each weight differs (or matches) the default. */
   rationale: Record<PillarId, string>;
+  /**
+   * Score calibration offset to normalize cross-language comparability.
+   * Applied after composite scoring: calibratedScore = clamp(raw + offset, 0, 100).
+   * Compensates for systematic ecosystem bias in the rubric (calibrated on TypeScript).
+   * Derived from benchmark data: ~40% of the gap between each language's mean and TS mean.
+   */
+  calibrationOffset: number;
 }
 
 /**
@@ -46,6 +53,7 @@ export const LANGUAGE_PROFILES: Record<string, LanguageProfileDef> = {
       P7: "Default: standard navigability expectations",
       P8: "Default: standard security expectations",
     },
+    calibrationOffset: 0,
   },
 
   javascript: {
@@ -71,6 +79,7 @@ export const LANGUAGE_PROFILES: Record<string, LanguageProfileDef> = {
       P7: "Default: navigability equally important",
       P8: "Increased: dynamic typing increases security surface area",
     },
+    calibrationOffset: 3,
   },
 
   python: {
@@ -96,6 +105,7 @@ export const LANGUAGE_PROFILES: Record<string, LanguageProfileDef> = {
       P7: "Default: navigability equally important",
       P8: "Default: standard security expectations",
     },
+    calibrationOffset: 6,
   },
 
   go: {
@@ -121,6 +131,7 @@ export const LANGUAGE_PROFILES: Record<string, LanguageProfileDef> = {
       P7: "Increased: Go's package system and explicit error handling reward navigability",
       P8: "Increased: Go is common in infrastructure; security is critical",
     },
+    calibrationOffset: 6,
   },
 
   rust: {
@@ -146,6 +157,7 @@ export const LANGUAGE_PROFILES: Record<string, LanguageProfileDef> = {
       P7: "Increased: ownership model and module system reward structural clarity",
       P8: "Increased: Rust is used in security-critical infrastructure",
     },
+    calibrationOffset: 7,
   },
 
   java: {
@@ -171,6 +183,7 @@ export const LANGUAGE_PROFILES: Record<string, LanguageProfileDef> = {
       P7: "Default: navigability equally important",
       P8: "Default: standard security expectations",
     },
+    calibrationOffset: 9,
   },
 
   csharp: {
@@ -196,6 +209,7 @@ export const LANGUAGE_PROFILES: Record<string, LanguageProfileDef> = {
       P7: "Default: navigability equally important",
       P8: "Default: standard security expectations",
     },
+    calibrationOffset: 4,
   },
 
   ruby: {
@@ -221,6 +235,7 @@ export const LANGUAGE_PROFILES: Record<string, LanguageProfileDef> = {
       P7: "Default: navigability equally important",
       P8: "Slightly increased: dynamic typing increases attack surface",
     },
+    calibrationOffset: 9,
   },
 };
 
