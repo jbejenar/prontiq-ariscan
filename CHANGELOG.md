@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.22.0] — 2026-03-26
+
+### Added
+- **CLI (S.11):** Community preset API — extensible scaffolder via `ariscan init --preset community/<name>`:
+  - `CommunityPresetManifest` type with required `id`, `name`, `description`, `version` fields
+  - Local preset discovery from `.ariscan/presets/<name>/` directories
+  - npm package discovery via `ariscan-preset-<name>` naming convention
+  - Manifest validation, module export validation, path traversal protection
+  - Community presets pass through the same dogfood gate as built-in presets
+- **CLI (S.11):** `resolvePreset()` async resolver supporting both built-in and community presets
+- **CLI (S.11):** `isCommunityPreset()` and `parseCommunityId()` helpers for community prefix routing
+- **Examples:** Reference community preset `ariscan-preset-express` demonstrating the preset API with Express.js + TypeScript scaffold
+- **Docs:** "Writing a Community Preset" section in AGENTS.md
+
+### Changed
+- **CLI (S.04):** Marked Dogfood Gate (S.04) as complete — all 5 sub-items verified with evidence (init self-scan, score floor, CI gates for bare and nextjs presets)
+
 ## [3.21.0] — 2026-03-26
 
 ### Added

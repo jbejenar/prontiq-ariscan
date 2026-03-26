@@ -3,6 +3,7 @@
  *
  * Interactive: `ariscan init`
  * Non-interactive (S.10): `ariscan init --preset bare --name my-app`
+ * Community presets (S.11): `ariscan init --preset community/express --name my-app`
  * Dogfood gate (S.04): scans output and fails if score < L3 (46).
  */
 import { defineCommand } from "citty";
@@ -10,7 +11,12 @@ import { resolve } from "node:path";
 import { mkdir, rm } from "node:fs/promises";
 import { scan } from "@prontiq/ariscan-engine";
 import { scaffold } from "../scaffolder/engine.js";
-import { listPresets, getPreset } from "../scaffolder/presets/index.js";
+import {
+  listPresets,
+  getPreset,
+  resolvePreset,
+  isCommunityPreset,
+} from "../scaffolder/presets/index.js";
 import { promptProjectName, promptPreset, validateProjectName } from "../scaffolder/prompts.js";
 
 /** Minimum ARI score for scaffolded projects (L3 Capable). */
@@ -22,9 +28,10 @@ export const initCommand = defineCommand({
     description: `Scaffold a new agent-ready project
 
 Examples:
-  ariscan init                              # Interactive mode
-  ariscan init --preset bare --name my-app  # Non-interactive mode
-  ariscan init ./my-app                     # Specify output directory`,
+  ariscan init                                          # Interactive mode
+  ariscan init --preset bare --name my-app              # Non-interactive mode
+  ariscan init --preset community/express --name my-app # Community preset
+  ariscan init ./my-app                                 # Specify output directory`,
   },
   args: {
     path: {
@@ -34,7 +41,7 @@ Examples:
     },
     preset: {
       type: "string",
-      description: "Preset to use (e.g., bare)",
+      description: "Preset to use (e.g., bare, nextjs, community/<name>)",
       required: false,
     },
     "skip-scan": {
@@ -82,14 +89,28 @@ Examples:
     // Resolve preset
     let presetId: string;
     if (presetArg) {
-      if (!getPreset(presetArg)) {
+      // Community presets are resolved asynchronously (S.11)
+      if (isCommunityPreset(presetArg)) {
+        const resolved = await resolvePreset(presetArg);
+        if (!resolved) {
+          process.stderr.write(`Error: Community preset "${presetArg}" not found.\n`);
+          process.stderr.write("Community presets are loaded from:\n");
+          process.stderr.write("  1. .ariscan/presets/<name>/ (local directory)\n");
+          process.stderr.write("  2. ariscan-preset-<name> (npm package)\n");
+          process.exit(2);
+        }
+        presetId = presetArg;
+      } else if (!getPreset(presetArg)) {
         const available = listPresets()
           .map((p) => p.manifest.id)
           .join(", ");
-        process.stderr.write(`Error: Unknown preset "${presetArg}". Available: ${available}\n`);
+        process.stderr.write(
+          `Error: Unknown preset "${presetArg}". Available: ${available}, community/<name>\n`,
+        );
         process.exit(2);
+      } else {
+        presetId = presetArg;
       }
-      presetId = presetArg;
     } else {
       presetId = await promptPreset(listPresets());
     }

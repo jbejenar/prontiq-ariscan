@@ -199,6 +199,19 @@ Plugins extend ariscan with custom checks without forking the project. See `exam
 
 Plugin findings are attributed separately (`source: "plugin:<name>"`) and don't affect core scores.
 
+### Writing a Community Preset
+
+Community presets extend `ariscan init` with custom project scaffolds. See `examples/ariscan-preset-express/` for a complete reference implementation.
+
+1. Create a directory with `manifest.json` and `index.js` (or publish as `ariscan-preset-<name>` npm package)
+2. `manifest.json` must contain `id`, `name`, `description`, `version` (and optionally `author`, `repository`)
+3. `index.js` default-exports a `ScaffolderPreset` with `manifest` and `generate(options)` returning `FileEntry[]`
+4. Place in `.ariscan/presets/<name>/` for local use, or publish as `ariscan-preset-<name>` on npm
+5. Users reference as `ariscan init --preset community/<name> --name my-app`
+6. All community presets pass through the dogfood gate — scaffolded output must score >= L3 (46+)
+
+Discovery order: local `.ariscan/presets/<name>/` first, then `ariscan-preset-<name>` npm package.
+
 ### Modifying Scoring
 
 1. Pillar weights are in `packages/schema/src/pillar.ts` — they must sum to 1.0
