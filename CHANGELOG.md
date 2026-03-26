@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.29.0] — 2026-03-26
+
+### Added
+- **Deprecation policy:** Published in README.md Versioning Policy section. Covers CLI flags, config schema, finding codes, and plugin API. Features deprecation notice in minor release, migration window of at least one minor release, and removal in next major version.
+
+### Changed
+- **Roadmap governance:** Updated 9 ticket statuses from `in-progress` → `done` (P1.02, P1.03, P1.07, P3.02, P3.05, P3.07, P3.08, P3.10, CI.10). All had only DEFERRED/BLOCKED items remaining — no functional work outstanding.
+- **P3 exit criteria:** Documented status for all 7 criteria (6/7 met). Remaining criterion (>=50 external repo adoption) is an external adoption metric deferred to post-launch.
+- **P3 phase advanced:** All code work for P3 is complete. 61 remaining unchecked items across all phases are DEFERRED on external dependencies (npm publish, separate repos, benchmark expansion).
+
 ## [3.28.0] — 2026-03-26
 
 ### Added

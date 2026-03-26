@@ -258,6 +258,16 @@ The schema URI uses major-only versioning (`v1`, `v2`, ...) as a structural stab
 
 **Backwards compatibility guarantee:** within a major version, all previously valid JSON output fields remain present with the same types and semantics. Consumers can safely parse ARI output without breaking when patch or minor versions are released. A major version bump in `metadata.version` will coincide with a new schema URI (e.g., `v2.json`).
 
+### Deprecation Policy
+
+When a feature, CLI flag, config field, or finding code is scheduled for removal:
+
+1. **Deprecation notice** — the feature is marked deprecated in the next minor release. CLI flags emit a stderr warning; config fields trigger a validation warning via `ariscan policy validate`; finding codes are annotated in the changelog.
+2. **Migration window** — deprecated features continue to work for at least **one minor release cycle** after the deprecation notice. Documentation includes migration guidance and the planned removal version.
+3. **Removal** — deprecated features are removed in the next major version bump. The changelog and migration guide list all removals.
+
+**Scope:** This policy covers CLI flags and subcommands, JSON output fields, `.ariscan.yml` config schema fields, finding codes (`ARI-*`), and the plugin API (`apiVersion`). Internal engine APIs are not covered — only the public surfaces listed above carry stability guarantees.
+
 ### Policy File Migration
 
 The `.ariscan.yml` policy file uses a `version` field to indicate the policy schema version. Current version: `"1"`.
