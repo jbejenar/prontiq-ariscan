@@ -1,6 +1,6 @@
 {
   "name": "@prontiq/ariscan",
-  "version": "0.59.0",
+  "version": "0.60.0",
   "description": "Measure and improve repository readiness for AI coding agents",
   "type": "module",
   "repository": {
