@@ -86,14 +86,14 @@ That's it. You'll get a full readiness report with scores, maturity level, and p
 ### More Output Formats
 
 ```bash
-npx @prontiq/ariscan . --verbose             # Full analysis: all findings, pillar details, detection info
-npx @prontiq/ariscan . --json               # JSON for CI pipelines
-npx @prontiq/ariscan . --format sarif        # SARIF for GitHub Code Scanning
-npx @prontiq/ariscan . --format markdown     # Markdown report
-npx @prontiq/ariscan . --badge badge.svg     # Generate score badge
-npx @prontiq/ariscan . --threshold 50        # Exit code 1 if below threshold
-npx @prontiq/ariscan . --budget              # Token budget analysis
-npx @prontiq/ariscan --json-schema           # Export JSON Schema
+npx @prontiq/ariscan . --verbose          # Full analysis: all findings, pillar details, detection info
+npx @prontiq/ariscan . --json             # JSON for CI pipelines
+npx @prontiq/ariscan . --format sarif     # SARIF for GitHub Code Scanning
+npx @prontiq/ariscan . --format markdown  # Markdown report
+npx @prontiq/ariscan . --badge badge.svg  # Generate score badge
+npx @prontiq/ariscan . --threshold 50     # Exit code 1 if below threshold
+npx @prontiq/ariscan . --budget           # Token budget analysis
+npx @prontiq/ariscan --json-schema        # Export JSON Schema
 ```
 
 **Exit codes:** `0` = pass, `1` = below threshold, `2` = runtime error.
