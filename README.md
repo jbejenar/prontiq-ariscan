@@ -45,29 +45,43 @@ npx @prontiq/ariscan .
 That's it. You'll get a full readiness report with scores, maturity level, and prioritized recommendations.
 
 ```
- Prontiq ARI — Agent Readiness Index
+  ARI Score Report
+  ────────────────────────────────────────────────────────────
 
- Overall Score:  72 / 100  ━━━━━━━━━━━━━━━━━━━━░░░░░░  L4 Productive
+  Score:    72 / 100
+  Level:    L4 — Productive
+             Multi-file features and refactoring with light supervision
 
- Pillar Breakdown:
-  P1  Agent Context Quality     85/100  ████████░░  15%
-  P2  Feedback Loop Speed       68/100  ██████░░░░  15%
-  P3  Test Isolation            70/100  ███████░░░  18%
-  P4  Dev Environment           60/100  ██████░░░░  10%
-  P5  Doc Machine-Readability   55/100  █████░░░░░  10%
-  P6  Build Determinism         90/100  █████████░  15%
-  P7  Code Navigability         75/100  ███████░░░  12%
-  P8  Security & Governance     80/100  ████████░░   5%
+  Profile:  backend-api (high confidence) — 8 findings not applicable
 
- Top 3 Actions:
-  1. Add OpenAPI schema for /api routes             +8 pts
-  2. Add .devcontainer/devcontainer.json             +5 pts
-  3. Reduce avg cyclomatic complexity (12 → 8)       +4 pts
+  ────────────────────────────────────────────────────────────
+  Pillar Scores
 
- 3 actions could raise your score to 89/100 (L5 Autonomous)
+  P1 Agent Context Quality            ████████████████░░░░  85/100  ( 15%)
+  P2 Feedback Loop Speed              █████████████░░░░░░░  68/100  ( 15%)
+  P3 Test Isolation                   ██████████████░░░░░░  70/100  ( 18%)
+  P4 Dev Environment                  ████████████░░░░░░░░  60/100  ( 10%)
+  P5 Doc Machine-Readability          ███████████░░░░░░░░░  55/100  ( 10%)
+  P6 Build Determinism & Type Safety  ██████████████████░░  90/100  ( 15%)
+  P7 Code Navigability                ███████████████░░░░░  75/100  ( 12%)
+  P8 Security & Governance            ████████████████░░░░  80/100  (  5%)
+
+  ────────────────────────────────────────────────────────────
+  Top Findings (by impact)
+
+  HIGH     [+8.0 pts] ARI-DOC-003 [high] No OpenAPI schema for /api routes
+           → Add an openapi.yaml or swagger.json to document your API surface
+  MEDIUM   [+5.0 pts] ARI-ENV-002 [medium] No .devcontainer/devcontainer.json
+           → Add a dev container config for reproducible environments
+  MEDIUM   [+4.0 pts] ARI-NAV-005 [medium] Avg cyclomatic complexity 12 (target: ≤ 8)
+           → Extract complex functions into smaller, testable units
+
+  ────────────────────────────────────────────────────────────
+  Scanned in 215ms | ariscan v0.57.0 | Rubric v1
+  You're reading the abstract. Pass --verbose for the full paper.
 ```
 
-> **Want the full picture?** Add `--verbose` to see pillar contribution breakdowns, confidence levels, research references, detected languages and frameworks, all context files, and every finding — not just the top 7.
+> **Want the full picture?** Add `--verbose` to see pillar contribution breakdowns, confidence levels, research references, detected languages and frameworks, all context files, and every finding.
 
 ### More Output Formats
 
