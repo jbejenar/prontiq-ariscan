@@ -1,6 +1,8 @@
 /** Scan subcommand — runs all 8 pillar analyzers against a target directory. */
 import { defineCommand } from "citty";
 import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { access } from "node:fs/promises";
 import { scan } from "@prontiq/ariscan-engine";
 import type { OnProgress } from "@prontiq/ariscan-engine";
@@ -16,6 +18,11 @@ import { formatMarkdown } from "../output/markdown.js";
 import { formatSarif } from "../output/sarif.js";
 import { resolveFullConfig } from "../config-loader.js";
 import { applyEnforcement } from "../enforcement.js";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const scanPkg = JSON.parse(readFileSync(resolve(__dirname, "../../package.json"), "utf-8")) as {
+  version: string;
+};
 
 export interface ScanOptions {
   path: string;
@@ -79,7 +86,11 @@ function formatOutput(result: ScanResult, format: string, options: ScanOptions):
   if (format === "ndjson") return formatNdjson(result);
   if (format === "sarif") return formatSarif(result);
   if (format === "markdown") return formatMarkdown(result);
-  return formatTerminal(result, { verbose: options.verbose, quiet: options.quiet });
+  return formatTerminal(result, {
+    verbose: options.verbose,
+    quiet: options.quiet,
+    cliVersion: scanPkg.version,
+  });
 }
 
 function createProgressCallback(format: string, quiet: boolean): OnProgress | undefined {

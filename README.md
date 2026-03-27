@@ -67,9 +67,12 @@ That's it. You'll get a full readiness report with scores, maturity level, and p
  3 actions could raise your score to 89/100 (L5 Autonomous)
 ```
 
+> **Want the full picture?** Add `--verbose` to see pillar contribution breakdowns, confidence levels, research references, detected languages and frameworks, all context files, and every finding — not just the top 7.
+
 ### More Output Formats
 
 ```bash
+npx @prontiq/ariscan . --verbose             # Full analysis: all findings, pillar details, detection info
 npx @prontiq/ariscan . --json               # JSON for CI pipelines
 npx @prontiq/ariscan . --format sarif        # SARIF for GitHub Code Scanning
 npx @prontiq/ariscan . --format markdown     # Markdown report

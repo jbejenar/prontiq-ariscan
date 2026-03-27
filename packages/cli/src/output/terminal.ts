@@ -4,6 +4,7 @@ import type { ScanResult, PillarResult, MaturityLevel } from "@prontiq/ariscan-s
 interface TerminalOptions {
   verbose?: boolean;
   quiet?: boolean;
+  cliVersion?: string;
 }
 
 function levelColor(level: MaturityLevel): (text: string) => string {
@@ -268,15 +269,25 @@ function formatTopFindingsSection(findings: ScanResult["findings"]): string[] {
   return lines;
 }
 
-function formatScanFooter(metadata: ScanResult["metadata"]): string[] {
-  return [
+function formatScanFooter(
+  metadata: ScanResult["metadata"],
+  options: TerminalOptions = {},
+): string[] {
+  const version = options.cliVersion ?? metadata.version;
+  const lines: string[] = [
     "",
     pc.dim(`  ${"─".repeat(60)}`),
     pc.dim(
-      `  Scanned in ${metadata.duration}ms | ariscan v${metadata.version} | Rubric ${metadata.rubricVersion}`,
+      `  Scanned in ${metadata.duration}ms | ariscan v${version} | Rubric ${metadata.rubricVersion}`,
     ),
-    "",
   ];
+  if (!options.verbose) {
+    lines.push(
+      pc.dim(`  You're reading the abstract. Pass ${pc.reset("--verbose")} for the full paper.`),
+    );
+  }
+  lines.push("");
+  return lines;
 }
 
 export function formatTerminal(result: ScanResult, options: TerminalOptions = {}): string {
@@ -312,7 +323,7 @@ export function formatTerminal(result: ScanResult, options: TerminalOptions = {}
     lines.push(...formatTopFindingsSection(result.findings));
   }
 
-  lines.push(...formatScanFooter(result.metadata));
+  lines.push(...formatScanFooter(result.metadata, options));
 
   return lines.join("\n") + "\n";
 }
