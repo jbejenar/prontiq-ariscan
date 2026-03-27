@@ -283,9 +283,7 @@ function formatScanFooter(
   ];
   if (!options.verbose) {
     lines.push(
-      pc.dim(
-        `  Seeing the highlights. Run with ${pc.reset("--verbose")} to unlock the full deep-dive.`,
-      ),
+      pc.dim(`  You're reading the abstract. Pass ${pc.reset("--verbose")} for the full paper.`),
     );
   }
   lines.push("");
