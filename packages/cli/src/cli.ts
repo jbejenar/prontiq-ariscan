@@ -1,7 +1,7 @@
 import { defineCommand, runMain } from "citty";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { realpathSync } from "node:fs";
+import { realpathSync, readFileSync } from "node:fs";
 import { access, writeFile } from "node:fs/promises";
 import {
   scan,
@@ -156,10 +156,15 @@ export async function dispatchCommand(args: Record<string, unknown>): Promise<vo
   await handleScanMode(repoPath, args as Parameters<typeof handleScanMode>[1], fixApplied);
 }
 
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const cliPkg = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf-8")) as {
+  version: string;
+};
+
 const main = defineCommand({
   meta: {
     name: "ariscan",
-    version: "0.2.0",
+    version: cliPkg.version,
     description: `Measure and improve repository readiness for AI coding agents
 
 Examples:
@@ -433,7 +438,7 @@ function outputScanResult(
   } else if (format === "markdown") {
     process.stdout.write(formatMarkdown(result));
   } else {
-    process.stdout.write(formatTerminal(result, { verbose, quiet }));
+    process.stdout.write(formatTerminal(result, { verbose, quiet, cliVersion: cliPkg.version }));
   }
 }
 
