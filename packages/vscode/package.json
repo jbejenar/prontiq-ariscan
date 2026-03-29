@@ -60,8 +60,8 @@
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@types/vscode": "^1.85.0",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.7.0",
-    "vitest": "^4.1.0"
+    "esbuild": "^0.27.4",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
   }
 }
